@@ -1,4 +1,7 @@
 -- CreateEnum
+CREATE TYPE "public"."RoleName" AS ENUM ('ADMIN', 'PASSENGER');
+
+-- CreateEnum
 CREATE TYPE "public"."BusType" AS ENUM ('MINIVAN_16', 'COACH_30', 'COACH_45', 'LIMOUSINE');
 
 -- CreateEnum
@@ -13,14 +16,23 @@ CREATE TYPE "public"."PaymentMethod" AS ENUM ('CASH', 'CREDIT_CARD', 'MOMO', 'ZA
 -- CreateTable
 CREATE TABLE "public"."User" (
     "id" SERIAL NOT NULL,
+    "uid" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "email" TEXT NOT NULL,
     "phone" TEXT,
-    "role" TEXT NOT NULL DEFAULT 'customer',
     "isActive" BOOLEAN NOT NULL DEFAULT true,
+    "roleId" INTEGER NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "User_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "public"."Role" (
+    "id" SERIAL NOT NULL,
+    "name" "public"."RoleName" NOT NULL,
+
+    CONSTRAINT "Role_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -74,10 +86,19 @@ CREATE TABLE "public"."Ticket" (
 );
 
 -- CreateIndex
+CREATE UNIQUE INDEX "User_uid_key" ON "public"."User"("uid");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "User_email_key" ON "public"."User"("email");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "Role_name_key" ON "public"."Role"("name");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "Bus_licensePlate_key" ON "public"."Bus"("licensePlate");
+
+-- AddForeignKey
+ALTER TABLE "public"."User" ADD CONSTRAINT "User_roleId_fkey" FOREIGN KEY ("roleId") REFERENCES "public"."Role"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "public"."Schedule" ADD CONSTRAINT "Schedule_busId_fkey" FOREIGN KEY ("busId") REFERENCES "public"."Bus"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

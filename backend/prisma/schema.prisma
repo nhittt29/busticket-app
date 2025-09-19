@@ -7,15 +7,27 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+//
+// MODELS
+//
+
 model User {
   id        Int      @id @default(autoincrement())
+  uid       String   @unique          // UID từ Firebase
   name      String
   email     String   @unique
   phone     String?
-  role      String   @default("customer") // 'customer' | 'admin'
   isActive  Boolean  @default(true)
+  role      Role     @relation(fields: [roleId], references: [id])
+  roleId    Int
   tickets   Ticket[]
   createdAt DateTime @default(now())
+}
+
+model Role {
+  id    Int       @id @default(autoincrement())
+  name  RoleName  @unique
+  users User[]
 }
 
 model Bus {
@@ -23,7 +35,7 @@ model Bus {
   name         String
   licensePlate String    @unique
   seatCount    Int
-  type         BusType   // enum thay vì string
+  type         BusType
   schedules    Schedule[]
 }
 
@@ -39,22 +51,22 @@ model Route {
 }
 
 model Schedule {
-  id          Int       @id @default(autoincrement())
-  bus         Bus       @relation(fields: [busId], references: [id])
+  id          Int             @id @default(autoincrement())
+  bus         Bus             @relation(fields: [busId], references: [id])
   busId       Int
-  route       Route     @relation(fields: [routeId], references: [id])
+  route       Route           @relation(fields: [routeId], references: [id])
   routeId     Int
   departureAt DateTime
   arrivalAt   DateTime
-  status      ScheduleStatus @default(UPCOMING)
+  status      ScheduleStatus  @default(UPCOMING)
   tickets     Ticket[]
 }
 
 model Ticket {
-  id            Int       @id @default(autoincrement())
-  user          User      @relation(fields: [userId], references: [id])
+  id            Int           @id @default(autoincrement())
+  user          User          @relation(fields: [userId], references: [id])
   userId        Int
-  schedule      Schedule  @relation(fields: [scheduleId], references: [id])
+  schedule      Schedule      @relation(fields: [scheduleId], references: [id])
   scheduleId    Int
   seatNumber    Int
   price         Float
@@ -66,6 +78,11 @@ model Ticket {
 //
 // ENUMS
 //
+
+enum RoleName {
+  ADMIN
+  PASSENGER
+}
 
 enum BusType {
   MINIVAN_16
