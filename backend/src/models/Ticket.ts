@@ -6,4 +6,5 @@ export interface Ticket {
   price: number;
   status: 'booked' | 'paid' | 'cancelled';
   createdAt: Date;
+  paymentMethod?: 'cash' | 'credit_card' | 'momo' | 'zalopay';
 }
