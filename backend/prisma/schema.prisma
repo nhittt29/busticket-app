@@ -1,0 +1,60 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  phone     String?
+  role      String   @default("customer")
+  tickets   Ticket[]
+  createdAt DateTime @default(now())
+}
+
+model Bus {
+  id           Int       @id @default(autoincrement())
+  name         String
+  licensePlate String    @unique
+  seatCount    Int
+  type         String?
+  schedules    Schedule[]
+}
+
+model Route {
+  id           Int       @id @default(autoincrement())
+  startPoint   String
+  endPoint     String
+  distanceKm   Float
+  durationMin  Int
+  intermediatePoints String?
+  schedules    Schedule[]
+}
+
+model Schedule {
+  id          Int      @id @default(autoincrement())
+  bus         Bus      @relation(fields: [busId], references: [id])
+  busId       Int
+  route       Route    @relation(fields: [routeId], references: [id])
+  routeId     Int
+  departureAt DateTime
+  arrivalAt   DateTime
+  tickets     Ticket[]
+}
+
+model Ticket {
+  id          Int      @id @default(autoincrement())
+  user        User     @relation(fields: [userId], references: [id])
+  userId      Int
+  schedule    Schedule @relation(fields: [scheduleId], references: [id])
+  scheduleId  Int
+  seatNumber  Int
+  price       Float
+  status      String   @default("booked")
+  createdAt   DateTime @default(now())
+}
