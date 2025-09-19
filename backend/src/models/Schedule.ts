@@ -4,4 +4,5 @@ export interface Schedule {
   routeId: number;
   departureAt: Date;
   arrivalAt: Date;
+  status?: 'upcoming' | 'ongoing' | 'completed' | 'cancelled';
 }

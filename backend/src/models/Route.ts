@@ -5,4 +5,5 @@ export interface Route {
   distanceKm: number;
   durationMin: number;
   intermediatePoints?: string;
+  estimatedPrice?: number;
 }
