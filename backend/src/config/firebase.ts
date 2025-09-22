@@ -1,8 +1,13 @@
 // src/config/firebase.ts
 import * as admin from 'firebase-admin';
+import { readFileSync } from 'fs';
 import path from 'path';
+import * as dotenv from 'dotenv';
 
-const serviceAccount = path.resolve(__dirname, '../config/firebase-service-account.json');
+dotenv.config(); // Tải biến môi trường từ .env
+
+const serviceAccountPath = process.env.FIREBASE_SERVICE_ACCOUNT_PATH || path.resolve(process.cwd(), 'src/config/firebase-service-account.json');
+const serviceAccount = JSON.parse(readFileSync(serviceAccountPath, 'utf8'));
 
 if (!admin.apps.length) {
   admin.initializeApp({

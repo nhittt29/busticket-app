@@ -1,7 +1,7 @@
 // src/services/auth.service.ts
 import { Injectable } from '@nestjs/common';
 import { auth, firestore } from '../config/firebase';
-import { PrismaService } from './prisma.service'; // Giả sử bạn có PrismaService
+import { PrismaService } from './prisma.service';
 import { User } from '../models/User';
 
 @Injectable()
