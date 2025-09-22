@@ -1,29 +1,61 @@
 // prisma/seed.ts
 import { PrismaClient } from '@prisma/client';
+import { auth } from '../src/config/firebase';
 
 const prisma = new PrismaClient();
 
 async function main() {
-  // Xóa dữ liệu cũ (optional)
-  await prisma.role.deleteMany();
-  await prisma.user.deleteMany();
-
-  // Tạo roles
-  const roles = await prisma.role.createMany({
-    data: [
-      { name: 'ADMIN' },
-      { name: 'PASSENGER' },
-    ],
-    skipDuplicates: true, // tránh lỗi nếu chạy nhiều lần
+  // Tạo roles nếu chưa có
+  const adminRole = await prisma.role.upsert({
+    where: { name: 'ADMIN' },
+    update: {},
+    create: { name: 'ADMIN' },
   });
 
-  console.log('Roles created:', roles);
+  const passengerRole = await prisma.role.upsert({
+    where: { name: 'PASSENGER' },
+    update: {},
+    create: { name: 'PASSENGER' },
+  });
+
+  console.log('Roles ready:', { adminRole, passengerRole });
+
+  // Admin mặc định
+  const adminEmail = 'admin@busticket.com';  // ✅ đúng cú pháp email
+  const adminPassword = '123456';            // Firebase yêu cầu >= 6 ký tự
+
+  let userRecord;
+  try {
+    userRecord = await auth.getUserByEmail(adminEmail);
+    console.log('Admin already exists in Firebase:', userRecord.uid);
+  } catch {
+    userRecord = await auth.createUser({
+      email: adminEmail,
+      password: adminPassword,
+      displayName: 'Super Admin',
+    });
+    console.log('Created admin in Firebase:', userRecord.uid);
+  }
+
+  const adminUser = await prisma.user.upsert({
+    where: { email: adminEmail },
+    update: {},
+    create: {
+      uid: userRecord.uid,
+      name: 'NhiTr',
+      email: adminEmail,
+      phone: '0123456789',
+      roleId: adminRole.id,
+      isActive: true,
+    },
+    include: { role: true },
+  });
+
+  console.log('Admin user ready:', adminUser);
 }
 
 main()
-  .then(async () => {
-    await prisma.$disconnect();
-  })
+  .then(async () => prisma.$disconnect())
   .catch(async (e) => {
     console.error(e);
     await prisma.$disconnect();
