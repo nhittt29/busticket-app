@@ -35,3 +35,6 @@ Hướng dẫn clone project busticket-app từ GitHub và chạy dự án
    - Frontend (Flutter):
      cd frontend
      flutter run
+
+5. Chạy seed
+   npx prisma db seed
