@@ -4,20 +4,28 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 async function main() {
-  await prisma.role.createMany({
+  // Xóa dữ liệu cũ (optional)
+  await prisma.role.deleteMany();
+  await prisma.user.deleteMany();
+
+  // Tạo roles
+  const roles = await prisma.role.createMany({
     data: [
-      { id: 1, name: 'ADMIN' },
-      { id: 2, name: 'PASSENGER' },
+      { name: 'ADMIN' },
+      { name: 'PASSENGER' },
     ],
+    skipDuplicates: true, // tránh lỗi nếu chạy nhiều lần
   });
-  console.log('Seeding completed successfully');
+
+  console.log('Roles created:', roles);
 }
 
 main()
-  .catch((e) => {
-    console.error('Seeding failed:', e);
-    process.exit(1);
-  })
-  .finally(async () => {
+  .then(async () => {
     await prisma.$disconnect();
+  })
+  .catch(async (e) => {
+    console.error(e);
+    await prisma.$disconnect();
+    process.exit(1);
   });
