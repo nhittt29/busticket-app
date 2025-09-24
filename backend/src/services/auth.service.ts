@@ -1,4 +1,4 @@
-// src/services/auth.service.ts
+//src/services/auth.service.ts
 import { Injectable } from '@nestjs/common';
 import { auth, firestore } from '../config/firebase';
 import { PrismaService } from './prisma.service';
