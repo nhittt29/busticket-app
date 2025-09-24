@@ -22,7 +22,7 @@ async function main() {
 
   // Admin mặc định
   const adminEmail = 'admin@busticket.com';  // ✅ đúng cú pháp email
-  const adminPassword = '123456';            // Firebase yêu cầu >= 6 ký tự
+  const adminPassword = 'Admin123/';            // Firebase yêu cầu >= 12 ký tự
 
   let userRecord;
   try {
