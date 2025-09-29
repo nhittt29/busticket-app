@@ -1,4 +1,4 @@
-import { IsEmail, IsString, MinLength, MaxLength, IsOptional } from 'class-validator';
+import { IsEmail, IsString, MinLength, MaxLength, IsOptional, IsNotEmpty } from 'class-validator';
 import { IsStrongPassword } from '../validators/password.validator';
 
 export class RegisterDto {
@@ -6,6 +6,7 @@ export class RegisterDto {
   email: string;
 
   @IsString()
+  @IsNotEmpty({ message: 'Password không được để trống' })
   @IsStrongPassword()
   password: string;
 

@@ -21,12 +21,10 @@ class _LoginScreenState extends State<LoginScreen> {
         final result = await ApiService.login(email, password);
 
         if (mounted) {
-          // Hiển thị thông báo
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Đăng nhập thành công')),
           );
 
-          // Điều hướng sang HomeScreen và truyền email
           Navigator.pushReplacementNamed(
             context,
             '/home',
@@ -40,9 +38,7 @@ class _LoginScreenState extends State<LoginScreen> {
           );
         }
       } finally {
-        if (mounted) {
-          setState(() => loading = false);
-        }
+        if (mounted) setState(() => loading = false);
       }
     }
   }
@@ -83,6 +79,12 @@ class _LoginScreenState extends State<LoginScreen> {
                   Navigator.pushNamed(context, '/register');
                 },
                 child: const Text("Chưa có tài khoản? Đăng ký"),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.pushNamed(context, '/forgot-password');
+                },
+                child: const Text("Quên mật khẩu?"),
               ),
             ],
           ),
