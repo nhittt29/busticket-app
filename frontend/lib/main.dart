@@ -5,6 +5,7 @@ import 'screens/register_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/forgot_password_screen.dart';
 import 'screens/reset_password_screen.dart';
+import 'theme/app_theme.dart'; // ✅ import AppTheme
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -19,7 +20,8 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'BusTicket App',
-      theme: ThemeData(primarySwatch: Colors.blue),
+      theme: AppTheme.lightTheme, // ✅ dùng theme pastel từ app_theme.dart
+      debugShowCheckedModeBanner: false,
       initialRoute: '/login',
       routes: {
         '/login': (context) => const LoginScreen(),
@@ -32,7 +34,7 @@ class MyApp extends StatelessWidget {
         },
         '/reset-password': (context) {
           final args = ModalRoute.of(context)!.settings.arguments as Map;
-          return ResetPasswordScreen(email: args['email']); // ✅ sửa lại
+          return ResetPasswordScreen(email: args['email']); // ✅ truyền email
         },
       },
     );

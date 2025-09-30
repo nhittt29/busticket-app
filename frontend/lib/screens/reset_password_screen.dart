@@ -49,6 +49,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
           child: Column(
             children: [
               Text("Email: ${widget.email}"),
+              const SizedBox(height: 12),
               TextFormField(
                 decoration: const InputDecoration(labelText: "Mật khẩu mới"),
                 obscureText: true,
@@ -56,7 +57,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                 validator: (value) =>
                     value != null && value.length >= 8 ? null : "Mật khẩu ít nhất 8 ký tự",
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
               TextFormField(
                 decoration: const InputDecoration(labelText: "Xác nhận mật khẩu"),
                 obscureText: true,

@@ -25,6 +25,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('Đăng ký thành công: ${result['email']}')),
           );
+          Navigator.pop(context); // quay về login sau khi đăng ký
         }
       } catch (e) {
         if (mounted) {
@@ -33,9 +34,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           );
         }
       } finally {
-        if (mounted) {
-          setState(() => loading = false);
-        }
+        if (mounted) setState(() => loading = false);
       }
     }
   }
@@ -48,7 +47,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         padding: const EdgeInsets.all(16),
         child: Form(
           key: _formKey,
-          child: Column(
+          child: ListView(
             children: [
               TextFormField(
                 decoration: const InputDecoration(labelText: 'Email'),
@@ -56,21 +55,24 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 validator: (value) =>
                     value != null && value.contains('@') ? null : 'Email không hợp lệ',
               ),
+              const SizedBox(height: 12),
               TextFormField(
                 decoration: const InputDecoration(labelText: 'Mật khẩu'),
                 obscureText: true,
                 onChanged: (value) => password = value,
                 validator: (value) =>
-                    value != null && value.length >= 12
+                    value != null && value.length >= 8
                         ? null
-                        : 'Mật khẩu tối thiểu 12 ký tự',
+                        : 'Mật khẩu tối thiểu 8 ký tự',
               ),
+              const SizedBox(height: 12),
               TextFormField(
                 decoration: const InputDecoration(labelText: 'Họ và tên'),
                 onChanged: (value) => name = value,
                 validator: (value) =>
                     value != null && value.isNotEmpty ? null : 'Bắt buộc',
               ),
+              const SizedBox(height: 12),
               TextFormField(
                 decoration: const InputDecoration(labelText: 'Số điện thoại'),
                 onChanged: (value) => phone = value,
@@ -79,7 +81,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ElevatedButton(
                 onPressed: loading ? null : handleRegister,
                 child: loading
-                    ? const CircularProgressIndicator()
+                    ? const CircularProgressIndicator(color: Colors.white)
                     : const Text('Đăng ký'),
               ),
             ],

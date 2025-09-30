@@ -25,7 +25,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             const SnackBar(content: Text("Đã gửi email đặt lại mật khẩu")),
           );
 
-          // 👇 Chuyển sang màn hình reset mật khẩu, truyền email
           Navigator.push(
             context,
             MaterialPageRoute(
@@ -54,6 +53,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         child: Form(
           key: _formKey,
           child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               TextFormField(
                 decoration: const InputDecoration(labelText: "Email của bạn"),

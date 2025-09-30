@@ -28,7 +28,11 @@ class _LoginScreenState extends State<LoginScreen> {
           Navigator.pushReplacementNamed(
             context,
             '/home',
-            arguments: {"email": result['email']},
+            arguments: {
+              "email": email,
+              "uid": result['uid'],
+              "token": result['idToken'],
+            },
           );
         }
       } catch (e) {
@@ -54,19 +58,32 @@ class _LoginScreenState extends State<LoginScreen> {
           child: Column(
             children: [
               TextFormField(
-                decoration: const InputDecoration(labelText: 'Email'),
+                decoration: const InputDecoration(
+                  labelText: 'Email',
+                  contentPadding: EdgeInsets.symmetric(
+                    vertical: 12,
+                    horizontal: 16,
+                  ), // 👈 tạo khoảng cách trong ô
+                ),
                 onChanged: (value) => email = value,
                 validator: (value) =>
                     value != null && value.contains('@') ? null : 'Email không hợp lệ',
               ),
+              const SizedBox(height: 20), // 👈 cách Email và Mật khẩu
               TextFormField(
-                decoration: const InputDecoration(labelText: 'Mật khẩu'),
+                decoration: const InputDecoration(
+                  labelText: 'Mật khẩu',
+                  contentPadding: EdgeInsets.symmetric(
+                    vertical: 12,
+                    horizontal: 16,
+                  ),
+                ),
                 obscureText: true,
                 onChanged: (value) => password = value,
                 validator: (value) =>
                     value != null && value.length >= 6 ? null : 'Mật khẩu tối thiểu 6 ký tự',
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 30),
               ElevatedButton(
                 onPressed: loading ? null : handleLogin,
                 child: loading

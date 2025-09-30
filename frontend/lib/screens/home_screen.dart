@@ -14,7 +14,11 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Trang chính"),
+        title: const Text(
+          "Trang chính",
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        centerTitle: true,
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
@@ -24,9 +28,33 @@ class HomeScreen extends StatelessWidget {
         ],
       ),
       body: Center(
-        child: Text(
-          "Xin chào, $email 👋",
-          style: const TextStyle(fontSize: 20),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                "Xin chào 👋",
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.blue.shade900,
+                    ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                email,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      color: Colors.grey.shade800,
+                    ),
+              ),
+              const SizedBox(height: 30),
+              ElevatedButton.icon(
+                onPressed: () => handleLogout(context),
+                icon: const Icon(Icons.logout),
+                label: const Text("Đăng xuất"),
+              ),
+            ],
+          ),
         ),
       ),
     );
