@@ -39,6 +39,10 @@ CREATE TABLE "Role" (
 CREATE TABLE "Brand" (
     "id" SERIAL NOT NULL,
     "name" TEXT NOT NULL,
+    "phoneNumber" TEXT,
+    "image" TEXT,
+    "address" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "Brand_pkey" PRIMARY KEY ("id")
 );
@@ -51,6 +55,7 @@ CREATE TABLE "Bus" (
     "seatCount" INTEGER NOT NULL,
     "type" "BusType" NOT NULL,
     "brandId" INTEGER NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "Bus_pkey" PRIMARY KEY ("id")
 );

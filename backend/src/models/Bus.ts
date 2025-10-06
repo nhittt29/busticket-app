@@ -13,6 +13,7 @@ export interface Bus {
   licensePlate: string;
   seatCount: number;
   type: BusType;
-  brandId: number;   // 🔹 Khóa ngoại trỏ đến Brand
-  brand?: Brand;     // 🔹 Quan hệ (optional)
+  brandId: number;   // Khóa ngoại trỏ đến Brand
+  brand?: Brand;     // Quan hệ (optional)
+  createdAt?: Date;
 }

@@ -13,7 +13,7 @@ datasource db {
 
 model User {
   id        Int      @id @default(autoincrement())
-  uid       String   @unique          // UID từ Firebase
+  uid       String   @unique
   name      String
   email     String   @unique
   phone     String?
@@ -31,9 +31,13 @@ model Role {
 }
 
 model Brand {
-  id    Int    @id @default(autoincrement())
-  name  String @unique
-  buses Bus[]
+  id           Int       @id @default(autoincrement())
+  name         String    @unique
+  phoneNumber  String?
+  image        String?   // 👈 có thể null
+  address      String?
+  buses        Bus[]
+  createdAt    DateTime  @default(now())
 }
 
 model Bus {
@@ -45,6 +49,7 @@ model Bus {
   brand        Brand     @relation(fields: [brandId], references: [id])
   brandId      Int
   schedules    Schedule[]
+  createdAt    DateTime  @default(now())
 }
 
 model Route {

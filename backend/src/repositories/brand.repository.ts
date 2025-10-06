@@ -7,11 +7,16 @@ export class BrandRepository {
   constructor(private prisma: PrismaService) {}
 
   findAll() {
-    return this.prisma.brand.findMany();
+    return this.prisma.brand.findMany({
+      include: { buses: true }, // 👈 có thể trả về danh sách xe nếu muốn
+    });
   }
 
   findOne(id: number) {
-    return this.prisma.brand.findUnique({ where: { id } });
+    return this.prisma.brand.findUnique({
+      where: { id },
+      include: { buses: true },
+    });
   }
 
   create(data: CreateBrandDto) {

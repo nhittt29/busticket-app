@@ -36,5 +36,5 @@ export class UpdateBusDto {
   type?: BusType;
 
   @IsInt()
-  brandId?: number; // ✅ thêm dòng này
+  brandId?: number;
 }
