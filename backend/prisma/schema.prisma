@@ -30,12 +30,20 @@ model Role {
   users User[]
 }
 
+model Brand {
+  id    Int    @id @default(autoincrement())
+  name  String @unique
+  buses Bus[]
+}
+
 model Bus {
   id           Int       @id @default(autoincrement())
   name         String
   licensePlate String    @unique
   seatCount    Int
   type         BusType
+  brand        Brand     @relation(fields: [brandId], references: [id])
+  brandId      Int
   schedules    Schedule[]
 }
 
