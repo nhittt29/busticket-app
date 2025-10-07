@@ -23,6 +23,7 @@ CREATE TABLE "User" (
     "isActive" BOOLEAN NOT NULL DEFAULT true,
     "roleId" INTEGER NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "User_pkey" PRIMARY KEY ("id")
 );
@@ -43,6 +44,7 @@ CREATE TABLE "Brand" (
     "image" TEXT,
     "address" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "Brand_pkey" PRIMARY KEY ("id")
 );
@@ -56,6 +58,7 @@ CREATE TABLE "Bus" (
     "type" "BusType" NOT NULL,
     "brandId" INTEGER NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "Bus_pkey" PRIMARY KEY ("id")
 );
@@ -69,6 +72,8 @@ CREATE TABLE "Route" (
     "durationMin" INTEGER NOT NULL,
     "intermediatePoints" TEXT,
     "estimatedPrice" DOUBLE PRECISION,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "Route_pkey" PRIMARY KEY ("id")
 );
@@ -81,6 +86,8 @@ CREATE TABLE "Schedule" (
     "departureAt" TIMESTAMP(3) NOT NULL,
     "arrivalAt" TIMESTAMP(3) NOT NULL,
     "status" "ScheduleStatus" NOT NULL DEFAULT 'UPCOMING',
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "Schedule_pkey" PRIMARY KEY ("id")
 );
@@ -95,6 +102,7 @@ CREATE TABLE "Ticket" (
     "status" "TicketStatus" NOT NULL DEFAULT 'BOOKED',
     "paymentMethod" "PaymentMethod",
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "Ticket_pkey" PRIMARY KEY ("id")
 );
@@ -106,13 +114,49 @@ CREATE UNIQUE INDEX "User_uid_key" ON "User"("uid");
 CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
 
 -- CreateIndex
+CREATE INDEX "User_roleId_idx" ON "User"("roleId");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "Role_name_key" ON "Role"("name");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Brand_name_key" ON "Brand"("name");
 
 -- CreateIndex
+CREATE INDEX "Brand_name_idx" ON "Brand"("name");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "Bus_licensePlate_key" ON "Bus"("licensePlate");
+
+-- CreateIndex
+CREATE INDEX "Bus_type_idx" ON "Bus"("type");
+
+-- CreateIndex
+CREATE INDEX "Bus_brandId_idx" ON "Bus"("brandId");
+
+-- CreateIndex
+CREATE INDEX "Route_startPoint_idx" ON "Route"("startPoint");
+
+-- CreateIndex
+CREATE INDEX "Route_endPoint_idx" ON "Route"("endPoint");
+
+-- CreateIndex
+CREATE INDEX "Schedule_busId_idx" ON "Schedule"("busId");
+
+-- CreateIndex
+CREATE INDEX "Schedule_routeId_idx" ON "Schedule"("routeId");
+
+-- CreateIndex
+CREATE INDEX "Schedule_status_idx" ON "Schedule"("status");
+
+-- CreateIndex
+CREATE INDEX "Ticket_userId_idx" ON "Ticket"("userId");
+
+-- CreateIndex
+CREATE INDEX "Ticket_scheduleId_idx" ON "Ticket"("scheduleId");
+
+-- CreateIndex
+CREATE INDEX "Ticket_status_idx" ON "Ticket"("status");
 
 -- AddForeignKey
 ALTER TABLE "User" ADD CONSTRAINT "User_roleId_fkey" FOREIGN KEY ("roleId") REFERENCES "Role"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
