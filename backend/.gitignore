@@ -58,5 +58,6 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 # generated prisma
 /generated/prisma
 
-# Hoặc nếu chỉ muốn ignore file cụ thể:
-src/config/firebase-service-account.json
+# Firebase / Google service account
+firebase-service-account.json
+google-services.json
