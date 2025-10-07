@@ -1,40 +1,71 @@
+# Hướng dẫn clone project Busticket-App từ GitHub và chạy dự án
 
-Hướng dẫn clone project busticket-app từ GitHub và chạy dự án
+## 1. Clone repo
 
-1. Clone repo
-   git clone https://github.com/nhittt29/busticket-app.git
+Sử dụng lệnh sau để clone repository:
 
-   Kết quả sau khi clone:
-   busticket-app/
-    ├─ backend/
-    ├─ frontend/
-    ├─ .gitignore
-    └─ README.md
+```bash
+git clone [https://github.com/nhittt29/busticket-app.git](https://github.com/nhittt29/busticket-app.git)
+```
 
-2. Cài dependencies cho từng phần
+```Project structure
+Kết quả sau khi clone:
+busticket-app/
+ ├─ backend/
+ ├─ frontend/
+ ├─ .gitignore
+ └─ README.md
+```
 
-   - Backend:
-     cd busticket-app/backend
-     npm install
+## 2. Cài dependencies cho từng phần
 
-   - Frontend (Flutter):
-     cd ../frontend
-     flutter pub get
+- **Backend:**
 
-3. Thêm file .env (quan trọng)
-   Vì .env đã bị ignore, nên sau khi clone repo sẽ không có file này.
-   Bạn phải tự tạo lại trong backend/.env, ví dụ:
+```bash
+cd busticket-app/backend
+npm install
+```
 
-   DATABASE_URL="postgresql://postgres:your_password@localhost:5432/busticket_db?schema=public"
+- **Frontend (Flutter):**
 
-4. Chạy dự án
-   - Backend:
-     cd backend
-     npm run start:dev
+```bash
+cd ../frontend
+flutter pub get
+```
 
-   - Frontend (Flutter):
-     cd frontend
-     flutter run
+## 3. Thêm file `.env` (quan trọng)
 
-5. Chạy seed
-   npx prisma db seed
+File `.env` đã bị `.gitignore`, nên sau khi clone repo sẽ không có file này.  
+Bạn phải tự tạo lại trong `backend/.env`. Ví dụ:
+
+```env
+# PostgreSQL
+DATABASE_URL="postgresql://postgres:your_password@localhost:5432/busticket_db?schema=public"
+
+# Firebase
+FIREBASE_SERVICE_ACCOUNT_PATH="./src/config/firebase-service-account.json"
+```
+
+## 4. Chạy dự án
+
+- **Backend:**
+
+```bash
+cd backend
+npm run start:dev
+```
+
+- **Frontend (Flutter):**
+
+```bash
+cd frontend
+flutter run
+```
+
+## 5. Chạy seed database (nếu có)
+
+- **Backend:**
+
+```bash
+npx ts-node prisma/seed.ts
+```
