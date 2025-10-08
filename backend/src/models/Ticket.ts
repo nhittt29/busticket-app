@@ -1,3 +1,5 @@
+import { Schedule } from './Schedule';
+
 export enum TicketStatus {
   BOOKED = 'BOOKED',
   PAID = 'PAID',
@@ -13,11 +15,13 @@ export enum PaymentMethod {
 
 export interface Ticket {
   id: number;
-  userId: number;
-  scheduleId: number;
-  seatNumber: number;
-  price: number;
-  status: TicketStatus;
-  createdAt: Date;
-  paymentMethod?: PaymentMethod;
+  userId: number;               // Người đặt vé
+  scheduleId: number;           // Chuyến xe
+  seatNumber: number;           // Số ghế
+  price: number;                // Giá vé
+  status: TicketStatus;         // Trạng thái vé
+  paymentMethod?: PaymentMethod; // Phương thức thanh toán (nếu có)
+  createdAt?: string;           // Ngày tạo vé
+  updatedAt?: string;           // Ngày cập nhật
+  schedule?: Schedule;          // Thông tin chuyến xe
 }
