@@ -2,8 +2,9 @@ export interface Route {
   id: number;
   startPoint: string;
   endPoint: string;
-  distanceKm: number;
-  durationMin: number;
-  intermediatePoints?: string;
-  estimatedPrice?: number;
+  averageDurationMin: number;
+  lowestPrice: number;
+  distanceKm?: number;
+  image?: string;
+  brandId?: number;
 }

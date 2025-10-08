@@ -68,10 +68,11 @@ CREATE TABLE "Route" (
     "id" SERIAL NOT NULL,
     "startPoint" TEXT NOT NULL,
     "endPoint" TEXT NOT NULL,
-    "distanceKm" DOUBLE PRECISION NOT NULL,
-    "durationMin" INTEGER NOT NULL,
-    "intermediatePoints" TEXT,
-    "estimatedPrice" DOUBLE PRECISION,
+    "averageDurationMin" INTEGER NOT NULL,
+    "lowestPrice" DOUBLE PRECISION NOT NULL,
+    "distanceKm" DOUBLE PRECISION,
+    "image" TEXT,
+    "brandId" INTEGER,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -163,6 +164,9 @@ ALTER TABLE "User" ADD CONSTRAINT "User_roleId_fkey" FOREIGN KEY ("roleId") REFE
 
 -- AddForeignKey
 ALTER TABLE "Bus" ADD CONSTRAINT "Bus_brandId_fkey" FOREIGN KEY ("brandId") REFERENCES "Brand"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Route" ADD CONSTRAINT "Route_brandId_fkey" FOREIGN KEY ("brandId") REFERENCES "Brand"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Schedule" ADD CONSTRAINT "Schedule_busId_fkey" FOREIGN KEY ("busId") REFERENCES "Bus"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
