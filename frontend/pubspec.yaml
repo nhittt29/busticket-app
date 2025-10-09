@@ -35,3 +35,7 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  
+  # ✅ Khai báo đường dẫn ảnh (logo, background,…)
+  assets:
+    - assets/images/
