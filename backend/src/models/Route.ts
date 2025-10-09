@@ -5,13 +5,12 @@ export interface Route {
   averageDurationMin: number;   // Thời lượng trung bình (phút)
   lowestPrice: number;          // Giá vé thấp nhất
   distanceKm?: number;          // Quãng đường ước lượng (km)
-  image?: string;               // Hình minh họa tuyến
   brandId?: number;             // Nhà xe chính phục vụ
   brand?: {
     id: number;
     name: string;
     image?: string;
   };                            // Thông tin cơ bản của nhà xe (optional)
-  createdAt?: Date;      // ✅
-  updatedAt?: Date;             // ISO date string
+  createdAt?: Date;
+  updatedAt?: Date;
 }

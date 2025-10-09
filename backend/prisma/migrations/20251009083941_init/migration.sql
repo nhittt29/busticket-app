@@ -71,7 +71,6 @@ CREATE TABLE "Route" (
     "averageDurationMin" INTEGER NOT NULL,
     "lowestPrice" DOUBLE PRECISION NOT NULL,
     "distanceKm" DOUBLE PRECISION,
-    "image" TEXT,
     "brandId" INTEGER,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,

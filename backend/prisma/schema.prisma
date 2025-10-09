@@ -75,7 +75,6 @@ model Route {
   averageDurationMin Int                                 // Thời lượng trung bình (phút)
   lowestPrice        Float                               // Giá vé thấp nhất
   distanceKm         Float?                              // Quãng đường (km)
-  image              String?                             // Hình minh họa tuyến đường hoặc bến xe
   brand              Brand?      @relation(fields: [brandId], references: [id])
   brandId            Int?                                // Nhà xe chính phục vụ tuyến
   schedules          Schedule[]                          // Các chuyến chạy cụ thể
