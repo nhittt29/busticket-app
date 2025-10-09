@@ -12,6 +12,6 @@ export interface Route {
     name: string;
     image?: string;
   };                            // Thông tin cơ bản của nhà xe (optional)
-  createdAt: string;            // ISO date string
-  updatedAt: string;            // ISO date string
+  createdAt?: Date;      // ✅
+  updatedAt?: Date;             // ISO date string
 }

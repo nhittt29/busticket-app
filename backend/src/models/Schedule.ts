@@ -13,11 +13,11 @@ export interface Schedule {
   id: number;
   busId: number;             // Khóa ngoại Bus
   routeId: number;           // Khóa ngoại Route
-  departureAt: string;       // Thời gian khởi hành
-  arrivalAt: string;         // Thời gian đến
+  departureAt: Date;        // Thời gian khởi hành
+  arrivalAt: Date;         // Thời gian đến
   status: ScheduleStatus;    // Trạng thái chuyến
-  createdAt?: string;
-  updatedAt?: string;
+  createdAt?: Date;     
+  updatedAt?: Date;  
 
   // Quan hệ
   bus?: Bus;

@@ -17,6 +17,6 @@ export interface Bus {
   brandId: number;           // Khóa ngoại trỏ đến Brand
   brand?: Brand;             // Quan hệ Brand
   schedules?: Schedule[];    // Danh sách chuyến chạy
-  createdAt?: string;        // Ngày tạo (ISO string)
-  updatedAt?: string;        // Ngày cập nhật (ISO string)
+  createdAt?: Date;      // ✅
+  updatedAt?: Date;  
 }

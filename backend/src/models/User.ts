@@ -3,14 +3,14 @@ import { Ticket } from './Ticket';
 
 export interface User {
   id: number;
-  uid: string;           // UID từ Firebase
+  uid: string;           
   name: string;
   email: string;
   phone?: string;
-  isActive: boolean;     // Trạng thái hoạt động
-  roleId: number;        // Khóa ngoại tham chiếu Role
-  role?: Role;           // Quan hệ với Role
-  tickets?: Ticket[];    // Danh sách vé của người dùng
-  createdAt?: string;    // Ngày tạo (ISO string)
-  updatedAt?: string;    // Ngày cập nhật (ISO string)
+  isActive: boolean;
+  roleId: number;
+  role?: Role;
+  tickets?: Ticket[];
+  createdAt?: Date;      
+  updatedAt?: Date;     
 }

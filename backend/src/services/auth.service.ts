@@ -6,7 +6,7 @@ import {
 import { auth, firestore } from '../config/firebase';
 import { PrismaService } from './prisma.service';
 import { UserRepository } from '../repositories/user.repository';
-import { User } from '../models/User';
+import { User } from '@prisma/client';
 
 @Injectable()
 export class AuthService {
@@ -28,12 +28,14 @@ export class AuthService {
         throw new ConflictException('Email đã được đăng ký');
       }
 
+      // 🔹 Tạo user trên Firebase
       const userRecord = await auth.createUser({
         email,
         password,
         displayName: name,
       });
 
+      // 🔹 Lưu Firestore (tùy chọn)
       await firestore.collection('users').doc(userRecord.uid).set({
         name,
         email,
@@ -41,6 +43,7 @@ export class AuthService {
         createdAt: new Date(),
       });
 
+      // 🔹 Lấy role mặc định PASSENGER
       const passengerRole = await this.prisma.role.findUnique({
         where: { name: 'PASSENGER' },
       });
@@ -49,6 +52,7 @@ export class AuthService {
         throw new Error('Role PASSENGER not found in DB');
       }
 
+      // 🔹 Tạo user trong database (Prisma)
       const newUser = await this.userRepository.createUser({
         uid: userRecord.uid,
         name,
@@ -56,10 +60,9 @@ export class AuthService {
         phone,
         isActive: true,
         roleId: passengerRole.id,
-        createdAt: new Date(),
       });
 
-      return newUser as User;
+      return newUser; // ✅ Không cần ép kiểu
     } catch (error) {
       if (error instanceof ConflictException) throw error;
       throw new Error(`Registration failed: ${error.message}`);
@@ -106,7 +109,7 @@ export class AuthService {
     }
   }
 
-  // Đổi mật khẩu (admin hoặc user có uid)
+  // Đổi mật khẩu
   async changePassword(
     uid: string,
     newPassword: string,

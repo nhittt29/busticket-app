@@ -21,7 +21,7 @@ export interface Ticket {
   price: number;                // Giá vé
   status: TicketStatus;         // Trạng thái vé
   paymentMethod?: PaymentMethod; // Phương thức thanh toán (nếu có)
-  createdAt?: string;           // Ngày tạo vé
-  updatedAt?: string;           // Ngày cập nhật
+  createdAt?: Date;      // ✅
+  updatedAt?: Date;  
   schedule?: Schedule;          // Thông tin chuyến xe
 }
