@@ -6,130 +6,198 @@ class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key, required this.email});
 
   void handleLogout(BuildContext context) {
-    // ⚡ Ở đây nếu có token thì xóa token tại SharedPreferences trước
     Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
   }
 
   @override
   Widget build(BuildContext context) {
+    final List<Map<String, dynamic>> features = [
+      {"icon": Icons.search, "label": "Tìm chuyến xe", "color": Colors.blueAccent, "route": "/search-trips"},
+      {"icon": Icons.confirmation_number, "label": "Vé của tôi", "color": Colors.teal, "route": "/my-tickets"},
+      {"icon": Icons.payment, "label": "Thanh toán", "color": Colors.orangeAccent, "route": "/payment"},
+      {"icon": Icons.feedback, "label": "Phản hồi", "color": Colors.purpleAccent, "route": "/feedback"},
+      {"icon": Icons.support_agent, "label": "Hỗ trợ", "color": Colors.green, "route": "/support"},
+      {"icon": Icons.directions_bus, "label": "Quản lý xe", "color": Colors.redAccent, "route": "/buses"},
+      {"icon": Icons.alt_route, "label": "Tuyến đường", "color": Colors.indigo, "route": "/routes"},
+      {"icon": Icons.calendar_month, "label": "Lịch trình", "color": Colors.cyan, "route": "/schedules"},
+      {"icon": Icons.people, "label": "Người dùng", "color": Colors.brown, "route": "/users"},
+      {"icon": Icons.bar_chart, "label": "Báo cáo", "color": Colors.amber, "route": "/reports"},
+    ];
+
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xFFEAF6FF), Color(0xFFC9E4FB)],
+      backgroundColor: const Color(0xFFEAF6FF),
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        centerTitle: true,
+        title: const Text(
+          "BusTicket App",
+          style: TextStyle(
+            color: Colors.black87,
+            fontWeight: FontWeight.bold,
+            fontSize: 24,
           ),
         ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              // AppBar với logo và nút đăng xuất
-              Container(
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Image.asset(
-                      'assets/images/bus_logo.png',
-                      height: 50, // Logo nhỏ hơn để phù hợp với AppBar
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.logout, color: Colors.red),
-                      onPressed: () => handleLogout(context),
-                      tooltip: "Đăng xuất",
-                    ),
-                  ],
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout, color: Colors.redAccent),
+            onPressed: () => handleLogout(context),
+          ),
+        ],
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header chào người dùng với gradient và hiệu ứng
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Colors.blue.shade50, Colors.white],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
                 ),
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.blue.shade100.withValues(alpha: 0.3), // Thay withOpacity bằng withValues
+                    blurRadius: 12,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
               ),
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const SizedBox(height: 10),
-                      Text(
-                        "Xin chào 👋, $email",
-                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.blue.shade900,
-                            ),
-                      ),
-                      const SizedBox(height: 20),
-                      // Card lịch trình
-                      Card(
-                        elevation: 4,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: ListTile(
-                          leading: const Icon(Icons.schedule, color: Color(0xFF0077B6)),
-                          title: const Text("Xem lịch trình"),
-                          subtitle: const Text("Kiểm tra các chuyến xe gần nhất"),
-                          trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                          onTap: () {
-                            // Điều hướng đến màn hình lịch trình
-                          },
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      // Card đặt vé
-                      Card(
-                        elevation: 4,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: ListTile(
-                          leading: const Icon(Icons.confirmation_number, color: Color(0xFF0077B6)),
-                          title: const Text("Đặt vé ngay"),
-                          subtitle: const Text("Đặt vé nhanh chóng và tiện lợi"),
-                          trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                          onTap: () {
-                            // Điều hướng đến màn hình đặt vé
-                          },
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      // Card thông báo
-                      Card(
-                        elevation: 4,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: ListTile(
-                          leading: const Icon(Icons.notifications, color: Color(0xFF0077B6)),
-                          title: const Text("Thông báo"),
-                          subtitle: const Text("Cập nhật tin tức và ưu đãi"),
-                          trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                          onTap: () {
-                            // Điều hướng đến màn hình thông báo
-                          },
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      // Nút đăng xuất
-                      Center(
-                        child: ElevatedButton.icon(
-                          onPressed: () => handleLogout(context),
-                          icon: const Icon(Icons.logout),
-                          label: const Text("Đăng xuất"),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.red,
-                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 35,
+                    backgroundColor: Colors.blue.shade100,
+                    child: const Icon(Icons.person, size: 40, color: Colors.blue),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          "Xin chào 👋",
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.blue,
                           ),
                         ),
-                      ),
-                      const SizedBox(height: 20),
-                    ],
+                        Text(
+                          email,
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+            // Tiêu đề chức năng
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 8),
+              child: Text(
+                "Khám phá tính năng",
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
                 ),
               ),
-            ],
-          ),
+            ),
+            const SizedBox(height: 15),
+            // Grid chức năng với thiết kế hiện đại
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey.shade200,
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: GridView.builder(
+                itemCount: features.length,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 3,
+                  mainAxisSpacing: 15,
+                  crossAxisSpacing: 10,
+                  childAspectRatio: 1.0,
+                ),
+                itemBuilder: (context, index) {
+                  final item = features[index];
+                  return GestureDetector(
+                    onTap: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text("Chuyển đến: ${item['label']}"),
+                          duration: const Duration(seconds: 1),
+                        ),
+                      );
+                      // Navigator.pushNamed(context, item['route']);
+                    },
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            (item['color'] as Color).withValues(alpha: 0.8), // Thay withOpacity bằng withValues
+                            (item['color'] as Color).withValues(alpha: 0.5), // Thay withOpacity bằng withValues
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: (item['color'] as Color).withValues(alpha: 0.2), // Thay withOpacity bằng withValues
+                            blurRadius: 6,
+                            offset: const Offset(0, 3),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            item['icon'] as IconData,
+                            color: Colors.white,
+                            size: 30,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            item['label'] as String,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: 20),
+          ],
         ),
       ),
     );
