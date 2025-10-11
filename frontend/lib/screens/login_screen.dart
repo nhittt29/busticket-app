@@ -242,11 +242,14 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                     style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: Colors.black45, width: 2.0),
+                      side: BorderSide.none, // Loại bỏ viền đen
                       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
+                      backgroundColor: Colors.white, // Nền trắng để nổi bật
+                      elevation: 2, // Thêm shadow nhẹ
+                      shadowColor: Colors.grey.shade300, // Viền shadow nhẹ nhàng
                     ),
                   ),
                   const SizedBox(width: 40),
@@ -260,11 +263,14 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                     style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: Colors.black45, width: 2.0),
+                      side: BorderSide.none, // Loại bỏ viền đen
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
+                      backgroundColor: Colors.white, // Nền trắng để nổi bật
+                      elevation: 2, // Thêm shadow nhẹ
+                      shadowColor: Colors.grey.shade300, // Viền shadow nhẹ nhàng
                     ),
                   ),
                 ],

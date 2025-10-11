@@ -26,7 +26,12 @@ dependencies:
 
   # ✅ Firestore (nếu muốn lưu thêm thông tin user, vé xe…)
   cloud_firestore: ^6.0.2
+
+  # ✅ Google Fonts for custom typography
   google_fonts: ^6.3.2
+
+  # ✅ Image Picker for selecting images from gallery or camera
+  image_picker: ^1.1.2
 
 dev_dependencies:
   flutter_test:
