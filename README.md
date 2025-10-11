@@ -40,10 +40,10 @@ Bạn phải tự tạo lại trong `backend/.env`. Ví dụ:
 
 ```env
 # PostgreSQL
-DATABASE_URL="postgresql://postgres:your_password@localhost:5432/busticket_db?schema=public"
+DATABASE_URL="postgresql://<username>:<password>@localhost:5432/busticket-app?schema=public"
 
 # Firebase
-FIREBASE_SERVICE_ACCOUNT_PATH="./src/config/firebase-service-account.json"
+FIREBASE_SERVICE_ACCOUNT_PATH="./src/config/firebase.json"
 ```
 
 ## 4. Chạy dự án
