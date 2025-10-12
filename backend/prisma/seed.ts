@@ -1,13 +1,27 @@
 // prisma/seed.ts
 import { PrismaClient } from '@prisma/client';
 import { auth } from '../src/config/firebase';
+import * as fs from 'fs';
+import * as path from 'path';
 
 const prisma = new PrismaClient();
 
 async function main() {
   try {
     // ======================================
-    // 🔹 1. Tạo Roles nếu chưa có
+    // 🔹 1. Kiểm tra thư mục lưu ảnh
+    // ======================================
+    const avatarDir = path.join(__dirname, '..', 'uploads', 'avatars');
+    if (!fs.existsSync(avatarDir)) {
+      fs.mkdirSync(avatarDir, { recursive: true });
+      console.log('📁 Created folder:', avatarDir);
+    }
+
+    // Đường dẫn avatar mặc định
+    const defaultAvatar = 'uploads/avatars/default.png';
+
+    // ======================================
+    // 🔹 2. Tạo Roles nếu chưa có
     // ======================================
     const adminRole = await prisma.role.upsert({
       where: { name: 'ADMIN' },
@@ -24,7 +38,7 @@ async function main() {
     console.log('✅ Roles ready:', { adminRole, passengerRole });
 
     // ======================================
-    // 🔹 2. Tạo Admin mặc định
+    // 🔹 3. Tạo Admin mặc định
     // ======================================
     const adminEmail = 'admin@busticket.com'; // ✅ Email hợp lệ
     const adminPassword = 'Admin123/';        // ✅ Mật khẩu đủ mạnh cho Firebase
@@ -46,16 +60,19 @@ async function main() {
     }
 
     // ======================================
-    // 🔹 3. Đồng bộ Admin vào Prisma DB
+    // 🔹 4. Đồng bộ Admin vào Prisma DB
     // ======================================
     const adminUser = await prisma.user.upsert({
       where: { email: adminEmail },
-      update: {},
+      update: {
+        avatar: defaultAvatar, // Cập nhật nếu đã có user
+      },
       create: {
         uid: userRecord.uid,
-        name: 'NhiTr',              // 👈 tên hiển thị trong hệ thống
+        name: 'NhiTr',                // 👈 tên hiển thị trong hệ thống
         email: adminEmail,
         phone: '0123456789',
+        avatar: defaultAvatar,        // ✅ thêm avatar mặc định
         roleId: adminRole.id,
         isActive: true,
       },
@@ -63,7 +80,7 @@ async function main() {
     });
 
     // ======================================
-    // ✅ 4. Log kết quả
+    // ✅ 5. Log kết quả
     // ======================================
     console.log('\n✅ Admin user ready:');
     console.table({
@@ -71,6 +88,7 @@ async function main() {
       name: adminUser.name,
       email: adminUser.email,
       role: adminUser.role.name,
+      avatar: adminUser.avatar,
     });
 
     console.log('\n🎯 Seeding completed successfully!');

@@ -20,6 +20,7 @@ CREATE TABLE "User" (
     "name" TEXT NOT NULL,
     "email" TEXT NOT NULL,
     "phone" TEXT,
+    "avatar" TEXT,
     "isActive" BOOLEAN NOT NULL DEFAULT true,
     "roleId" INTEGER NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,

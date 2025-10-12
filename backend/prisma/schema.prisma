@@ -18,10 +18,11 @@ datasource db {
 
 model User {
   id        Int      @id @default(autoincrement())
-  uid       String   @unique                  // UID từ Firebase
+  uid       String   @unique
   name      String
   email     String   @unique
   phone     String?
+  avatar    String?                          // 🔹 Ảnh đại diện người dùng
   isActive  Boolean  @default(true)
   role      Role     @relation(fields: [roleId], references: [id])
   roleId    Int

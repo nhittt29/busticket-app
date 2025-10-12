@@ -14,6 +14,7 @@ export class UserRepository {
     phone?: string;
     roleId: number;
     isActive?: boolean;
+    avatar?: string; // ✅ thêm đường dẫn ảnh
   }) {
     return this.prisma.user.create({
       data: {
@@ -22,11 +23,12 @@ export class UserRepository {
         email: data.email,
         phone: data.phone,
         roleId: data.roleId,
-        isActive: data.isActive ?? true, // Mặc định là true
+        isActive: data.isActive ?? true,
+        avatar: data.avatar ?? 'uploads/avatars/default.png', // ✅ mặc định nếu không có ảnh
       },
       include: {
-        role: true,      // ✅ Lấy thông tin vai trò
-        tickets: true,   // ✅ Lấy danh sách vé (nếu có)
+        role: true,    // ✅ Lấy thông tin vai trò
+        tickets: true, // ✅ Lấy danh sách vé (nếu có)
       },
     });
   }
@@ -65,12 +67,16 @@ export class UserRepository {
   }
 
   // 🔹 Cập nhật thông tin người dùng
-  async updateUser(id: number, data: Partial<{
-    name: string;
-    phone?: string;
-    isActive?: boolean;
-    roleId?: number;
-  }>) {
+  async updateUser(
+    id: number,
+    data: Partial<{
+      name: string;
+      phone?: string;
+      isActive?: boolean;
+      roleId?: number;
+      avatar?: string; // ✅ cho phép cập nhật avatar
+    }>,
+  ) {
     return this.prisma.user.update({
       where: { id },
       data,

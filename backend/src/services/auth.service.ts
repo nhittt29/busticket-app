@@ -15,12 +15,15 @@ export class AuthService {
     private userRepository: UserRepository,
   ) {}
 
-  // Đăng ký
+  // ======================================================
+  // 🔹 Đăng ký (có thể có hoặc không upload avatar)
+  // ======================================================
   async register(
     email: string,
     password: string,
     name: string,
     phone?: string,
+    avatarPath?: string, // ✅ Thêm tham số mới
   ): Promise<User> {
     try {
       const existingUser = await this.userRepository.findByEmail(email);
@@ -40,6 +43,7 @@ export class AuthService {
         name,
         email,
         phone,
+        avatar: avatarPath ?? 'uploads/avatars/default.png', // 🖼 Lưu đường dẫn ảnh
         createdAt: new Date(),
       });
 
@@ -60,21 +64,37 @@ export class AuthService {
         phone,
         isActive: true,
         roleId: passengerRole.id,
+        avatar: avatarPath ?? 'uploads/avatars/default.png', // ✅ Lưu vào DB
       });
 
-      return newUser; // ✅ Không cần ép kiểu
+      return newUser;
     } catch (error) {
       if (error instanceof ConflictException) throw error;
       throw new Error(`Registration failed: ${error.message}`);
     }
   }
 
-  // Đăng nhập
+  // ======================================================
+  // 🔹 Đăng nhập (trả về đầy đủ thông tin user)
+  // ======================================================
   async login(
     email: string,
     password: string,
-  ): Promise<{ idToken: string; uid: string }> {
+  ): Promise<{
+    idToken: string;
+    uid: string;
+    user: {
+      id: number;
+      uid: string;
+      name: string;
+      email: string;
+      phone?: string;
+      avatar?: string;
+      role?: { id: number; name: string };
+    };
+  }> {
     try {
+      // 🔍 Kiểm tra email có tồn tại trên Firebase không
       let userRecord;
       try {
         userRecord = await auth.getUserByEmail(email);
@@ -82,15 +102,44 @@ export class AuthService {
         throw new NotFoundException('Email chưa được đăng ký');
       }
 
+      // 🔹 Tạo custom token từ Firebase
       const customToken = await auth.createCustomToken(userRecord.uid);
-      return { idToken: customToken, uid: userRecord.uid };
+
+      // 🔹 Lấy thông tin user từ DB
+      const user = await this.prisma.user.findUnique({
+        where: { email },
+        include: { role: true },
+      });
+
+      if (!user) {
+        throw new NotFoundException('Người dùng không tồn tại trong hệ thống');
+      }
+
+      // ✅ Trả về token + thông tin chi tiết user
+      return {
+        idToken: customToken,
+        uid: userRecord.uid,
+        user: {
+          id: user.id,
+          uid: user.uid,
+          name: user.name,
+          email: user.email,
+          phone: user.phone ?? undefined, // ✅ Fix type null → undefined
+          avatar: user.avatar ?? 'uploads/avatars/default.png',
+          role: user.role
+            ? { id: user.role.id, name: user.role.name }
+            : undefined, // ✅ Fix type null → undefined
+        },
+      };
     } catch (error) {
       if (error instanceof NotFoundException) throw error;
       throw new Error(`Login failed: ${error.message}`);
     }
   }
 
-  // Quên mật khẩu
+  // ======================================================
+  // 🔹 Quên mật khẩu
+  // ======================================================
   async forgotPassword(
     email: string,
   ): Promise<{ message: string; resetLink: string }> {
@@ -109,7 +158,9 @@ export class AuthService {
     }
   }
 
-  // Đổi mật khẩu
+  // ======================================================
+  // 🔹 Đổi mật khẩu
+  // ======================================================
   async changePassword(
     uid: string,
     newPassword: string,
@@ -122,7 +173,9 @@ export class AuthService {
     }
   }
 
-  // ✅ Reset mật khẩu bằng email
+  // ======================================================
+  // 🔹 Reset mật khẩu bằng email
+  // ======================================================
   async resetPassword(
     email: string,
     newPassword: string,
