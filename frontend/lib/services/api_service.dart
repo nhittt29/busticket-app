@@ -1,28 +1,49 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
+import 'package:mime/mime.dart';
+import 'package:http_parser/http_parser.dart';
 
 class ApiService {
   static const String baseUrl = "http://10.0.2.2:3000/api/auth";
-  // ⚠️ 10.0.2.2 = localhost cho Android emulator
+  // ⚠️ 10.0.2.2 là localhost cho Android Emulator
 
-  /// ✅ Đăng ký
+  /// ✅ Đăng ký (hỗ trợ upload ảnh bất kỳ định dạng)
   static Future<Map<String, dynamic>> register(
-      String email, String password, String name, String phone) async {
-    final response = await http.post(
-      Uri.parse("$baseUrl/register"),
-      headers: {"Content-Type": "application/json"},
-      body: jsonEncode({
-        "email": email,
-        "password": password,
-        "name": name,
-        "phone": phone,
-      }),
-    );
+    String email,
+    String password,
+    String name,
+    String phone, {
+    File? avatarFile,
+  }) async {
+    var uri = Uri.parse("$baseUrl/register");
+    var request = http.MultipartRequest('POST', uri);
+
+    // 🧾 Thêm các field
+    request.fields['email'] = email;
+    request.fields['password'] = password;
+    request.fields['name'] = name;
+    request.fields['phone'] = phone;
+
+    // 🖼️ Thêm file ảnh (nếu có)
+    if (avatarFile != null) {
+      final mimeType = lookupMimeType(avatarFile.path) ?? 'image/*';
+      request.files.add(await http.MultipartFile.fromPath(
+        'avatar',
+        avatarFile.path,
+        contentType: MediaType.parse(mimeType),
+      ));
+    }
+
+    // 🚀 Gửi request
+    final response = await request.send();
+    final body = await response.stream.bytesToString();
 
     if (response.statusCode == 201) {
-      return jsonDecode(response.body);
+      return jsonDecode(body);
     } else {
-      throw Exception("Đăng ký thất bại: ${response.body}");
+      throw Exception(
+          "Đăng ký thất bại: ${jsonDecode(body)['message'] ?? body}");
     }
   }
 
@@ -58,7 +79,7 @@ class ApiService {
     }
   }
 
-  /// ✅ Reset mật khẩu (theo email, không cần UID nữa)
+  /// ✅ Reset mật khẩu bằng email
   static Future<void> resetPassword(String email, String newPassword) async {
     final response = await http.post(
       Uri.parse("$baseUrl/reset-password"),
