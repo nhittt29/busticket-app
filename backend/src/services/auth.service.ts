@@ -115,6 +115,12 @@ export class AuthService {
         throw new NotFoundException('Người dùng không tồn tại trong hệ thống');
       }
 
+      // 🔹 Xây dựng URL đầy đủ cho avatar
+      const baseUrl = 'http://10.0.2.2:3000'; // Sửa từ localhost thành 10.0.2.2 cho emulator
+      const avatarUrl = user.avatar
+        ? `${baseUrl}/${user.avatar.replace(/\\/g, '/')}` // Xử lý \ thành /
+        : `${baseUrl}/uploads/avatars/default.png`;
+
       // ✅ Trả về token + thông tin chi tiết user
       return {
         idToken: customToken,
@@ -125,7 +131,7 @@ export class AuthService {
           name: user.name,
           email: user.email,
           phone: user.phone ?? undefined, // ✅ Fix type null → undefined
-          avatar: user.avatar ?? 'uploads/avatars/default.png',
+          avatar: avatarUrl, // ✅ Trả về URL đầy đủ
           role: user.role
             ? { id: user.role.id, name: user.role.name }
             : undefined, // ✅ Fix type null → undefined

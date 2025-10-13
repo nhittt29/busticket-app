@@ -20,7 +20,7 @@ dependencies:
   http_parser: ^4.0.2
 
   # ✅ Lưu token, uid, session
-  shared_preferences: ^2.4.13
+  shared_preferences: ^2.5.3
 
   # ✅ Firebase core (bắt buộc để khởi tạo Firebase)
   firebase_core: ^4.1.1
@@ -36,6 +36,7 @@ dependencies:
 
   # ✅ Image Picker for selecting images from gallery or camera
   image_picker: ^1.1.2
+  cached_network_image: ^3.4.1
 
 dev_dependencies:
   flutter_test:
@@ -47,4 +48,6 @@ flutter:
 
   # ✅ Khai báo đường dẫn ảnh (logo, background,…)
   assets:
-    - assets/images/
+    - assets/images/default.png
+    - assets/images/bus_logo.png
+    - assets/images/google_logo.png

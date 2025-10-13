@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:mime/mime.dart';
 import 'package:http_parser/http_parser.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
   static const String baseUrl = "http://10.0.2.2:3000/api/auth";
@@ -60,10 +61,28 @@ class ApiService {
     );
 
     if (response.statusCode == 200) {
-      return jsonDecode(response.body);
+      final data = jsonDecode(response.body);
+
+      // Lưu thông tin user vào SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('idToken', data['idToken']);
+      await prefs.setString('uid', data['uid']);
+      await prefs.setString('user', jsonEncode(data['user'])); // Lưu toàn bộ user object
+
+      return data;
     } else {
       throw Exception("Đăng nhập thất bại: ${response.body}");
     }
+  }
+
+  /// ✅ Lấy thông tin user từ SharedPreferences
+  static Future<Map<String, dynamic>?> getUser() async {
+    final prefs = await SharedPreferences.getInstance();
+    final userString = prefs.getString('user');
+    if (userString != null) {
+      return jsonDecode(userString);
+    }
+    return null;
   }
 
   /// ✅ Quên mật khẩu

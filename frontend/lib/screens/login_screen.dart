@@ -27,6 +27,7 @@ class _LoginScreenState extends State<LoginScreen> {
             const SnackBar(content: Text('Đăng nhập thành công')),
           );
 
+          // Truyền toàn bộ user object
           Navigator.pushReplacementNamed(
             context,
             '/home',
@@ -34,6 +35,7 @@ class _LoginScreenState extends State<LoginScreen> {
               "email": email,
               "uid": result['uid'],
               "token": result['idToken'],
+              "user": result['user'], // Thêm user object
             },
           );
         }
@@ -55,14 +57,14 @@ class _LoginScreenState extends State<LoginScreen> {
       backgroundColor: const Color(0xFFEAF6FF),
       body: Center(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10), // Giảm từ 20 xuống 10 để đẩy logo lên
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               // 🚌 Logo
               Image.asset(
                 'assets/images/bus_logo.png',
-                height: 300, // Tăng từ 250 lên 300
+                height: 300,
               ),
               const SizedBox(height: 5),
 
@@ -242,14 +244,14 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                     style: OutlinedButton.styleFrom(
-                      side: BorderSide.none, // Loại bỏ viền đen
+                      side: BorderSide.none,
                       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      backgroundColor: Colors.white, // Nền trắng để nổi bật
-                      elevation: 2, // Thêm shadow nhẹ
-                      shadowColor: Colors.grey.shade300, // Viền shadow nhẹ nhàng
+                      backgroundColor: Colors.white,
+                      elevation: 2,
+                      shadowColor: Colors.grey.shade300,
                     ),
                   ),
                   const SizedBox(width: 40),
@@ -263,14 +265,14 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                     style: OutlinedButton.styleFrom(
-                      side: BorderSide.none, // Loại bỏ viền đen
+                      side: BorderSide.none,
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      backgroundColor: Colors.white, // Nền trắng để nổi bật
-                      elevation: 2, // Thêm shadow nhẹ
-                      shadowColor: Colors.grey.shade300, // Viền shadow nhẹ nhàng
+                      backgroundColor: Colors.white,
+                      elevation: 2,
+                      shadowColor: Colors.grey.shade300,
                     ),
                   ),
                 ],

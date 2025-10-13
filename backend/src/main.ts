@@ -1,46 +1,47 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
-import { join } from 'path';
+import { join, resolve } from 'path';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import * as express from 'express';
-import * as admin from 'firebase-admin'; // Import admin để kiểm tra Firebase
+import * as admin from 'firebase-admin';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
-  // ✅ Đặt prefix chung cho tất cả các API
+  // ✅ Prefix API
   app.setGlobalPrefix('api');
 
-  // ✅ Kích hoạt validation toàn cục
+  // ✅ Validation global
   app.useGlobalPipes(
     new ValidationPipe({
-      whitelist: true, // Chỉ cho phép các field có trong DTO
-      forbidNonWhitelisted: true, // Báo lỗi nếu có field lạ
-      transform: true, // Tự động transform kiểu dữ liệu
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
     }),
   );
 
-  // ✅ Cho phép truy cập file tĩnh (hình ảnh, avatar, ...)
-  // Cấu trúc: http://localhost:3000/uploads/avatars/filename.png
-  app.use('/uploads', express.static(join(__dirname, '..', 'uploads')));
+  // ✅ Static files — point to correct uploads directory
+  const uploadsPath = resolve(__dirname, '..', '..', 'uploads');
+  app.use('/uploads', express.static(uploadsPath));
 
-  // ✅ Nếu bạn vẫn muốn phục vụ thư mục /images riêng biệt
-  app.useStaticAssets(join(__dirname, '..', 'uploads', 'images'), {
+  // Optional: serve /images separately
+  app.useStaticAssets(join(uploadsPath, 'images'), {
     prefix: '/images/',
   });
 
   await app.listen(3000);
 
-  // ✅ Kiểm tra kết nối Firebase trước khi chạy server
   if (admin.apps.length) {
     console.log('🔥 Firebase connected successfully!');
   } else {
     console.error('❌ Firebase initialization failed!');
-    process.exit(1); // Thoát nếu Firebase chưa khởi tạo
+    process.exit(1);
   }
 
-  console.log('🚀 Server is running on: http://localhost:3000');
-  console.log('🖼️  Static files served at: http://localhost:3000/uploads');
+  const formattedPath = uploadsPath.replace(/\\/g, '/');
+  console.log('🚀 Server running on: http://localhost:3000');
+  console.log(`🖼️  Static files available at: http://localhost:3000/uploads`);
+  console.log(`📂  Physical path: ${formattedPath}`);
 }
 bootstrap();
