@@ -5,6 +5,6 @@ export class LoginDto {
   email: string;
 
   @IsString()
-  @MinLength(6, { message: 'Password tối thiểu 6 ký tự' })
+  @MinLength(8, { message: 'Password tối thiểu 8 ký tự' })
   password: string;
 }
