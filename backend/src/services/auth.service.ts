@@ -31,6 +31,8 @@ export class AuthService {
     name: string,
     phone?: string,
     avatarPath?: string,
+    dob?: Date,
+    gender?: 'MALE' | 'FEMALE' | 'OTHER',
   ): Promise<User> {
     try {
       const existingUser = await this.userRepository.findByEmail(email);
@@ -38,23 +40,22 @@ export class AuthService {
         throw new ConflictException('Email đã được đăng ký');
       }
 
-      // Tạo user trên Firebase
       const userRecord = await auth.createUser({
         email,
         password,
         displayName: name,
       });
 
-      // Lưu Firestore
       await firestore.collection('users').doc(userRecord.uid).set({
         name,
         email,
         phone,
         avatar: avatarPath ?? 'uploads/avatars/default.png',
+        dob: dob || null,
+        gender: gender || 'OTHER',
         createdAt: new Date(),
       });
 
-      // Lấy role PASSENGER
       const passengerRole = await this.prisma.role.findUnique({
         where: { name: 'PASSENGER' },
       });
@@ -63,7 +64,6 @@ export class AuthService {
         throw new Error('Role PASSENGER not found');
       }
 
-      // Lưu user trong database
       const newUser = await this.userRepository.createUser({
         uid: userRecord.uid,
         name,
@@ -72,6 +72,8 @@ export class AuthService {
         isActive: true,
         roleId: passengerRole.id,
         avatar: avatarPath ?? 'uploads/avatars/default.png',
+        dob,
+        gender,
       });
 
       return newUser;
@@ -90,18 +92,9 @@ export class AuthService {
   ): Promise<{
     idToken: string;
     uid: string;
-    user: {
-      id: number;
-      uid: string;
-      name: string;
-      email: string;
-      phone?: string;
-      avatar?: string;
-      role?: { id: number; name: string };
-    };
+    user: User & { role?: { id: number; name: string } };
   }> {
     try {
-      // Gọi Firebase REST API
       const response = await axios.post<{
         idToken: string;
         localId: string;
@@ -116,7 +109,6 @@ export class AuthService {
 
       const { idToken, localId: uid } = response.data;
 
-      // Lấy thông tin user
       const user = await this.prisma.user.findUnique({
         where: { email },
         include: { role: true },
@@ -133,15 +125,9 @@ export class AuthService {
         idToken,
         uid,
         user: {
-          id: user.id,
-          uid: user.uid,
-          name: user.name,
-          email: user.email,
-          phone: user.phone ?? undefined,
+          ...user,
           avatar: avatarUrl,
-          role: user.role
-            ? { id: user.role.id, name: user.role.name }
-            : undefined,
+          role: user.role ? { id: user.role.id, name: user.role.name } : undefined,
         },
       };
     } catch (error) {
@@ -162,7 +148,6 @@ export class AuthService {
       const userRecord = await auth.getUserByEmail(email);
       if (!userRecord) throw new NotFoundException('Email chưa được đăng ký');
 
-      // Tạo link reset mật khẩu
       const resetLink = await (auth as any).generatePasswordResetLink(email);
 
       return {
@@ -205,5 +190,19 @@ export class AuthService {
     } catch (error) {
       throw new Error(`Reset password failed: ${error.message}`);
     }
+  }
+
+  async findUserByUid(uid: string): Promise<User> {
+    const user = await this.userRepository.findByUid(uid);
+    if (!user) throw new NotFoundException('Người dùng không tồn tại');
+    return user;
+  }
+
+  async updateUserProfile(
+    id: number,
+    data: { name?: string; phone?: string; dob?: Date; gender?: 'MALE' | 'FEMALE' | 'OTHER' },
+  ): Promise<User> {
+    const updatedUser = await this.userRepository.updateUser(id, data);
+    return updatedUser;
   }
 }

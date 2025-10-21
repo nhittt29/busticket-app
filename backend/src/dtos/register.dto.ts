@@ -5,7 +5,10 @@ import {
   MaxLength,
   IsOptional,
   IsNotEmpty,
+  IsDate,
+  IsEnum,
 } from 'class-validator';
+import { Transform } from 'class-transformer'; // Import từ class-transformer
 import { IsStrongPassword } from '../validators/password.validator';
 
 export class RegisterDto {
@@ -25,6 +28,17 @@ export class RegisterDto {
   @IsOptional()
   @IsString({ message: 'Số điện thoại không hợp lệ' })
   phone?: string;
+
+  // 🔹 Thêm trường dob (tùy chọn) với transformer để parse string thành Date
+  @IsOptional()
+  @IsDate({ message: 'Ngày sinh phải là ngày hợp lệ (YYYY-MM-DD)' })
+  @Transform(({ value }) => value ? new Date(value) : undefined)
+  dob?: Date;
+
+  // 🔹 Thêm trường gender (tùy chọn)
+  @IsOptional()
+  @IsEnum(['MALE', 'FEMALE', 'OTHER'], { message: 'Giới tính phải là MALE, FEMALE hoặc OTHER' })
+  gender?: 'MALE' | 'FEMALE' | 'OTHER';
 
   // 🔹 Thêm trường avatar (tùy chọn)
   @IsOptional()

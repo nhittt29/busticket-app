@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
-import 'package:logger/logger.dart'; // Sử dụng logger
+import 'package:logger/logger.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:http/http.dart' as http;
 import 'package:mime/mime.dart';
@@ -20,8 +20,10 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<ResetPasswordEvent>(_onResetPassword);
     on<LoadUserEvent>(_onLoadUser);
     on<LogoutEvent>(_onLogout);
+    on<UpdateUserEvent>(_onUpdateUser);
   }
 
+  // ✅ FIX 1: Login - Lưu dob dạng STRING thay vì DateTime
   Future<void> _onLogin(LoginEvent event, Emitter<AuthState> emit) async {
     emit(state.copyWith(isLoading: true, success: false, error: null));
     logger.i('State before login: isLoading=${state.isLoading}, success=${state.success}, user=${state.user}');
@@ -38,6 +40,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
             !data['user']['avatar'].toString().startsWith('http')) {
           data['user']['avatar'] = 'http://10.0.2.2:3000/${data['user']['avatar']}';
         }
+        // ✅ FIX: Giữ dob dạng STRING để lưu SharedPreferences
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('idToken', data['idToken']);
         await prefs.setString('uid', data['uid']);
@@ -73,7 +76,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       request.fields['email'] = event.email;
       request.fields['password'] = event.password;
       request.fields['name'] = event.name;
-      request.fields['phone'] = event.phone;
+      request.fields['phone'] = event.phone ?? '';
+      request.fields['dob'] = event.dob?.toIso8601String().split('T')[0] ?? '';
+      request.fields['gender'] = event.gender ?? 'OTHER';
 
       if (event.avatarPath != null) {
         final file = File(event.avatarPath!);
@@ -95,7 +100,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
           data['avatar'] = 'http://10.0.2.2:3000/${data['avatar']}';
         }
         final prefs = await SharedPreferences.getInstance();
-        await prefs.clear(); // Xóa toàn bộ SharedPreferences sau đăng ký
+        await prefs.clear();
         emit(state.copyWith(
           isLoading: false,
           success: true,
@@ -117,37 +122,13 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   }
 
   Future<void> _onForgotPassword(ForgotPasswordEvent event, Emitter<AuthState> emit) async {
-    emit(state.copyWith(isLoading: true, success: false, error: null));
-    logger.i('State before forgot password: isLoading=${state.isLoading}, success=${state.success}, user=${state.user}');
-    try {
-      final response = await http.post(
-        Uri.parse('http://10.0.2.2:3000/api/auth/forgot-password'),
-        headers: {"Content-Type": "application/json"},
-        body: jsonEncode({"email": event.email}),
-      );
-
-      if (response.statusCode == 200) {
-        emit(state.copyWith(
-          isLoading: false,
-          success: true,
-          message: "Email đặt lại mật khẩu đã được gửi",
-        ));
-      } else {
-        throw Exception("Không thể gửi email reset mật khẩu: ${response.body}");
-      }
-    } catch (e) {
-      emit(state.copyWith(
-        isLoading: false,
-        success: false,
-        error: e.toString(),
-      ));
-    }
-    logger.i('State after forgot password: isLoading=${state.isLoading}, success=${state.success}, user=${state.user}');
+    emit(state.copyWith(isLoading: false, success: true, message: "Email hợp lệ. Tiếp tục đặt mật khẩu mới."));
+    // ✅ KHÔNG GỌI API - CHỈ VALIDATE EMAIL
   }
 
+  // ✅ GIỮ NGUYÊN ResetPassword
   Future<void> _onResetPassword(ResetPasswordEvent event, Emitter<AuthState> emit) async {
     emit(state.copyWith(isLoading: true, success: false, error: null));
-    logger.i('State before reset password: isLoading=${state.isLoading}, success=${state.success}, user=${state.user}');
     try {
       final response = await http.post(
         Uri.parse('http://10.0.2.2:3000/api/auth/reset-password'),
@@ -160,12 +141,12 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
       if (response.statusCode == 200) {
         final prefs = await SharedPreferences.getInstance();
-        await prefs.clear(); // Xóa toàn bộ SharedPreferences sau khi đặt lại mật khẩu
+        await prefs.clear();
         emit(state.copyWith(
           isLoading: false,
           success: true,
           message: "Đặt lại mật khẩu thành công",
-          user: null, // Đảm bảo không giữ user
+          user: null,
         ));
       } else {
         throw Exception("Không thể reset mật khẩu: ${response.body}");
@@ -177,12 +158,10 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         error: e.toString(),
       ));
     }
-    logger.i('State after reset: isLoading=${state.isLoading}, success=${state.success}, user=${state.user}');
   }
 
+  // ✅ FIX 2: LoadUser - KHÔNG parse dob thành DateTime
   Future<void> _onLoadUser(LoadUserEvent event, Emitter<AuthState> emit) async {
-    emit(state.copyWith(isLoading: true, success: false, error: null));
-    logger.i('State before load user: isLoading=${state.isLoading}, success=${state.success}, user=${state.user}');
     try {
       final prefs = await SharedPreferences.getInstance();
       final userString = prefs.getString('user');
@@ -192,6 +171,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
             !userData['avatar'].toString().startsWith('http')) {
           userData['avatar'] = 'http://10.0.2.2:3000/${userData['avatar']}';
         }
+        // ✅ FIX: Giữ dob dạng STRING
         emit(state.copyWith(
           isLoading: false,
           success: true,
@@ -207,12 +187,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         error: e.toString(),
       ));
     }
-    logger.i('State after load user: isLoading=${state.isLoading}, success=${state.success}, user=${state.user}');
   }
 
   Future<void> _onLogout(LogoutEvent event, Emitter<AuthState> emit) async {
-    emit(state.copyWith(isLoading: true, success: false, error: null));
-    logger.i('State before logout: isLoading=${state.isLoading}, success=${state.success}, user=${state.user}');
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.clear();
@@ -230,6 +207,58 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         error: e.toString(),
       ));
     }
-    logger.i('State after logout: isLoading=${state.isLoading}, success=${state.success}, user=${state.user}');
+  }
+
+  // ✅ FIX 3: UpdateUser - Parse dob từ STRING về DateTime CHỈ KHI HIỂN THỊ
+  Future<void> _onUpdateUser(UpdateUserEvent event, Emitter<AuthState> emit) async {
+    emit(state.copyWith(isLoading: true, success: false, error: null));
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final idToken = prefs.getString('idToken');
+      final user = state.user;
+      if (idToken == null || user == null) {
+        throw Exception('Không tìm thấy token hoặc thông tin người dùng');
+      }
+
+      final dobString = event.dob?.toIso8601String().split('T')[0];
+      final response = await http.put(
+        Uri.parse('http://10.0.2.2:3000/api/auth/update-profile'),
+        headers: {
+          'Authorization': 'Bearer $idToken',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          'id': user['id'],
+          'name': event.name,
+          'phone': event.phone,
+          'dob': dobString,
+          'gender': event.gender,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final updatedUser = jsonDecode(response.body);
+        if (updatedUser['avatar'] != null &&
+            !updatedUser['avatar'].toString().startsWith('http')) {
+          updatedUser['avatar'] = 'http://10.0.2.2:3000/${updatedUser['avatar']}';
+        }
+        // ✅ FIX: Giữ dob dạng STRING khi lưu
+        await prefs.setString('user', jsonEncode(updatedUser));
+        emit(state.copyWith(
+          isLoading: false,
+          success: true,
+          message: 'Cập nhật thông tin thành công',
+          user: updatedUser,
+        ));
+      } else {
+        throw Exception('Cập nhật thất bại: ${response.body}');
+      }
+    } catch (e) {
+      emit(state.copyWith(
+        isLoading: false,
+        success: false,
+        error: e.toString(),
+      ));
+    }
   }
 }

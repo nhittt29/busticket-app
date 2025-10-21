@@ -1,8 +1,3 @@
-// =========================================
-// Prisma Schema cho hệ thống đặt vé xe khách
-// Database: PostgreSQL
-// =========================================
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -12,17 +7,15 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-//
-// MODELS
-//
-
 model User {
   id        Int      @id @default(autoincrement())
   uid       String   @unique
   name      String
   email     String   @unique
   phone     String?
-  avatar    String?                          // 🔹 Ảnh đại diện người dùng
+  dob       DateTime? @default(dbgenerated("'1970-01-01'::date")) // Thêm dob
+  gender    String?  @default("OTHER") // Thêm gender, sử dụng enum hoặc String tùy chọn
+  avatar    String?
   isActive  Boolean  @default(true)
   role      Role     @relation(fields: [roleId], references: [id])
   roleId    Int
@@ -41,12 +34,12 @@ model Role {
 
 model Brand {
   id          Int       @id @default(autoincrement())
-  name        String    @unique                 // Tên nhà xe
-  phoneNumber String?                           // SĐT liên hệ
-  image       String?                           // Ảnh logo hoặc banner (có thể null)
-  address     String?                           // Địa chỉ nhà xe
-  buses       Bus[]                             // Danh sách xe thuộc nhà xe
-  routes      Route[]                           // 🔹 Danh sách tuyến nhà xe phục vụ
+  name        String    @unique
+  phoneNumber String?
+  image       String?
+  address     String?
+  buses       Bus[]
+  routes      Route[]
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
@@ -55,13 +48,13 @@ model Brand {
 
 model Bus {
   id           Int        @id @default(autoincrement())
-  name         String                              // Tên xe
-  licensePlate String     @unique                   // Biển số
-  seatCount    Int                                  // Số ghế
-  type         BusType                              // Loại xe
+  name         String
+  licensePlate String     @unique
+  seatCount    Int
+  type         BusType
   brand        Brand      @relation(fields: [brandId], references: [id])
   brandId      Int
-  schedules    Schedule[]                           // Các chuyến chạy của xe
+  schedules    Schedule[]
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
 
@@ -71,14 +64,14 @@ model Bus {
 
 model Route {
   id                 Int        @id @default(autoincrement())
-  startPoint         String                              // Nơi khởi hành
-  endPoint           String                              // Nơi đến
-  averageDurationMin Int                                 // Thời lượng trung bình (phút)
-  lowestPrice        Float                               // Giá vé thấp nhất
-  distanceKm         Float?                              // Quãng đường (km)
-  brand              Brand?      @relation(fields: [brandId], references: [id])
-  brandId            Int?                                // Nhà xe chính phục vụ tuyến
-  schedules          Schedule[]                          // Các chuyến chạy cụ thể
+  startPoint         String
+  endPoint           String
+  averageDurationMin Int
+  lowestPrice        Float
+  distanceKm         Float?
+  brand              Brand?     @relation(fields: [brandId], references: [id])
+  brandId            Int?
+  schedules          Schedule[]
   createdAt          DateTime   @default(now())
   updatedAt          DateTime   @updatedAt
 
@@ -92,9 +85,9 @@ model Schedule {
   busId       Int
   route       Route          @relation(fields: [routeId], references: [id])
   routeId     Int
-  departureAt DateTime                                // Thời gian khởi hành
-  arrivalAt   DateTime                                // Thời gian đến
-  status      ScheduleStatus @default(UPCOMING)        // Trạng thái chuyến
+  departureAt DateTime
+  arrivalAt   DateTime
+  status      ScheduleStatus @default(UPCOMING)
   tickets     Ticket[]
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
@@ -110,10 +103,10 @@ model Ticket {
   userId        Int
   schedule      Schedule       @relation(fields: [scheduleId], references: [id])
   scheduleId    Int
-  seatNumber    Int                                     // Số ghế đã đặt
-  price         Float                                   // Giá vé
-  status        TicketStatus   @default(BOOKED)         // Trạng thái vé
-  paymentMethod PaymentMethod?                          // Phương thức thanh toán
+  seatNumber    Int
+  price         Float
+  status        TicketStatus   @default(BOOKED)
+  paymentMethod PaymentMethod?
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
 
@@ -121,10 +114,6 @@ model Ticket {
   @@index([scheduleId])
   @@index([status])
 }
-
-//
-// ENUMS
-//
 
 enum RoleName {
   ADMIN

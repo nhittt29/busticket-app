@@ -1,4 +1,3 @@
-// src/repositories/user.repository.ts
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../services/prisma.service';
 
@@ -14,7 +13,9 @@ export class UserRepository {
     phone?: string;
     roleId: number;
     isActive?: boolean;
-    avatar?: string; // ✅ thêm đường dẫn ảnh
+    avatar?: string;
+    dob?: Date;
+    gender?: 'MALE' | 'FEMALE' | 'OTHER';
   }) {
     return this.prisma.user.create({
       data: {
@@ -24,11 +25,13 @@ export class UserRepository {
         phone: data.phone,
         roleId: data.roleId,
         isActive: data.isActive ?? true,
-        avatar: data.avatar ?? 'uploads/avatars/default.png', // ✅ mặc định nếu không có ảnh
+        avatar: data.avatar ?? 'uploads/avatars/default.png',
+        dob: data.dob,
+        gender: data.gender,
       },
       include: {
-        role: true,    // ✅ Lấy thông tin vai trò
-        tickets: true, // ✅ Lấy danh sách vé (nếu có)
+        role: true,
+        tickets: true,
       },
     });
   }
@@ -74,7 +77,9 @@ export class UserRepository {
       phone?: string;
       isActive?: boolean;
       roleId?: number;
-      avatar?: string; // ✅ cho phép cập nhật avatar
+      avatar?: string;
+      dob?: Date;
+      gender?: 'MALE' | 'FEMALE' | 'OTHER';
     }>,
   ) {
     return this.prisma.user.update({

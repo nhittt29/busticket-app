@@ -1,5 +1,5 @@
 // prisma/seed.ts
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Prisma } from '@prisma/client';
 import { auth } from '../src/config/firebase';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -65,31 +65,41 @@ async function main() {
     const adminUser = await prisma.user.upsert({
       where: { email: adminEmail },
       update: {
-        avatar: defaultAvatar, // Cập nhật nếu đã có user
-      },
+        avatar: defaultAvatar,
+        dob: new Date("1990-01-01"), // 🔹 Sử dụng Date object cho dob
+        gender: "OTHER",             // 🔹 Giới tính mặc định
+      } as Prisma.UserUncheckedUpdateInput, // Sử dụng UncheckedUpdateInput
       create: {
         uid: userRecord.uid,
-        name: 'NhiTr',                // 👈 tên hiển thị trong hệ thống
+        name: 'NhiTr',
         email: adminEmail,
         phone: '0123456789',
-        avatar: defaultAvatar,        // ✅ thêm avatar mặc định
+        dob: new Date("1990-01-01"), // 🔹 Sử dụng Date object cho dob
+        gender: "OTHER",             // 🔹 Giới tính mặc định
+        avatar: defaultAvatar,
         roleId: adminRole.id,
         isActive: true,
+      } as Prisma.UserUncheckedCreateInput, // Sử dụng UncheckedCreateInput
+      include: {
+        role: true, // Bao gồm role
       },
-      include: { role: true },
     });
 
     // ======================================
     // ✅ 5. Log kết quả
     // ======================================
     console.log('\n✅ Admin user ready:');
-    console.table({
+   console.table({
       id: adminUser.id,
       name: adminUser.name,
       email: adminUser.email,
-      role: adminUser.role.name,
+      phone: adminUser.phone,
+      dob: (adminUser as any).dob?.toISOString().split('T')[0] ?? 'N/A',
+      gender: (adminUser as any).gender ?? 'N/A',
+      role: adminUser.role?.name,
       avatar: adminUser.avatar,
     });
+
 
     console.log('\n🎯 Seeding completed successfully!');
   } catch (error) {

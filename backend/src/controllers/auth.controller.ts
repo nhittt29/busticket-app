@@ -1,7 +1,3 @@
-// =========================================
-// src/controllers/auth.controller.ts
-// =========================================
-
 import {
   Body,
   Controller,
@@ -10,6 +6,9 @@ import {
   HttpStatus,
   UseInterceptors,
   UploadedFile,
+  Put,
+  Headers,
+  NotFoundException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
@@ -17,13 +16,14 @@ import { extname } from 'path';
 import { AuthService } from '../services/auth.service';
 import { RegisterDto } from '../dtos/register.dto';
 import { LoginDto } from '../dtos/login.dto';
+import { auth } from '../config/firebase';
 
 @Controller('auth')
 export class AuthController {
   constructor(private authService: AuthService) {}
 
   // ========================================
-  // 🔹 ĐĂNG KÝ NGƯỜI DÙNG (CÓ UPLOAD ẢNH)
+  // 🔹 ĐĂNG KÝ NGƯỜNG DÙNG (CÓ UPLOAD ẢNH)
   // ========================================
   @Post('register')
   @HttpCode(HttpStatus.CREATED)
@@ -66,6 +66,8 @@ export class AuthController {
       body.name,
       body.phone,
       avatarPath,
+      body.dob,
+      body.gender,
     );
   }
 
@@ -87,7 +89,6 @@ export class AuthController {
     @Body('email') email: string,
     @Body('newPassword') newPassword: string,
   ) {
-    // ⚡ confirmPassword được kiểm tra ở frontend, không gửi lên backend
     return this.authService.resetPassword(email, newPassword);
   }
 
@@ -101,5 +102,31 @@ export class AuthController {
     @Body('newPassword') newPassword: string,
   ) {
     return this.authService.changePassword(uid, newPassword);
+  }
+
+  // ========================================
+  // 🔹 CẬP NHẬT THÔNG TIN NGƯỜI DÙNG
+  // ========================================
+  @Put('update-profile')
+  @HttpCode(HttpStatus.OK)
+  async updateProfile(
+    @Body() body: { id: number; name?: string; phone?: string; dob?: string; gender?: 'MALE' | 'FEMALE' | 'OTHER' },
+    @Headers('Authorization') authHeader: string,
+  ) {
+    const token = authHeader.split(' ')[1];
+    const decodedToken = await auth.verifyIdToken(token);
+    const uid = decodedToken.uid;
+
+    const user = await this.authService.findUserByUid(uid);
+    if (!user) throw new NotFoundException('Người dùng không tồn tại');
+
+    // Chuyển đổi dob từ string sang Date nếu có
+    const updatedData = {
+      ...body,
+      dob: body.dob ? new Date(body.dob) : undefined,
+    };
+
+    const updatedUser = await this.authService.updateUserProfile(user.id, updatedData);
+    return updatedUser;
   }
 }

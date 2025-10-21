@@ -23,6 +23,8 @@ class RegisterEvent extends AuthEvent {
   final String name;
   final String phone;
   final String? avatarPath;
+  final DateTime? dob; // Thêm trường dob
+  final String? gender; // Thêm trường gender
 
   const RegisterEvent(
     this.email,
@@ -30,10 +32,12 @@ class RegisterEvent extends AuthEvent {
     this.name,
     this.phone, {
     this.avatarPath,
+    this.dob,
+    this.gender,
   });
 
   @override
-  List<Object?> get props => [email, password, name, phone, avatarPath];
+  List<Object?> get props => [email, password, name, phone, avatarPath, dob, gender];
 }
 
 class ForgotPasswordEvent extends AuthEvent {
@@ -58,3 +62,20 @@ class ResetPasswordEvent extends AuthEvent {
 class LoadUserEvent extends AuthEvent {}
 
 class LogoutEvent extends AuthEvent {}
+
+class UpdateUserEvent extends AuthEvent {
+  final String name;
+  final String? phone;
+  final DateTime? dob;
+  final String? gender;
+
+  const UpdateUserEvent({
+    required this.name,
+    this.phone,
+    this.dob,
+    this.gender,
+  });
+
+  @override
+  List<Object?> get props => [name, phone, dob, gender];
+}

@@ -4,7 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../bloc/home/home_bloc.dart';
 import '../bloc/home/home_state.dart';
 import '../bloc/home/home_event.dart';
-import 'profile_detail_screen.dart'; // Import ProfileDetailScreen
+import 'profile_detail_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -17,9 +17,9 @@ class ProfileScreen extends StatelessWidget {
     return BlocProvider.value(
       value: homeBloc,
       child: Scaffold(
-        backgroundColor: const Color(0xFFEAF6FF),
+        backgroundColor: const Color(0xFFEAF6FF), // ✅ BACKGROUND XÁC NHẬN
         appBar: AppBar(
-          backgroundColor: Colors.redAccent,
+          backgroundColor: const Color(0xFF4CAF50), // ✅ HEADER XANH LÁ
           elevation: 0,
           centerTitle: true,
           title: const Text(
@@ -30,6 +30,7 @@ class ProfileScreen extends StatelessWidget {
               fontSize: 22,
             ),
           ),
+          foregroundColor: Colors.white,
         ),
         body: BlocConsumer<HomeBloc, HomeState>(
           listener: (context, state) {
@@ -65,19 +66,21 @@ class ProfileScreen extends StatelessWidget {
             }
 
             return SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(24), // ✅ TĂNG PADDING
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   const SizedBox(height: 20),
+                  
+                  // User Info Card
                   Container(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.grey.withValues(alpha: 0.2),
+                          color: Colors.grey.withOpacity(0.15),
                           blurRadius: 10,
                           offset: const Offset(0, 5),
                         ),
@@ -89,10 +92,13 @@ class ProfileScreen extends StatelessWidget {
                         Container(
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            border: Border.all(color: Colors.grey.withValues(alpha: 0.3), width: 1),
+                            border: Border.all(
+                              color: Colors.grey.withOpacity(0.3), 
+                              width: 2
+                            ),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.grey.withValues(alpha: 0.1),
+                                color: Colors.grey.withOpacity(0.1),
                                 blurRadius: 5,
                                 offset: const Offset(0, 2),
                               ),
@@ -101,20 +107,18 @@ class ProfileScreen extends StatelessWidget {
                           child: ClipOval(
                             child: FadeInImage.assetNetwork(
                               placeholder: 'assets/images/default.png',
-                              image: avatarUrl ?? 'assets/images/default.png', // Loại bỏ null check thừa
+                              image: avatarUrl ?? 'assets/images/default.png',
                               width: 80,
                               height: 80,
                               fit: BoxFit.cover,
                               imageErrorBuilder: (context, error, stackTrace) {
-                                if (kDebugMode) {
-                                  print('Avatar load error: $error');
-                                }
+                                if (kDebugMode) print('Avatar load error: $error');
                                 return Image.asset(
                                   'assets/images/default.png',
                                   width: 80,
                                   height: 80,
                                   fit: BoxFit.cover,
-                                ); // Thêm return
+                                );
                               },
                             ),
                           ),
@@ -129,7 +133,7 @@ class ProfileScreen extends StatelessWidget {
                                 style: const TextStyle(
                                   fontSize: 24,
                                   fontWeight: FontWeight.bold,
-                                  color: Colors.black87,
+                                  color: Color(0xFF023E8A), // ✅ XANH ĐẬM
                                 ),
                                 textAlign: TextAlign.left,
                               ),
@@ -164,21 +168,13 @@ class ProfileScreen extends StatelessWidget {
                         MaterialPageRoute(
                           builder: (context) => ProfileDetailScreen(user: state.user),
                         ),
-                      ).catchError((e) {
-                        if (kDebugMode) print('Navigation error: $e');
-                        return null; // Trả về null để xử lý lỗi
-                      });
+                      );
                     },
                   ),
                   _buildMenuItem(
                     icon: Icons.history,
                     label: "Lịch sử đặt vé",
-                    onTap: () {
-                      Navigator.pushNamed(context, '/ticket-history').catchError((e) {
-                        if (kDebugMode) print('Navigation error: $e');
-                        return null; // Trả về null để xử lý lỗi
-                      });
-                    },
+                    onTap: () => Navigator.pushNamed(context, '/ticket-history'),
                   ),
 
                   const SizedBox(height: 20),
@@ -187,22 +183,12 @@ class ProfileScreen extends StatelessWidget {
                   _buildMenuItem(
                     icon: Icons.help_outline,
                     label: "Câu hỏi thường gặp",
-                    onTap: () {
-                      Navigator.pushNamed(context, '/faq').catchError((e) {
-                        if (kDebugMode) print('Navigation error: $e');
-                        return null; // Trả về null để xử lý lỗi
-                      });
-                    },
+                    onTap: () => Navigator.pushNamed(context, '/faq'),
                   ),
                   _buildMenuItem(
                     icon: Icons.privacy_tip_outlined,
                     label: "Chính sách bảo mật thông tin",
-                    onTap: () {
-                      Navigator.pushNamed(context, '/privacy').catchError((e) {
-                        if (kDebugMode) print('Navigation error: $e');
-                        return null; // Trả về null để xử lý lỗi
-                      });
-                    },
+                    onTap: () => Navigator.pushNamed(context, '/privacy'),
                   ),
 
                   const SizedBox(height: 20),
@@ -211,22 +197,12 @@ class ProfileScreen extends StatelessWidget {
                   _buildMenuItem(
                     icon: Icons.confirmation_number,
                     label: "Quản lý vé",
-                    onTap: () {
-                      Navigator.pushNamed(context, '/ticket-management').catchError((e) {
-                        if (kDebugMode) print('Navigation error: $e');
-                        return null; // Trả về null để xử lý lỗi
-                      });
-                    },
+                    onTap: () => Navigator.pushNamed(context, '/ticket-management'),
                   ),
                   _buildMenuItem(
                     icon: Icons.notifications,
                     label: "Thông báo",
-                    onTap: () {
-                      Navigator.pushNamed(context, '/notifications').catchError((e) {
-                        if (kDebugMode) print('Navigation error: $e');
-                        return null; // Trả về null để xử lý lỗi
-                      });
-                    },
+                    onTap: () => Navigator.pushNamed(context, '/notifications'),
                   ),
 
                   const SizedBox(height: 20),
@@ -237,9 +213,7 @@ class ProfileScreen extends StatelessWidget {
                     label: "Đăng xuất",
                     iconColor: Colors.redAccent,
                     textColor: Colors.redAccent,
-                    onTap: () {
-                      homeBloc.add(LogoutEvent());
-                    },
+                    onTap: () => homeBloc.add(LogoutEvent()),
                   ),
                 ],
               ),
@@ -260,7 +234,7 @@ class ProfileScreen extends StatelessWidget {
           style: const TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w600,
-            color: Colors.black87,
+            color: Color(0xFF023E8A), // ✅ XANH ĐẬM
           ),
         ),
       ),
@@ -271,8 +245,8 @@ class ProfileScreen extends StatelessWidget {
     required IconData icon,
     required String label,
     required VoidCallback onTap,
-    Color iconColor = Colors.redAccent,
-    Color textColor = Colors.black87,
+    Color iconColor = const Color(0xFF0077B6), // ✅ XANH DƯƠNG
+    Color textColor = const Color(0xFF023E8A), // ✅ XANH ĐẬM
   }) {
     return Container(
       margin: const EdgeInsets.only(bottom: 2),
@@ -281,7 +255,7 @@ class ProfileScreen extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withValues(alpha: 0.1),
+            color: Colors.grey.withOpacity(0.1),
             blurRadius: 5,
             offset: const Offset(0, 2),
           ),
@@ -297,7 +271,11 @@ class ProfileScreen extends StatelessWidget {
             fontWeight: FontWeight.w500,
           ),
         ),
-        trailing: const Icon(Icons.chevron_right, color: Colors.grey, size: 24),
+        trailing: const Icon(
+          Icons.chevron_right, 
+          color: Color(0xFF0077B6), // ✅ XANH DƯƠNG
+          size: 24
+        ),
         onTap: onTap,
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       ),

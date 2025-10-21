@@ -19,6 +19,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
   String password = '';
   String name = '';
   String phone = '';
+  String dob = ''; // STRING để hiển thị
+  String gender = 'OTHER';
   File? _avatarFile;
   final ImagePicker _picker = ImagePicker();
 
@@ -48,7 +50,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   SnackBar(content: Text(state.error!), backgroundColor: Colors.red),
                 );
               } else if (state.success && state.message == "Đăng ký thành công") {
-                Navigator.pushReplacementNamed(context, '/login'); // Quay lại LoginScreen
+                Navigator.pushReplacementNamed(context, '/login');
               }
             },
             child: BlocBuilder<AuthBloc, AuthState>(
@@ -56,6 +58,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 return Column(
                   mainAxisAlignment: MainAxisAlignment.start,
                   children: [
+                    // Avatar Picker
                     GestureDetector(
                       onTap: _pickAvatar,
                       child: CircleAvatar(
@@ -68,95 +71,238 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       ),
                     ),
                     const SizedBox(height: 10),
-                    const Text('Chọn ảnh đại diện', style: TextStyle(color: Colors.black54, fontSize: 14)),
+                    const Text(
+                      'Chọn ảnh đại diện', 
+                      style: TextStyle(color: Colors.black54, fontSize: 14)
+                    ),
                     const SizedBox(height: 20),
-                    const Text('BUSTICKET', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Color(0xFF023E8A), letterSpacing: 0.5)),
+                    
+                    // Logo & Title
+                    const Text(
+                      'BUSTICKET', 
+                      style: TextStyle(
+                        fontSize: 28, 
+                        fontWeight: FontWeight.bold, 
+                        color: Color(0xFF023E8A), 
+                        letterSpacing: 0.5
+                      )
+                    ),
                     const SizedBox(height: 5),
-                    const Text('Tạo tài khoản mới', style: TextStyle(fontSize: 16, color: Colors.black87)),
+                    const Text(
+                      'Tạo tài khoản mới', 
+                      style: TextStyle(fontSize: 16, color: Colors.black87)
+                    ),
                     const SizedBox(height: 20),
+                    
+                    // Form Container
                     Container(
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(18),
-                        boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.15), blurRadius: 10, offset: const Offset(0, 5))],
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.grey.withOpacity(0.15),
+                            blurRadius: 10, 
+                            offset: const Offset(0, 5)
+                          )
+                        ],
                       ),
                       child: Form(
                         key: _formKey,
                         child: Column(
                           children: [
+                            // Email
                             TextFormField(
                               decoration: InputDecoration(
                                 labelText: 'Email',
                                 prefixIcon: const Icon(Icons.email_outlined, color: Color(0xFF0077B6)),
                                 filled: true,
                                 fillColor: const Color(0xFFF7F9FB),
-                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12), 
+                                  borderSide: BorderSide.none
+                                ),
                               ),
                               style: const TextStyle(color: Colors.black),
                               onChanged: (value) => email = value,
-                              validator: (value) => value != null && value.contains('@') ? null : 'Email không hợp lệ',
+                              validator: (value) => 
+                                  value != null && value.contains('@') 
+                                      ? null 
+                                      : 'Email không hợp lệ',
                             ),
                             const SizedBox(height: 16),
+                            
+                            // Password
                             TextFormField(
                               decoration: InputDecoration(
                                 labelText: 'Mật khẩu',
                                 prefixIcon: const Icon(Icons.lock_outline, color: Color(0xFF0077B6)),
                                 filled: true,
                                 fillColor: const Color(0xFFF7F9FB),
-                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12), 
+                                  borderSide: BorderSide.none
+                                ),
                               ),
                               obscureText: true,
                               style: const TextStyle(color: Colors.black),
                               onChanged: (value) => password = value,
-                              validator: (value) => value != null && value.length >= 8 ? null : 'Mật khẩu tối thiểu 8 ký tự',
+                              validator: (value) => 
+                                  value != null && value.length >= 8 
+                                      ? null 
+                                      : 'Mật khẩu tối thiểu 8 ký tự',
                             ),
                             const SizedBox(height: 16),
+                            
+                            // Name
                             TextFormField(
                               decoration: InputDecoration(
                                 labelText: 'Họ và tên',
                                 prefixIcon: const Icon(Icons.person_outline, color: Color(0xFF0077B6)),
                                 filled: true,
                                 fillColor: const Color(0xFFF7F9FB),
-                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12), 
+                                  borderSide: BorderSide.none
+                                ),
                               ),
                               style: const TextStyle(color: Colors.black),
                               onChanged: (value) => name = value,
-                              validator: (value) => value != null && value.isNotEmpty ? null : 'Bắt buộc nhập họ tên',
+                              validator: (value) => 
+                                  value != null && value.isNotEmpty 
+                                      ? null 
+                                      : 'Bắt buộc nhập họ tên',
                             ),
                             const SizedBox(height: 16),
+                            
+                            // Phone
                             TextFormField(
                               decoration: InputDecoration(
                                 labelText: 'Số điện thoại',
                                 prefixIcon: const Icon(Icons.phone, color: Color(0xFF0077B6)),
                                 filled: true,
                                 fillColor: const Color(0xFFF7F9FB),
-                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12), 
+                                  borderSide: BorderSide.none
+                                ),
                               ),
                               keyboardType: TextInputType.phone,
                               style: const TextStyle(color: Colors.black),
                               onChanged: (value) => phone = value,
-                              validator: (value) => value != null && value.length >= 10 && RegExp(r'^[0-9]+$').hasMatch(value) ? null : 'Số điện thoại không hợp lệ',
+                              validator: (value) => 
+                                  value != null && 
+                                  value.length >= 10 && 
+                                  RegExp(r'^[0-9]+$').hasMatch(value) 
+                                      ? null 
+                                      : 'Số điện thoại không hợp lệ',
+                            ),
+                            const SizedBox(height: 16),
+                            
+                            // Date of Birth
+                            TextFormField(
+                              decoration: InputDecoration(
+                                labelText: 'Ngày sinh (YYYY-MM-DD)',
+                                prefixIcon: const Icon(Icons.calendar_today, color: Color(0xFF0077B6)),
+                                filled: true,
+                                fillColor: const Color(0xFFF7F9FB),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12), 
+                                  borderSide: BorderSide.none
+                                ),
+                              ),
+                              keyboardType: TextInputType.datetime,
+                              style: const TextStyle(color: Colors.black),
+                              onChanged: (value) => dob = value,
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return 'Bắt buộc nhập ngày sinh';
+                                }
+                                try {
+                                  DateTime.parse(value);
+                                  return null;
+                                } catch (e) {
+                                  return 'Định dạng ngày không hợp lệ (YYYY-MM-DD)';
+                                }
+                              },
+                            ),
+                            const SizedBox(height: 16),
+                            
+                            // Gender Dropdown
+                            DropdownButtonFormField<String>(
+                              decoration: InputDecoration(
+                                labelText: 'Giới tính',
+                                prefixIcon: const Icon(Icons.wc, color: Color(0xFF0077B6)),
+                                filled: true,
+                                fillColor: const Color(0xFFF7F9FB),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12), 
+                                  borderSide: BorderSide.none
+                                ),
+                              ),
+                              value: gender,
+                              items: const [
+                                DropdownMenuItem(value: 'MALE', child: Text('Nam')),
+                                DropdownMenuItem(value: 'FEMALE', child: Text('Nữ')),
+                                DropdownMenuItem(value: 'OTHER', child: Text('Khác')),
+                              ],
+                              onChanged: (value) {
+                                if (value != null) {
+                                  setState(() => gender = value);
+                                }
+                              },
+                              validator: (value) => 
+                                  value == null ? 'Bắt buộc chọn giới tính' : null,
                             ),
                             const SizedBox(height: 20),
+                            
+                            // Register Button
                             SizedBox(
                               width: double.infinity,
                               child: ElevatedButton(
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: const Color(0xFF0077B6),
                                   padding: const EdgeInsets.symmetric(vertical: 14),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12)
+                                  ),
                                 ),
                                 onPressed: state.isLoading
                                     ? null
                                     : () {
                                         if (_formKey.currentState!.validate()) {
-                                          context.read<AuthBloc>().add(RegisterEvent(email, password, name, phone, avatarPath: _avatarFile?.path));
+                                          DateTime? dobDate;
+                                          try {
+                                            dobDate = DateTime.parse(dob);
+                                          } catch (e) {
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              const SnackBar(
+                                                content: Text('Định dạng ngày sinh không hợp lệ'),
+                                                backgroundColor: Colors.red
+                                              ),
+                                            );
+                                            return;
+                                          }
+                                          
+                                          // ✅ FIX: GỬI dob dạng DateTime cho AuthBloc
+                                          context.read<AuthBloc>().add(RegisterEvent(
+                                            email,
+                                            password,
+                                            name,
+                                            phone,
+                                            avatarPath: _avatarFile?.path,
+                                            dob: dobDate,
+                                            gender: gender,
+                                          ));
                                         }
                                       },
                                 child: state.isLoading
                                     ? const CircularProgressIndicator(color: Colors.white)
-                                    : const Text('Đăng ký', style: TextStyle(fontSize: 17, color: Colors.white)),
+                                    : const Text(
+                                        'Đăng ký', 
+                                        style: TextStyle(fontSize: 17, color: Colors.white)
+                                      ),
                               ),
                             ),
                           ],
@@ -164,13 +310,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       ),
                     ),
                     const SizedBox(height: 20),
+                    
+                    // Login Link
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Text('Đã có tài khoản? ', style: TextStyle(color: Colors.black87)),
+                        const Text(
+                          'Đã có tài khoản? ', 
+                          style: TextStyle(color: Colors.black87)
+                        ),
                         TextButton(
                           onPressed: () => Navigator.pop(context),
-                          child: const Text('Đăng nhập', style: TextStyle(color: Color(0xFF0077B6))),
+                          child: const Text(
+                            'Đăng nhập', 
+                            style: TextStyle(color: Color(0xFF0077B6))
+                          ),
                         ),
                       ],
                     ),
