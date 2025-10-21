@@ -21,7 +21,7 @@ CREATE TABLE "User" (
     "email" TEXT NOT NULL,
     "phone" TEXT,
     "dob" TIMESTAMP(3) DEFAULT '1970-01-01'::date,
-    "gender" TEXT DEFAULT 'Nam',
+    "gender" TEXT DEFAULT 'OTHER',
     "avatar" TEXT,
     "isActive" BOOLEAN NOT NULL DEFAULT true,
     "roleId" INTEGER NOT NULL,

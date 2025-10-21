@@ -64,7 +64,7 @@ class _LoginScreenState extends State<LoginScreen> {
       backgroundColor: const Color(0xFFEAF6FF),
       body: Center(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 50), // ✅ FIX: BỎ DẤU :
           child: BlocConsumer<AuthBloc, AuthState>(
             listener: (context, state) {
               if (state.error != null && state.error!.isNotEmpty) {
@@ -75,13 +75,13 @@ class _LoginScreenState extends State<LoginScreen> {
                       style: const TextStyle(color: Colors.white),
                     ),
                     backgroundColor: Colors.redAccent,
-                    duration: const Duration(seconds: 3), // Tự động ẩn sau 3s
+                    duration: const Duration(seconds: 3),
                   ),
                 );
               }
               if (state.success && state.message == "Đăng nhập thành công") {
                 logger.i('✅ Login successful, navigating to HomeScreen');
-                _saveCredentials(); // Lưu thông tin nếu rememberMe
+                _saveCredentials(); // ✅ SỬ DỤNG _saveCredentials
                 Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(
@@ -98,12 +98,12 @@ class _LoginScreenState extends State<LoginScreen> {
                 opacity: state.isLoading ? 0.6 : 1.0,
                 duration: const Duration(milliseconds: 300),
                 child: AbsorbPointer(
-                  absorbing: state.isLoading, // Vô hiệu hóa tương tác khi loading
+                  absorbing: state.isLoading,
                   child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisAlignment: MainAxisAlignment.start,
                     children: [
-                      Image.asset('assets/images/bus_logo.png', height: 300),
-                      const SizedBox(height: 5),
+                      Image.asset('assets/images/bus_logo.png', height: 280),
+                      const SizedBox(height: 8),
                       const Text(
                         'BUSTICKET',
                         style: TextStyle(
@@ -118,7 +118,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         'Đặt vé xe nhanh chóng & tiện lợi',
                         style: TextStyle(fontSize: 15, color: Colors.black87),
                       ),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 30),
                       Container(
                         padding: const EdgeInsets.all(20),
                         decoration: BoxDecoration(
@@ -133,7 +133,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           ],
                         ),
                         child: Form(
-                          key: _formKey,
+                          key: _formKey, // ✅ SỬ DỤNG _formKey
                           child: Column(
                             children: [
                               TextFormField(
@@ -148,7 +148,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                     borderSide: BorderSide.none,
                                   ),
                                 ),
-                                onChanged: (_) => setState(() {}), // Reset lỗi khi nhập lại
+                                onChanged: (_) => setState(() {}),
                                 validator: (v) {
                                   if (v == null || v.isEmpty) return 'Email không được để trống';
                                   if (!v.contains('@')) return 'Email không hợp lệ';
@@ -176,7 +176,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   ),
                                 ),
                                 obscureText: !showPassword,
-                                onChanged: (_) => setState(() {}), // Reset lỗi khi nhập lại
+                                onChanged: (_) => setState(() {}),
                                 validator: (v) {
                                   if (v == null || v.isEmpty) return 'Mật khẩu không được để trống';
                                   if (v.length < 8) return 'Mật khẩu tối thiểu 8 ký tự';
@@ -228,9 +228,9 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         ),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 20),
                       const Text('hoặc', style: TextStyle(color: Colors.black87)),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 20),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
@@ -267,7 +267,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 10),
+                      const SizedBox(height: 16),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
@@ -278,6 +278,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         ],
                       ),
+                      const SizedBox(height: 20),
                     ],
                   ),
                 ),
