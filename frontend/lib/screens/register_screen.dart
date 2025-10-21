@@ -19,7 +19,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   String password = '';
   String name = '';
   String phone = '';
-  String dob = ''; // STRING để hiển thị
+  String dob = '';
   String gender = 'OTHER';
   File? _avatarFile;
   final ImagePicker _picker = ImagePicker();
@@ -58,24 +58,24 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 return Column(
                   mainAxisAlignment: MainAxisAlignment.start,
                   children: [
-                    // Avatar Picker
+                    // Avatar Picker - GIẢM 70→60
                     GestureDetector(
                       onTap: _pickAvatar,
                       child: CircleAvatar(
-                        radius: 70,
+                        radius: 60, // ✅ GIẢM: 70→60
                         backgroundColor: const Color(0xFFBFD7ED),
                         backgroundImage: _avatarFile != null ? FileImage(_avatarFile!) : null,
                         child: _avatarFile == null
-                            ? const Icon(Icons.camera_alt, size: 40, color: Colors.white)
+                            ? const Icon(Icons.camera_alt, size: 35, color: Colors.white) // ✅ GIẢM: 40→35
                             : null,
                       ),
                     ),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 8), // ✅ GIẢM: 10→8
                     const Text(
                       'Chọn ảnh đại diện', 
                       style: TextStyle(color: Colors.black54, fontSize: 14)
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 16), // ✅ GIẢM: 20→16
                     
                     // Logo & Title
                     const Text(
@@ -92,19 +92,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       'Tạo tài khoản mới', 
                       style: TextStyle(fontSize: 16, color: Colors.black87)
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 16), // ✅ GIẢM: 20→16
                     
-                    // Form Container
+                    // Form Container - NHỎ LẠI
                     Container(
-                      padding: const EdgeInsets.all(20),
+                      padding: const EdgeInsets.all(16), // ✅ GIẢM: 20→16
                       decoration: BoxDecoration(
                         color: Colors.white,
-                        borderRadius: BorderRadius.circular(18),
+                        borderRadius: BorderRadius.circular(14), // ✅ GIẢM: 18→14
                         boxShadow: [
                           BoxShadow(
                             color: Colors.grey.withOpacity(0.15),
-                            blurRadius: 10, 
-                            offset: const Offset(0, 5)
+                            blurRadius: 8, // ✅ GIẢM: 10→8
+                            offset: const Offset(0, 4) // ✅ GIẢM: 5→4
                           )
                         ],
                       ),
@@ -120,7 +120,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 filled: true,
                                 fillColor: const Color(0xFFF7F9FB),
                                 border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12), 
+                                  borderRadius: BorderRadius.circular(10), // ✅ GIẢM: 12→10
                                   borderSide: BorderSide.none
                                 ),
                               ),
@@ -131,7 +131,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                       ? null 
                                       : 'Email không hợp lệ',
                             ),
-                            const SizedBox(height: 16),
+                            const SizedBox(height: 12), // ✅ GIẢM: 16→12
                             
                             // Password
                             TextFormField(
@@ -141,7 +141,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 filled: true,
                                 fillColor: const Color(0xFFF7F9FB),
                                 border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12), 
+                                  borderRadius: BorderRadius.circular(10), 
                                   borderSide: BorderSide.none
                                 ),
                               ),
@@ -153,7 +153,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                       ? null 
                                       : 'Mật khẩu tối thiểu 8 ký tự',
                             ),
-                            const SizedBox(height: 16),
+                            const SizedBox(height: 12), // ✅ GIẢM: 16→12
                             
                             // Name
                             TextFormField(
@@ -163,7 +163,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 filled: true,
                                 fillColor: const Color(0xFFF7F9FB),
                                 border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12), 
+                                  borderRadius: BorderRadius.circular(10), 
                                   borderSide: BorderSide.none
                                 ),
                               ),
@@ -174,7 +174,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                       ? null 
                                       : 'Bắt buộc nhập họ tên',
                             ),
-                            const SizedBox(height: 16),
+                            const SizedBox(height: 12), // ✅ GIẢM: 16→12
                             
                             // Phone
                             TextFormField(
@@ -184,7 +184,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 filled: true,
                                 fillColor: const Color(0xFFF7F9FB),
                                 border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12), 
+                                  borderRadius: BorderRadius.circular(10), 
                                   borderSide: BorderSide.none
                                 ),
                               ),
@@ -198,7 +198,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                       ? null 
                                       : 'Số điện thoại không hợp lệ',
                             ),
-                            const SizedBox(height: 16),
+                            const SizedBox(height: 12), // ✅ GIẢM: 16→12
                             
                             // Date of Birth
                             TextFormField(
@@ -208,7 +208,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 filled: true,
                                 fillColor: const Color(0xFFF7F9FB),
                                 border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12), 
+                                  borderRadius: BorderRadius.circular(10), 
                                   borderSide: BorderSide.none
                                 ),
                               ),
@@ -227,7 +227,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 }
                               },
                             ),
-                            const SizedBox(height: 16),
+                            const SizedBox(height: 12), // ✅ GIẢM: 16→12
                             
                             // Gender Dropdown
                             DropdownButtonFormField<String>(
@@ -237,7 +237,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 filled: true,
                                 fillColor: const Color(0xFFF7F9FB),
                                 border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12), 
+                                  borderRadius: BorderRadius.circular(10), 
                                   borderSide: BorderSide.none
                                 ),
                               ),
@@ -255,17 +255,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               validator: (value) => 
                                   value == null ? 'Bắt buộc chọn giới tính' : null,
                             ),
-                            const SizedBox(height: 20),
+                            const SizedBox(height: 16), // ✅ GIẢM: 20→16
                             
-                            // Register Button
+                            // Register Button - NHỎ LẠI
                             SizedBox(
                               width: double.infinity,
                               child: ElevatedButton(
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: const Color(0xFF0077B6),
-                                  padding: const EdgeInsets.symmetric(vertical: 14),
+                                  padding: const EdgeInsets.symmetric(vertical: 12), // ✅ GIẢM: 14→12
                                   shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12)
+                                    borderRadius: BorderRadius.circular(10) // ✅ GIẢM: 12→10
                                   ),
                                 ),
                                 onPressed: state.isLoading
@@ -285,7 +285,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                             return;
                                           }
                                           
-                                          // ✅ FIX: GỬI dob dạng DateTime cho AuthBloc
                                           context.read<AuthBloc>().add(RegisterEvent(
                                             email,
                                             password,
@@ -301,7 +300,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                     ? const CircularProgressIndicator(color: Colors.white)
                                     : const Text(
                                         'Đăng ký', 
-                                        style: TextStyle(fontSize: 17, color: Colors.white)
+                                        style: TextStyle(fontSize: 16, color: Colors.white) // ✅ GIẢM: 17→16
                                       ),
                               ),
                             ),
@@ -309,7 +308,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 16), // ✅ GIẢM: 20→16
                     
                     // Login Link
                     Row(
