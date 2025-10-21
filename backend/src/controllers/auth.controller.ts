@@ -23,14 +23,14 @@ export class AuthController {
   constructor(private authService: AuthService) {}
 
   // ========================================
-  // 🔹 ĐĂNG KÝ NGƯỜI DÙNG (CÓ TÙY CHỌN UPLOAD ẢNH)
+  // 🔹 ĐĂNG KÝ NGƯỜI DÙNG (CÓ UPLOAD ẢNH)
   // ========================================
   @Post('register')
   @HttpCode(HttpStatus.CREATED)
   @UseInterceptors(
     FileInterceptor('avatar', {
       storage: diskStorage({
-        destination: './uploads/avatars', // 📁 Nơi lưu ảnh
+        destination: './uploads/avatars',
         filename: (req, file, callback) => {
           const uniqueSuffix =
             Date.now() + '-' + Math.round(Math.random() * 1e9);
@@ -38,12 +38,13 @@ export class AuthController {
           callback(null, `avatar-${uniqueSuffix}${ext}`);
         },
       }),
-      limits: { fileSize: 5 * 1024 * 1024 }, // ✅ Giới hạn 5MB
+      limits: { fileSize: 5 * 1024 * 1024 }, // Giới hạn 5MB
       fileFilter: (req, file, callback) => {
-        // ✅ Chấp nhận tất cả các định dạng ảnh (image/*)
         if (!file.mimetype.startsWith('image/')) {
           return callback(
-            new Error('Chỉ chấp nhận file ảnh hợp lệ (jpg, png, webp, svg, heic,...)'),
+            new Error(
+              'Chỉ chấp nhận file ảnh hợp lệ (jpg, png, webp, heic, svg,...)',
+            ),
             false,
           );
         }
@@ -57,19 +58,19 @@ export class AuthController {
   ) {
     const avatarPath = file
       ? file.path
-      : 'uploads/avatars/default.png'; // 🖼 Ảnh mặc định nếu không upload
+      : 'uploads/avatars/default.png';
 
     return this.authService.register(
       body.email,
       body.password,
       body.name,
       body.phone,
-      avatarPath, // ✅ Truyền đường dẫn ảnh vào service
+      avatarPath,
     );
   }
 
   // ========================================
-  // 🔹 ĐĂNG NHẬP (TRẢ VỀ THÔNG TIN USER + AVATAR)
+  // 🔹 ĐĂNG NHẬP
   // ========================================
   @Post('login')
   @HttpCode(HttpStatus.OK)
@@ -78,16 +79,20 @@ export class AuthController {
   }
 
   // ========================================
-  // 🔹 QUÊN MẬT KHẨU
+  // 🔹 QUÊN MẬT KHẨU (NHẬP EMAIL + MẬT KHẨU MỚI)
   // ========================================
-  @Post('forgot-password')
+  @Post('reset-password')
   @HttpCode(HttpStatus.OK)
-  async forgotPassword(@Body('email') email: string) {
-    return this.authService.forgotPassword(email);
+  async resetPassword(
+    @Body('email') email: string,
+    @Body('newPassword') newPassword: string,
+  ) {
+    // ⚡ confirmPassword được kiểm tra ở frontend, không gửi lên backend
+    return this.authService.resetPassword(email, newPassword);
   }
 
   // ========================================
-  // 🔹 ĐỔI MẬT KHẨU
+  // 🔹 ĐỔI MẬT KHẨU (KHI ĐÃ ĐĂNG NHẬP)
   // ========================================
   @Post('change-password')
   @HttpCode(HttpStatus.OK)
@@ -96,17 +101,5 @@ export class AuthController {
     @Body('newPassword') newPassword: string,
   ) {
     return this.authService.changePassword(uid, newPassword);
-  }
-
-  // ========================================
-  // 🔹 RESET PASSWORD BẰNG EMAIL
-  // ========================================
-  @Post('reset-password')
-  @HttpCode(HttpStatus.OK)
-  async resetPassword(
-    @Body('email') email: string,
-    @Body('newPassword') newPassword: string,
-  ) {
-    return this.authService.resetPassword(email, newPassword);
   }
 }

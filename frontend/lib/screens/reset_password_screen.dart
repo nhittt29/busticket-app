@@ -32,12 +32,20 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
           listener: (context, state) {
             if (state.error != null) {
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(state.error!)),
+                SnackBar(
+                  content: Text(state.error!),
+                  backgroundColor: Colors.red,
+                ),
               );
-            } else if (!state.isLoading && state.success && state.message == "Đặt lại mật khẩu thành công") {
+            } else if (!state.isLoading &&
+                state.success &&
+                state.message == "Đặt lại mật khẩu thành công") {
               if (!mounted) return;
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text("Đặt lại mật khẩu thành công!")),
+                const SnackBar(
+                  content: Text("Đặt lại mật khẩu thành công!"),
+                  backgroundColor: Colors.green,
+                ),
               );
               Future.delayed(const Duration(seconds: 1), () {
                 if (mounted) {
@@ -47,7 +55,10 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
             }
           },
           child: BlocBuilder<AuthBloc, AuthState>(
-            buildWhen: (previous, current) => previous.isLoading != current.isLoading || previous.error != current.error || previous.success != current.success,
+            buildWhen: (previous, current) =>
+                previous.isLoading != current.isLoading ||
+                previous.error != current.error ||
+                previous.success != current.success,
             builder: (context, state) {
               return Column(
                 mainAxisAlignment: MainAxisAlignment.start,
@@ -74,7 +85,13 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(18),
-                      boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, 5))],
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.grey.withOpacity(0.1),
+                          blurRadius: 10,
+                          offset: const Offset(0, 5),
+                        )
+                      ],
                     ),
                     child: Form(
                       key: _formKey,
@@ -87,12 +104,18 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                               prefixIcon: const Icon(Icons.lock_outline, color: Color(0xFF0077B6)),
                               filled: true,
                               fillColor: const Color(0xFFF7F9FB),
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide.none,
+                              ),
                             ),
                             obscureText: true,
                             style: const TextStyle(color: Colors.black),
                             onChanged: (value) => newPassword = value,
-                            validator: (value) => value != null && value.length >= 8 ? null : 'Mật khẩu ít nhất 8 ký tự',
+                            validator: (value) =>
+                                value != null && value.length >= 8
+                                    ? null
+                                    : 'Mật khẩu ít nhất 8 ký tự',
                           ),
                           const SizedBox(height: 16),
                           TextFormField(
@@ -101,12 +124,23 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                               prefixIcon: const Icon(Icons.lock_outline, color: Color(0xFF0077B6)),
                               filled: true,
                               fillColor: const Color(0xFFF7F9FB),
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide.none,
+                              ),
                             ),
                             obscureText: true,
                             style: const TextStyle(color: Colors.black),
                             onChanged: (value) => confirmPassword = value,
-                            validator: (value) => value == newPassword ? null : 'Mật khẩu không khớp',
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Vui lòng xác nhận mật khẩu';
+                              }
+                              if (value != newPassword) {
+                                return 'Mật khẩu không khớp';
+                              }
+                              return null;
+                            },
                           ),
                           const SizedBox(height: 20),
                           SizedBox(
@@ -115,18 +149,29 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: const Color(0xFF0077B6),
                                 padding: const EdgeInsets.symmetric(vertical: 14),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
                               ),
                               onPressed: state.isLoading
                                   ? null
                                   : () {
                                       if (_formKey.currentState!.validate()) {
-                                        context.read<AuthBloc>().add(ResetPasswordEvent(widget.email, newPassword));
+                                        // ✅ GỬI API RESET PASSWORD (CHỈ EMAIL + NEW PASSWORD)
+                                        context.read<AuthBloc>().add(
+                                              ResetPasswordEvent(
+                                                widget.email,
+                                                newPassword,
+                                              ),
+                                            );
                                       }
                                     },
                               child: state.isLoading
                                   ? const CircularProgressIndicator(color: Colors.white)
-                                  : const Text('Xác nhận', style: TextStyle(fontSize: 17, color: Colors.white)),
+                                  : const Text(
+                                      'Xác nhận',
+                                      style: TextStyle(fontSize: 17, color: Colors.white),
+                                    ),
                             ),
                           ),
                         ],
@@ -137,10 +182,16 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Text('Quay lại? ', style: TextStyle(color: Colors.black87)),
+                      const Text(
+                        'Quay lại? ',
+                        style: TextStyle(color: Colors.black87),
+                      ),
                       TextButton(
                         onPressed: () => Navigator.pop(context),
-                        child: const Text('Đăng nhập', style: TextStyle(color: Color(0xFF0077B6))),
+                        child: const Text(
+                          'Đăng nhập',
+                          style: TextStyle(color: Color(0xFF0077B6)),
+                        ),
                       ),
                     ],
                   ),

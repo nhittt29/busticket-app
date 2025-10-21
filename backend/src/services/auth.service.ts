@@ -2,11 +2,13 @@ import {
   Injectable,
   ConflictException,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { auth, firestore } from '../config/firebase';
 import { PrismaService } from './prisma.service';
 import { UserRepository } from '../repositories/user.repository';
 import { User } from '@prisma/client';
+import axios from 'axios';
 
 @Injectable()
 export class AuthService {
@@ -14,6 +16,11 @@ export class AuthService {
     private prisma: PrismaService,
     private userRepository: UserRepository,
   ) {}
+
+  // Type guard to check if error is an Axios error
+  private isAxiosError(error: any): error is { response?: { status: number } } {
+    return error && typeof error === 'object' && 'response' in error;
+  }
 
   // ======================================================
   // 🔹 Đăng ký (có thể có hoặc không upload avatar)
@@ -23,7 +30,7 @@ export class AuthService {
     password: string,
     name: string,
     phone?: string,
-    avatarPath?: string, // ✅ Thêm tham số mới
+    avatarPath?: string,
   ): Promise<User> {
     try {
       const existingUser = await this.userRepository.findByEmail(email);
@@ -31,32 +38,32 @@ export class AuthService {
         throw new ConflictException('Email đã được đăng ký');
       }
 
-      // 🔹 Tạo user trên Firebase
+      // Tạo user trên Firebase
       const userRecord = await auth.createUser({
         email,
         password,
         displayName: name,
       });
 
-      // 🔹 Lưu Firestore (tùy chọn)
+      // Lưu Firestore
       await firestore.collection('users').doc(userRecord.uid).set({
         name,
         email,
         phone,
-        avatar: avatarPath ?? 'uploads/avatars/default.png', // 🖼 Lưu đường dẫn ảnh
+        avatar: avatarPath ?? 'uploads/avatars/default.png',
         createdAt: new Date(),
       });
 
-      // 🔹 Lấy role mặc định PASSENGER
+      // Lấy role PASSENGER
       const passengerRole = await this.prisma.role.findUnique({
         where: { name: 'PASSENGER' },
       });
 
       if (!passengerRole) {
-        throw new Error('Role PASSENGER not found in DB');
+        throw new Error('Role PASSENGER not found');
       }
 
-      // 🔹 Tạo user trong database (Prisma)
+      // Lưu user trong database
       const newUser = await this.userRepository.createUser({
         uid: userRecord.uid,
         name,
@@ -64,7 +71,7 @@ export class AuthService {
         phone,
         isActive: true,
         roleId: passengerRole.id,
-        avatar: avatarPath ?? 'uploads/avatars/default.png', // ✅ Lưu vào DB
+        avatar: avatarPath ?? 'uploads/avatars/default.png',
       });
 
       return newUser;
@@ -75,7 +82,7 @@ export class AuthService {
   }
 
   // ======================================================
-  // 🔹 Đăng nhập (trả về đầy đủ thông tin user)
+  // 🔹 Đăng nhập
   // ======================================================
   async login(
     email: string,
@@ -94,51 +101,53 @@ export class AuthService {
     };
   }> {
     try {
-      // 🔍 Kiểm tra email có tồn tại trên Firebase không
-      let userRecord;
-      try {
-        userRecord = await auth.getUserByEmail(email);
-      } catch {
-        throw new NotFoundException('Email chưa được đăng ký');
-      }
+      // Gọi Firebase REST API
+      const response = await axios.post<{
+        idToken: string;
+        localId: string;
+      }>(
+        `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${process.env.FIREBASE_API_KEY}`,
+        {
+          email,
+          password,
+          returnSecureToken: true,
+        },
+      );
 
-      // 🔹 Tạo custom token từ Firebase
-      const customToken = await auth.createCustomToken(userRecord.uid);
+      const { idToken, localId: uid } = response.data;
 
-      // 🔹 Lấy thông tin user từ DB
+      // Lấy thông tin user
       const user = await this.prisma.user.findUnique({
         where: { email },
         include: { role: true },
       });
 
-      if (!user) {
-        throw new NotFoundException('Người dùng không tồn tại trong hệ thống');
-      }
+      if (!user) throw new NotFoundException('Người dùng không tồn tại');
 
-      // 🔹 Xây dựng URL đầy đủ cho avatar
-      const baseUrl = 'http://10.0.2.2:3000'; // Sửa từ localhost thành 10.0.2.2 cho emulator
+      const baseUrl = 'http://10.0.2.2:3000';
       const avatarUrl = user.avatar
-        ? `${baseUrl}/${user.avatar.replace(/\\/g, '/')}` // Xử lý \ thành /
+        ? `${baseUrl}/${user.avatar.replace(/\\/g, '/')}`
         : `${baseUrl}/uploads/avatars/default.png`;
 
-      // ✅ Trả về token + thông tin chi tiết user
       return {
-        idToken: customToken,
-        uid: userRecord.uid,
+        idToken,
+        uid,
         user: {
           id: user.id,
           uid: user.uid,
           name: user.name,
           email: user.email,
-          phone: user.phone ?? undefined, // ✅ Fix type null → undefined
-          avatar: avatarUrl, // ✅ Trả về URL đầy đủ
+          phone: user.phone ?? undefined,
+          avatar: avatarUrl,
           role: user.role
             ? { id: user.role.id, name: user.role.name }
-            : undefined, // ✅ Fix type null → undefined
+            : undefined,
         },
       };
     } catch (error) {
-      if (error instanceof NotFoundException) throw error;
+      if (this.isAxiosError(error) && error.response?.status === 400) {
+        throw new UnauthorizedException('Email hoặc mật khẩu không chính xác');
+      }
       throw new Error(`Login failed: ${error.message}`);
     }
   }
@@ -153,10 +162,11 @@ export class AuthService {
       const userRecord = await auth.getUserByEmail(email);
       if (!userRecord) throw new NotFoundException('Email chưa được đăng ký');
 
+      // Tạo link reset mật khẩu
       const resetLink = await (auth as any).generatePasswordResetLink(email);
 
       return {
-        message: 'Link đặt lại mật khẩu đã được gửi qua email',
+        message: 'Link đặt lại mật khẩu đã được gửi',
         resetLink,
       };
     } catch (error) {
@@ -180,7 +190,7 @@ export class AuthService {
   }
 
   // ======================================================
-  // 🔹 Reset mật khẩu bằng email
+  // 🔹 Reset mật khẩu
   // ======================================================
   async resetPassword(
     email: string,

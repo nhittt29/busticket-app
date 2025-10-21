@@ -19,7 +19,7 @@ class HomeState extends Equatable {
     return HomeState(
       loading: loading ?? this.loading,
       user: user ?? this.user,
-      error: error,
+      error: error ?? this.error, // Sửa để đồng nhất
     );
   }
 
