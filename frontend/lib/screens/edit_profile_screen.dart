@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
 import '../bloc/auth/auth_bloc.dart';
 import '../bloc/auth/auth_event.dart';
 
@@ -17,6 +19,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   late TextEditingController phoneController;
   late TextEditingController dobController;
   late TextEditingController genderController;
+  File? _newAvatarFile; // Lưu ảnh mới được chọn
+  final ImagePicker _picker = ImagePicker();
 
   // Mapping giữa hiển thị (tiếng Việt) và giá trị backend (MALE, FEMALE, OTHER)
   final Map<String, String> genderMap = {
@@ -38,12 +42,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               : user['dob'].toString())
           : '',
     );
-    // Chuyển giá trị gender từ backend sang hiển thị tiếng Việt
     final backendGender = user['gender'] ?? 'OTHER';
     genderController = TextEditingController(
       text: genderMap.entries
-          .firstWhere((entry) => entry.value == backendGender,
-              orElse: () => const MapEntry('Khác', 'OTHER'))
+          .firstWhere(
+            (entry) => entry.value == backendGender,
+            orElse: () => const MapEntry('Khác', 'OTHER'),
+          )
           .key,
     );
   }
@@ -57,21 +62,66 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     super.dispose();
   }
 
+  Future<void> _pickAvatar() async {
+    try {
+      final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
+      if (pickedFile != null) {
+        setState(() => _newAvatarFile = File(pickedFile.path));
+      } else {
+        // Thông báo nếu không chọn được ảnh
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Không chọn được ảnh, vui lòng thử lại.')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Lỗi khi chọn ảnh: $e')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFEAF6FF), // ✅ BACKGROUND XÁC NHẬN
+      backgroundColor: const Color(0xFFEAF6FF),
       appBar: AppBar(
         title: const Text('Chỉnh sửa thông tin'),
-        backgroundColor: const Color(0xFF4CAF50), // ✅ HEADER XANH LÁ PHÙ HỢP
+        backgroundColor: const Color(0xFF4CAF50),
         elevation: 2,
-        foregroundColor: Colors.white, // Text màu trắng
+        foregroundColor: Colors.white,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Avatar Section
+            Center(
+              child: GestureDetector(
+                onTap: _pickAvatar,
+                child: CircleAvatar(
+                  radius: 70,
+                  backgroundColor: const Color(0xFFBFD7ED),
+                  backgroundImage: _newAvatarFile != null
+                      ? FileImage(_newAvatarFile!) // Ưu tiên ảnh mới
+                      : widget.user?['avatar'] != null
+                          ? NetworkImage(widget.user!['avatar'].toString()) // Hiển thị avatar hiện tại
+                          : null,
+                  child: _newAvatarFile == null && (widget.user?['avatar'] == null)
+                      ? const Icon(Icons.camera_alt, size: 40, color: Colors.white)
+                      : null,
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            Center(
+              child: const Text(
+                'Nhấn để chọn ảnh đại diện',
+                style: TextStyle(color: Colors.black54, fontSize: 14),
+              ),
+            ),
+            const SizedBox(height: 20),
+
             // Form Container
             Container(
               padding: const EdgeInsets.all(20),
@@ -83,7 +133,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     color: Colors.grey.withOpacity(0.15),
                     blurRadius: 10,
                     offset: const Offset(0, 5),
-                  )
+                  ),
                 ],
               ),
               child: Column(
@@ -142,7 +192,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
                   // Gender Dropdown
                   DropdownButtonFormField<String>(
-                    value: genderController.text,
+                    value: genderController.text.isNotEmpty
+                        ? genderController.text
+                        : 'Khác',
                     decoration: InputDecoration(
                       labelText: 'Giới tính',
                       prefixIcon: const Icon(Icons.wc, color: Color(0xFF0077B6)),
@@ -170,11 +222,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   const SizedBox(height: 30),
                 ],
               ),
-            ),
+           ),
 
             const SizedBox(height: 30),
 
-            // Save Button - ĐỔI MÀU XANH LÁ PHÙ HỢP
+            // Save Button
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
@@ -186,20 +238,21 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   } catch (e) {
                     dob = null;
                   }
-                  // Chuyển giá trị hiển thị tiếng Việt sang giá trị backend
+
                   final backendGender = genderMap[genderController.text] ?? 'OTHER';
-                  
+
                   authBloc.add(UpdateUserEvent(
                     name: nameController.text,
                     phone: phoneController.text.isEmpty ? null : phoneController.text,
                     dob: dob,
                     gender: backendGender,
+                    avatarPath: _newAvatarFile?.path,
                   ));
-                  
+
                   Navigator.pop(context);
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF4CAF50), // ✅ BUTTON XANH LÁ
+                  backgroundColor: const Color(0xFF4CAF50),
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),

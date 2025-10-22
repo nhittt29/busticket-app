@@ -23,7 +23,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<UpdateUserEvent>(_onUpdateUser);
   }
 
-  // ✅ FIX 1: Login - Lưu dob dạng STRING thay vì DateTime
   Future<void> _onLogin(LoginEvent event, Emitter<AuthState> emit) async {
     emit(state.copyWith(isLoading: true, success: false, error: null));
     logger.i('State before login: isLoading=${state.isLoading}, success=${state.success}, user=${state.user}');
@@ -34,27 +33,25 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         body: jsonEncode({"email": event.email, "password": event.password}),
       );
 
+      final responseBody = jsonDecode(response.body);
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        if (data['user']['avatar'] != null &&
-            !data['user']['avatar'].toString().startsWith('http')) {
-          data['user']['avatar'] = 'http://10.0.2.2:3000/${data['user']['avatar']}';
+        if (responseBody['user']['avatar'] != null &&
+            !responseBody['user']['avatar'].toString().startsWith('http')) {
+          responseBody['user']['avatar'] = 'http://10.0.2.2:3000/${responseBody['user']['avatar']}';
         }
-        // ✅ FIX: Giữ dob dạng STRING để lưu SharedPreferences
         final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('idToken', data['idToken']);
-        await prefs.setString('uid', data['uid']);
-        await prefs.setString('user', jsonEncode(data['user']));
+        await prefs.setString('idToken', responseBody['idToken']);
+        await prefs.setString('uid', responseBody['uid']);
+        await prefs.setString('user', jsonEncode(responseBody['user']));
 
         emit(state.copyWith(
           isLoading: false,
           success: true,
           message: "Đăng nhập thành công",
-          user: data['user'],
+          user: responseBody['user'],
         ));
       } else {
-        final errorData = jsonDecode(response.body);
-        throw Exception(errorData['message'] ?? "Sai email hoặc mật khẩu");
+        throw Exception(responseBody['message'] ?? "Sai email hoặc mật khẩu");
       }
     } catch (e) {
       emit(state.copyWith(
@@ -77,10 +74,12 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       request.fields['password'] = event.password;
       request.fields['name'] = event.name;
       request.fields['phone'] = event.phone ?? '';
-      request.fields['dob'] = event.dob?.toIso8601String().split('T')[0] ?? '';
+      request.fields['dob'] = event.dob != null
+          ? event.dob!.toIso8601String().split('T')[0]
+          : '';
       request.fields['gender'] = event.gender ?? 'OTHER';
 
-      if (event.avatarPath != null) {
+      if (event.avatarPath != null && event.avatarPath!.isNotEmpty) {
         final file = File(event.avatarPath!);
         final mimeType = lookupMimeType(file.path) ?? 'image/*';
         request.files.add(await http.MultipartFile.fromPath(
@@ -95,8 +94,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
       if (response.statusCode == 201) {
         final data = jsonDecode(body);
-        if (data['avatar'] != null &&
-            !data['avatar'].toString().startsWith('http')) {
+        if (data['avatar'] != null && !data['avatar'].toString().startsWith('http')) {
           data['avatar'] = 'http://10.0.2.2:3000/${data['avatar']}';
         }
         final prefs = await SharedPreferences.getInstance();
@@ -108,8 +106,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
           user: null,
         ));
       } else {
-        throw Exception(
-            "Đăng ký thất bại: ${jsonDecode(body)['message'] ?? body}");
+        throw Exception("Đăng ký thất bại: ${jsonDecode(body)['message'] ?? body}");
       }
     } catch (e) {
       emit(state.copyWith(
@@ -123,10 +120,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
   Future<void> _onForgotPassword(ForgotPasswordEvent event, Emitter<AuthState> emit) async {
     emit(state.copyWith(isLoading: false, success: true, message: "Email hợp lệ. Tiếp tục đặt mật khẩu mới."));
-    // ✅ KHÔNG GỌI API - CHỈ VALIDATE EMAIL
   }
 
-  // ✅ GIỮ NGUYÊN ResetPassword
   Future<void> _onResetPassword(ResetPasswordEvent event, Emitter<AuthState> emit) async {
     emit(state.copyWith(isLoading: true, success: false, error: null));
     try {
@@ -160,18 +155,15 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     }
   }
 
-  // ✅ FIX 2: LoadUser - KHÔNG parse dob thành DateTime
   Future<void> _onLoadUser(LoadUserEvent event, Emitter<AuthState> emit) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final userString = prefs.getString('user');
       if (userString != null) {
         final userData = jsonDecode(userString);
-        if (userData['avatar'] != null &&
-            !userData['avatar'].toString().startsWith('http')) {
+        if (userData['avatar'] != null && !userData['avatar'].toString().startsWith('http')) {
           userData['avatar'] = 'http://10.0.2.2:3000/${userData['avatar']}';
         }
-        // ✅ FIX: Giữ dob dạng STRING
         emit(state.copyWith(
           isLoading: false,
           success: true,
@@ -209,7 +201,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     }
   }
 
-  // ✅ FIX 3: UpdateUser - Parse dob từ STRING về DateTime CHỈ KHI HIỂN THỊ
   Future<void> _onUpdateUser(UpdateUserEvent event, Emitter<AuthState> emit) async {
     emit(state.copyWith(isLoading: true, success: false, error: null));
     try {
@@ -220,29 +211,37 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         throw Exception('Không tìm thấy token hoặc thông tin người dùng');
       }
 
-      final dobString = event.dob?.toIso8601String().split('T')[0];
-      final response = await http.put(
-        Uri.parse('http://10.0.2.2:3000/api/auth/update-profile'),
-        headers: {
-          'Authorization': 'Bearer $idToken',
-          'Content-Type': 'application/json',
-        },
-        body: jsonEncode({
-          'id': user['id'],
-          'name': event.name,
-          'phone': event.phone,
-          'dob': dobString,
-          'gender': event.gender,
-        }),
-      );
+      var uri = Uri.parse('http://10.0.2.2:3000/api/auth/update-profile');
+      var request = http.MultipartRequest('PUT', uri);
+      request.headers['Authorization'] = 'Bearer $idToken';
+
+      request.fields['id'] = user['id'].toString();
+      request.fields['name'] = event.name;
+      request.fields['phone'] = event.phone ?? '';
+      request.fields['dob'] = event.dob != null
+          ? event.dob!.toIso8601String().split('T')[0]
+          : '';
+      request.fields['gender'] = event.gender ?? 'OTHER';
+
+      final avatarPath = event.avatarPath ?? '';
+      if (avatarPath.isNotEmpty) {
+        final file = File(avatarPath);
+        final mimeType = lookupMimeType(file.path) ?? 'image/*';
+        request.files.add(await http.MultipartFile.fromPath(
+          'avatar',
+          file.path,
+          contentType: MediaType.parse(mimeType),
+        ));
+      }
+
+      final response = await request.send();
+      final body = await response.stream.bytesToString();
 
       if (response.statusCode == 200) {
-        final updatedUser = jsonDecode(response.body);
-        if (updatedUser['avatar'] != null &&
-            !updatedUser['avatar'].toString().startsWith('http')) {
+        final updatedUser = jsonDecode(body);
+        if (updatedUser['avatar'] != null && !updatedUser['avatar'].toString().startsWith('http')) {
           updatedUser['avatar'] = 'http://10.0.2.2:3000/${updatedUser['avatar']}';
         }
-        // ✅ FIX: Giữ dob dạng STRING khi lưu
         await prefs.setString('user', jsonEncode(updatedUser));
         emit(state.copyWith(
           isLoading: false,
@@ -251,7 +250,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
           user: updatedUser,
         ));
       } else {
-        throw Exception('Cập nhật thất bại: ${response.body}');
+        throw Exception('Cập nhật thất bại: ${jsonDecode(body)['message'] ?? body}');
       }
     } catch (e) {
       emit(state.copyWith(
