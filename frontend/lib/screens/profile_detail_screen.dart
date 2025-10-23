@@ -36,7 +36,7 @@ class ProfileDetailScreen extends StatelessWidget {
               return const Center(child: CircularProgressIndicator());
             }
             
-            final userData = state.user ?? this.user ?? {};
+            final userData = state.user ?? user ?? {};
             final name = userData['name'] ?? 'Không có tên';
             final email = userData['email'] ?? 'Không có email';
             final phone = userData['phone'] ?? 'Chưa cập nhật số điện thoại';

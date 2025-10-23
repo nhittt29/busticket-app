@@ -81,12 +81,16 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
       if (event.avatarPath != null && event.avatarPath!.isNotEmpty) {
         final file = File(event.avatarPath!);
-        final mimeType = lookupMimeType(file.path) ?? 'image/*';
-        request.files.add(await http.MultipartFile.fromPath(
-          'avatar',
-          file.path,
-          contentType: MediaType.parse(mimeType),
-        ));
+        if (await file.exists()) {
+          final mimeType = lookupMimeType(file.path) ?? 'image/*';
+          request.files.add(await http.MultipartFile.fromPath(
+            'avatar',
+            file.path,
+            contentType: MediaType.parse(mimeType),
+          ));
+        } else {
+          logger.w('File avatar not found: ${event.avatarPath}');
+        }
       }
 
       final response = await request.send();
@@ -215,7 +219,12 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       var request = http.MultipartRequest('PUT', uri);
       request.headers['Authorization'] = 'Bearer $idToken';
 
-      request.fields['id'] = user['id'].toString();
+      final userId = int.tryParse(user['id'].toString()) ?? 0;
+      if (userId == 0) {
+        throw Exception('ID người dùng không hợp lệ');
+      }
+      request.fields['id'] = userId.toString();
+
       request.fields['name'] = event.name;
       request.fields['phone'] = event.phone ?? '';
       request.fields['dob'] = event.dob != null
@@ -223,15 +232,18 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
           : '';
       request.fields['gender'] = event.gender ?? 'OTHER';
 
-      final avatarPath = event.avatarPath ?? '';
-      if (avatarPath.isNotEmpty) {
-        final file = File(avatarPath);
-        final mimeType = lookupMimeType(file.path) ?? 'image/*';
-        request.files.add(await http.MultipartFile.fromPath(
-          'avatar',
-          file.path,
-          contentType: MediaType.parse(mimeType),
-        ));
+      if (event.avatarPath != null && event.avatarPath!.isNotEmpty) {
+        final file = File(event.avatarPath!);
+        if (await file.exists()) {
+          final mimeType = lookupMimeType(file.path) ?? 'image/*';
+          request.files.add(await http.MultipartFile.fromPath(
+            'avatar',
+            file.path,
+            contentType: MediaType.parse(mimeType),
+          ));
+        } else {
+          logger.w('File avatar not found: ${event.avatarPath}');
+        }
       }
 
       final response = await request.send();

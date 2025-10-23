@@ -16,6 +16,8 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   final _formKey = GlobalKey<FormState>();
   String newPassword = '';
   String confirmPassword = '';
+  bool showNewPassword = false;
+  bool showConfirmPassword = false;
 
   @override
   Widget build(BuildContext context) {
@@ -108,8 +110,15 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                                 borderRadius: BorderRadius.circular(12),
                                 borderSide: BorderSide.none,
                               ),
+                              suffixIcon: IconButton(
+                                icon: Icon(
+                                  showNewPassword ? Icons.visibility_off : Icons.visibility,
+                                  color: const Color(0xFF0077B6),
+                                ),
+                                onPressed: () => setState(() => showNewPassword = !showNewPassword),
+                              ),
                             ),
-                            obscureText: true,
+                            obscureText: !showNewPassword,
                             style: const TextStyle(color: Colors.black),
                             onChanged: (value) => newPassword = value,
                             validator: (value) =>
@@ -128,8 +137,15 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                                 borderRadius: BorderRadius.circular(12),
                                 borderSide: BorderSide.none,
                               ),
+                              suffixIcon: IconButton(
+                                icon: Icon(
+                                  showConfirmPassword ? Icons.visibility_off : Icons.visibility,
+                                  color: const Color(0xFF0077B6),
+                                ),
+                                onPressed: () => setState(() => showConfirmPassword = !showConfirmPassword),
+                              ),
                             ),
-                            obscureText: true,
+                            obscureText: !showConfirmPassword,
                             style: const TextStyle(color: Colors.black),
                             onChanged: (value) => confirmPassword = value,
                             validator: (value) {

@@ -48,6 +48,11 @@ class _LoginScreenState extends State<LoginScreen> {
       await prefs.setString('savedEmail', _emailController.text);
       await prefs.setString('savedPassword', _passwordController.text);
       await prefs.setBool('rememberMe', true);
+    } else {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('savedEmail');
+      await prefs.remove('savedPassword');
+      await prefs.setBool('rememberMe', false);
     }
   }
 
@@ -64,7 +69,7 @@ class _LoginScreenState extends State<LoginScreen> {
       backgroundColor: const Color(0xFFEAF6FF),
       body: Center(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 50), // ✅ FIX: BỎ DẤU :
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 50),
           child: BlocConsumer<AuthBloc, AuthState>(
             listener: (context, state) {
               if (state.error != null && state.error!.isNotEmpty) {
@@ -81,7 +86,7 @@ class _LoginScreenState extends State<LoginScreen> {
               }
               if (state.success && state.message == "Đăng nhập thành công") {
                 logger.i('✅ Login successful, navigating to HomeScreen');
-                _saveCredentials(); // ✅ SỬ DỤNG _saveCredentials
+                _saveCredentials();
                 Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(
@@ -133,7 +138,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           ],
                         ),
                         child: Form(
-                          key: _formKey, // ✅ SỬ DỤNG _formKey
+                          key: _formKey,
                           child: Column(
                             children: [
                               TextFormField(
@@ -147,11 +152,16 @@ class _LoginScreenState extends State<LoginScreen> {
                                     borderRadius: BorderRadius.circular(14),
                                     borderSide: BorderSide.none,
                                   ),
+                                  errorStyle: const TextStyle(color: Colors.redAccent),
                                 ),
                                 onChanged: (_) => setState(() {}),
-                                validator: (v) {
-                                  if (v == null || v.isEmpty) return 'Email không được để trống';
-                                  if (!v.contains('@')) return 'Email không hợp lệ';
+                                validator: (value) {
+                                  if (value == null || value.isEmpty) {
+                                    return 'Bắt buộc nhập email';
+                                  }
+                                  if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
+                                    return 'Email không hợp lệ';
+                                  }
                                   return null;
                                 },
                               ),
@@ -174,12 +184,22 @@ class _LoginScreenState extends State<LoginScreen> {
                                     borderRadius: BorderRadius.circular(14),
                                     borderSide: BorderSide.none,
                                   ),
+                                  errorStyle: const TextStyle(color: Colors.redAccent),
                                 ),
                                 obscureText: !showPassword,
                                 onChanged: (_) => setState(() {}),
-                                validator: (v) {
-                                  if (v == null || v.isEmpty) return 'Mật khẩu không được để trống';
-                                  if (v.length < 8) return 'Mật khẩu tối thiểu 8 ký tự';
+                                validator: (value) {
+                                  if (value == null || value.isEmpty) {
+                                    return 'Bắt buộc nhập mật khẩu';
+                                  }
+                                  if (value.length < 8) {
+                                    return 'Mật khẩu tối thiểu 8 ký tự';
+                                  }
+                                  // Thêm kiểm tra mạnh hơn nếu backend yêu cầu (chữ hoa, số, ký tự đặc biệt)
+                                  // if (!RegExp(r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$')
+                                  //     .hasMatch(value)) {
+                                  //   return 'Mật khẩu phải có chữ hoa, chữ thường, số và ký tự đặc biệt';
+                                  // }
                                   return null;
                                 },
                               ),
