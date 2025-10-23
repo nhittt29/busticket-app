@@ -3,6 +3,7 @@ import {
   ConflictException,
   NotFoundException,
   UnauthorizedException,
+  BadRequestException,
 } from '@nestjs/common';
 import { auth, firestore } from '../config/firebase';
 import { PrismaService } from './prisma.service';
@@ -202,6 +203,9 @@ export class AuthService {
     id: number,
     data: { name?: string; phone?: string; dob?: Date; gender?: 'MALE' | 'FEMALE' | 'OTHER' },
   ): Promise<User> {
+    if (data.dob && isNaN(data.dob.getTime())) {
+      throw new BadRequestException('Ngày sinh không hợp lệ');
+    }
     const updatedUser = await this.userRepository.updateUser(id, data);
     return updatedUser;
   }

@@ -8,6 +8,7 @@ export class ScheduleService {
 
   // ✅ Tạo lịch trình mới
   async createSchedule(dto: CreateScheduleDto) {
+    console.log('Creating schedule with DTO:', dto); // Log để debug
     return this.scheduleRepo.createSchedule(dto);
   }
 

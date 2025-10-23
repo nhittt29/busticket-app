@@ -7,8 +7,9 @@ import {
   IsNotEmpty,
   IsDate,
   IsEnum,
+  Matches,
 } from 'class-validator';
-import { Transform } from 'class-transformer'; // Import từ class-transformer
+import { Transform } from 'class-transformer';
 import { IsStrongPassword } from '../validators/password.validator';
 
 export class RegisterDto {
@@ -27,20 +28,27 @@ export class RegisterDto {
 
   @IsOptional()
   @IsString({ message: 'Số điện thoại không hợp lệ' })
+  @Matches(/^\d{10}$/, {
+    message: 'Số điện thoại phải là 10 chữ số và chỉ chứa số',
+  })
   phone?: string;
 
-  // 🔹 Thêm trường dob (tùy chọn) với transformer để parse string thành Date
   @IsOptional()
-  @IsDate({ message: 'Ngày sinh phải là ngày hợp lệ (YYYY-MM-DD)' })
-  @Transform(({ value }) => value ? new Date(value) : undefined)
+  @IsDate({ message: 'Ngày sinh phải là ngày hợp lệ' })
+  @Transform(({ value }) => {
+    console.log('Transforming dob:', value); // Log để debug
+    if (!value) return undefined;
+    const dateStr = value.toString();
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) throw new Error('Ngày sinh không hợp lệ');
+    return date;
+  })
   dob?: Date;
 
-  // 🔹 Thêm trường gender (tùy chọn)
   @IsOptional()
   @IsEnum(['MALE', 'FEMALE', 'OTHER'], { message: 'Giới tính phải là MALE, FEMALE hoặc OTHER' })
   gender?: 'MALE' | 'FEMALE' | 'OTHER';
 
-  // 🔹 Thêm trường avatar (tùy chọn)
   @IsOptional()
   @IsString({ message: 'Đường dẫn ảnh đại diện phải là chuỗi' })
   avatar?: string; // URL hoặc đường dẫn ảnh trong project (nếu không upload sẽ là ảnh mặc định)
