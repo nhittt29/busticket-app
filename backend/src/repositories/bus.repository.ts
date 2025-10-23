@@ -6,35 +6,45 @@ import { CreateBusDto, UpdateBusDto } from '../dtos/bus.dto';
 export class BusRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  // 🔹 Lấy tất cả xe buýt (kèm Brand & Schedule)
   findAll() {
     return this.prisma.bus.findMany({
       include: {
-        brand: true,      // ✅ Lấy thông tin nhà xe
-        schedules: true,  // ✅ Lấy danh sách chuyến chạy
+        brand: true,
+        schedules: true,
+        seats: true,
       },
     });
   }
 
-  // 🔹 Lấy chi tiết 1 xe buýt
   findById(id: number) {
     return this.prisma.bus.findUnique({
       where: { id },
       include: {
         brand: true,
         schedules: true,
+        seats: true,
       },
     });
   }
 
-  // 🔹 Tạo mới 1 xe buýt
-  create(data: CreateBusDto) {
-    return this.prisma.bus.create({
+  async create(data: CreateBusDto) {
+    // 🔹 Bước 1: Tạo xe
+    const bus = await this.prisma.bus.create({
       data,
     });
+
+    // 🔹 Bước 2: Tự động tạo danh sách ghế
+    const seatsData = Array.from({ length: data.seatCount }).map((_, i) => ({
+      seatNumber: i + 1,
+      code: `BUS${bus.id}-${String(i + 1).padStart(2, '0')}`,
+      busId: bus.id,
+    }));
+
+    await this.prisma.seat.createMany({ data: seatsData });
+
+    return this.findById(bus.id);
   }
 
-  // 🔹 Cập nhật xe buýt
   update(id: number, data: UpdateBusDto) {
     return this.prisma.bus.update({
       where: { id },
@@ -42,7 +52,6 @@ export class BusRepository {
     });
   }
 
-  // 🔹 Xóa xe buýt
   delete(id: number) {
     return this.prisma.bus.delete({
       where: { id },

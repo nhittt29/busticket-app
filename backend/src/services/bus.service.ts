@@ -1,45 +1,55 @@
 import { Injectable } from '@nestjs/common';
 import { BusRepository } from '../repositories/bus.repository';
 import { CreateBusDto, UpdateBusDto } from '../dtos/bus.dto';
+import { PrismaService } from './prisma.service';
 
 @Injectable()
 export class BusService {
-  constructor(private readonly busRepo: BusRepository) {}
+  constructor(
+    private readonly busRepo: BusRepository,
+    private readonly prisma: PrismaService,
+  ) {}
 
-  // ✅ Lấy danh sách tất cả xe buýt
   async findAll() {
     return this.busRepo.findAll();
   }
 
-  // ✅ Lấy chi tiết 1 xe buýt theo ID
   async findOne(id: number) {
     return this.busRepo.findById(id);
   }
 
-  // ✅ Tạo mới 1 xe buýt
   async create(dto: CreateBusDto) {
-    return this.busRepo.create({
-      name: dto.name,
-      licensePlate: dto.licensePlate,
-      seatCount: dto.seatCount,
-      type: dto.type,
-      brandId: dto.brandId,
-    });
+    return this.busRepo.create(dto);
   }
 
-  // ✅ Cập nhật xe buýt
   async update(id: number, dto: UpdateBusDto) {
-    return this.busRepo.update(id, {
-      name: dto.name,
-      licensePlate: dto.licensePlate,
-      seatCount: dto.seatCount,
-      type: dto.type,
-      brandId: dto.brandId,
-    });
+    return this.busRepo.update(id, dto);
   }
 
-  // ✅ Xóa xe buýt
   async delete(id: number) {
     return this.busRepo.delete(id);
+  }
+
+  // ✅ Lấy danh sách ghế theo busId
+  async getSeatsByBus(busId: number) {
+    const bus = await this.prisma.bus.findUnique({
+      where: { id: busId },
+      include: { seats: true },
+    });
+
+    if (!bus) {
+      return { message: `Không tìm thấy xe có id = ${busId}` };
+    }
+
+    return {
+      busId: bus.id,
+      busName: bus.name,
+      totalSeats: bus.seatCount,
+      seats: bus.seats.map((s) => ({
+        id: s.id,
+        seatNumber: s.seatNumber,
+        code: s.code,
+      })),
+    };
   }
 }

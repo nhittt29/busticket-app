@@ -67,6 +67,18 @@ CREATE TABLE "Bus" (
 );
 
 -- CreateTable
+CREATE TABLE "Seat" (
+    "id" SERIAL NOT NULL,
+    "seatNumber" INTEGER NOT NULL,
+    "code" TEXT NOT NULL,
+    "busId" INTEGER NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Seat_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "Route" (
     "id" SERIAL NOT NULL,
     "startPoint" TEXT NOT NULL,
@@ -138,6 +150,12 @@ CREATE INDEX "Bus_type_idx" ON "Bus"("type");
 CREATE INDEX "Bus_brandId_idx" ON "Bus"("brandId");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "Seat_code_key" ON "Seat"("code");
+
+-- CreateIndex
+CREATE INDEX "Seat_busId_idx" ON "Seat"("busId");
+
+-- CreateIndex
 CREATE INDEX "Route_startPoint_idx" ON "Route"("startPoint");
 
 -- CreateIndex
@@ -166,6 +184,9 @@ ALTER TABLE "User" ADD CONSTRAINT "User_roleId_fkey" FOREIGN KEY ("roleId") REFE
 
 -- AddForeignKey
 ALTER TABLE "Bus" ADD CONSTRAINT "Bus_brandId_fkey" FOREIGN KEY ("brandId") REFERENCES "Brand"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Seat" ADD CONSTRAINT "Seat_busId_fkey" FOREIGN KEY ("busId") REFERENCES "Bus"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Route" ADD CONSTRAINT "Route_brandId_fkey" FOREIGN KEY ("brandId") REFERENCES "Brand"("id") ON DELETE SET NULL ON UPDATE CASCADE;

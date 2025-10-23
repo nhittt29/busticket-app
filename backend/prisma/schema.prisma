@@ -13,8 +13,8 @@ model User {
   name      String
   email     String   @unique
   phone     String?
-  dob       DateTime? @default(dbgenerated("'1970-01-01'::date")) // Thêm dob
-  gender    String?  @default("OTHER") // Thêm gender, sử dụng enum hoặc String tùy chọn
+  dob       DateTime? @default(dbgenerated("'1970-01-01'::date"))
+  gender    String?  @default("OTHER")
   avatar    String?
   isActive  Boolean  @default(true)
   role      Role     @relation(fields: [roleId], references: [id])
@@ -54,12 +54,25 @@ model Bus {
   type         BusType
   brand        Brand      @relation(fields: [brandId], references: [id])
   brandId      Int
+  seats        Seat[]     // ✅ Quan hệ 1-N với Seat
   schedules    Schedule[]
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
 
   @@index([type])
   @@index([brandId])
+}
+
+model Seat {
+  id         Int      @id @default(autoincrement())
+  seatNumber Int
+  code       String   @unique  // Mã ghế ví dụ: BUS1-01
+  bus        Bus      @relation(fields: [busId], references: [id])
+  busId      Int
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([busId])
 }
 
 model Route {

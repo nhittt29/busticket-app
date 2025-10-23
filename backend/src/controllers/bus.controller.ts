@@ -30,4 +30,10 @@ export class BusController {
   delete(@Param('id') id: string) {
     return this.busService.delete(Number(id));
   }
+
+  // ✅ Thêm endpoint mới để xem danh sách ghế của xe bus
+  @Get(':id/seats')
+  async getSeatsByBus(@Param('id') id: string) {
+    return this.busService.getSeatsByBus(Number(id));
+  }
 }

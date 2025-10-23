@@ -19,7 +19,7 @@ export class CreateBusDto {
 
   @IsInt()
   @Min(1)
-  brandId: number; // ✅ thêm dòng này
+  brandId: number;
 }
 
 export class UpdateBusDto {

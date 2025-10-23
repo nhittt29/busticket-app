@@ -1,5 +1,6 @@
 import { Brand } from './Brand';
 import { Schedule } from './Schedule';
+import { Seat } from './Seat';
 
 export enum BusType {
   MINIVAN_16 = 'MINIVAN_16',
@@ -10,13 +11,14 @@ export enum BusType {
 
 export interface Bus {
   id: number;
-  name: string;              // Tên xe
-  licensePlate: string;      // Biển số xe
-  seatCount: number;         // Số ghế
-  type: BusType;             // Loại xe
-  brandId: number;           // Khóa ngoại trỏ đến Brand
-  brand?: Brand;             // Quan hệ Brand
-  schedules?: Schedule[];    // Danh sách chuyến chạy
-  createdAt?: Date;      // ✅
-  updatedAt?: Date;  
+  name: string;
+  licensePlate: string;
+  seatCount: number;
+  type: BusType;
+  brandId: number;
+  brand?: Brand;
+  seats?: Seat[];
+  schedules?: Schedule[];
+  createdAt?: Date;
+  updatedAt?: Date;
 }
