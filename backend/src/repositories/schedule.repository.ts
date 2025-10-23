@@ -1,42 +1,39 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../services/prisma.service';
-import { ScheduleStatus } from '@prisma/client';
+import { CreateScheduleDto } from '../dtos/schedule.dto';
 
 @Injectable()
 export class ScheduleRepository {
-  constructor(private prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) {}
 
-  async create(data: any) {
-    return this.prisma.schedule.create({ data });
-  }
-
-  async findAll() {
-    return this.prisma.schedule.findMany({
-      include: {
-        route: { include: { brand: true } },
-        bus: true,
+  async createSchedule(dto: CreateScheduleDto) {
+    return this.prisma.schedule.create({
+      data: {
+        busId: dto.busId,
+        routeId: dto.routeId,
+        departureAt: dto.departureAt,
+        arrivalAt: dto.arrivalAt,
+        status: dto.status || 'UPCOMING',
       },
     });
   }
 
-  async findById(id: number) {
+  async getAllSchedules() {
+    return this.prisma.schedule.findMany({
+      include: {
+        bus: true,
+        route: true,
+      },
+    });
+  }
+
+  async getScheduleById(id: number) {
     return this.prisma.schedule.findUnique({
       where: { id },
       include: {
-        route: { include: { brand: true } },
         bus: true,
+        route: true,
       },
     });
-  }
-
-  async update(id: number, data: any) {
-    return this.prisma.schedule.update({
-      where: { id },
-      data,
-    });
-  }
-
-  async delete(id: number) {
-    return this.prisma.schedule.delete({ where: { id } });
   }
 }

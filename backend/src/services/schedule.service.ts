@@ -1,29 +1,27 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { ScheduleRepository } from '../repositories/schedule.repository';
+import { CreateScheduleDto } from '../dtos/schedule.dto';
 
 @Injectable()
 export class ScheduleService {
   constructor(private readonly scheduleRepo: ScheduleRepository) {}
 
-  async create(dto: any) {
-    return this.scheduleRepo.create(dto);
+  // ✅ Tạo lịch trình mới
+  async createSchedule(dto: CreateScheduleDto) {
+    return this.scheduleRepo.createSchedule(dto);
   }
 
-  async findAll() {
-    return this.scheduleRepo.findAll();
+  // ✅ Lấy danh sách tất cả lịch trình
+  async getAllSchedules() {
+    return this.scheduleRepo.getAllSchedules();
   }
 
-  async findById(id: number) {
-    const schedule = await this.scheduleRepo.findById(id);
-    if (!schedule) throw new NotFoundException('Schedule not found');
+  // ✅ Lấy chi tiết 1 lịch trình theo id
+  async getScheduleById(id: number) {
+    const schedule = await this.scheduleRepo.getScheduleById(id);
+    if (!schedule) {
+      throw new NotFoundException('Schedule not found');
+    }
     return schedule;
-  }
-
-  async update(id: number, dto: any) {
-    return this.scheduleRepo.update(id, dto);
-  }
-
-  async delete(id: number) {
-    return this.scheduleRepo.delete(id);
   }
 }
