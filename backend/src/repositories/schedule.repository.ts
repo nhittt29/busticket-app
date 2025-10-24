@@ -1,12 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../services/prisma.service';
-import { CreateScheduleDto } from '../dtos/schedule.dto';
 
 @Injectable()
 export class ScheduleRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async createSchedule(dto: CreateScheduleDto) {
+  async createSchedule(dto: any) {
     return this.prisma.schedule.create({
       data: {
         busId: dto.busId,
@@ -35,5 +34,27 @@ export class ScheduleRepository {
         route: true,
       },
     });
+  }
+
+  // ✅ Trả danh sách ghế + trạng thái đặt
+  async getSeatsBySchedule(scheduleId: number) {
+    const schedule = await this.prisma.schedule.findUnique({
+      where: { id: scheduleId },
+      include: {
+        bus: {
+          include: { seats: true },
+        },
+        tickets: true,
+      },
+    });
+
+    if (!schedule) return null;
+
+    return schedule.bus.seats.map(seat => ({
+      seatId: seat.id,
+      seatNumber: seat.seatNumber,
+      code: seat.code,
+      isBooked: schedule.tickets.some(t => t.seatId === seat.id),
+    }));
   }
 }

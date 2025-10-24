@@ -20,4 +20,10 @@ export class ScheduleController {
   findOne(@Param('id') id: number) {
     return this.scheduleService.getScheduleById(Number(id));
   }
+
+  // ✅ API lấy danh sách ghế theo schedule
+  @Get(':id/seats')
+  getSeats(@Param('id') id: string) {
+    return this.scheduleService.getSeats(Number(id));
+  }
 }
