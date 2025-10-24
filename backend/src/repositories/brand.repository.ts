@@ -8,7 +8,7 @@ export class BrandRepository {
 
   findAll() {
     return this.prisma.brand.findMany({
-      include: { buses: true }, // 👈 có thể trả về danh sách xe nếu muốn
+      include: { buses: true },
     });
   }
 
@@ -20,11 +20,16 @@ export class BrandRepository {
   }
 
   create(data: CreateBrandDto) {
-    return this.prisma.brand.create({ data });
+    return this.prisma.brand.create({
+      data,
+    });
   }
 
   update(id: number, data: UpdateBrandDto) {
-    return this.prisma.brand.update({ where: { id }, data });
+    return this.prisma.brand.update({
+      where: { id },
+      data,
+    });
   }
 
   delete(id: number) {

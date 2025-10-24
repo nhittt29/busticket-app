@@ -46,6 +46,7 @@ CREATE TABLE "Brand" (
     "phoneNumber" TEXT,
     "image" TEXT,
     "address" TEXT,
+    "dailyTicketLimit" INTEGER NOT NULL DEFAULT 100,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -71,6 +72,7 @@ CREATE TABLE "Seat" (
     "id" SERIAL NOT NULL,
     "seatNumber" INTEGER NOT NULL,
     "code" TEXT NOT NULL,
+    "isAvailable" BOOLEAN NOT NULL DEFAULT true,
     "busId" INTEGER NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
@@ -112,7 +114,7 @@ CREATE TABLE "Ticket" (
     "id" SERIAL NOT NULL,
     "userId" INTEGER NOT NULL,
     "scheduleId" INTEGER NOT NULL,
-    "seatNumber" INTEGER NOT NULL,
+    "seatId" INTEGER NOT NULL,
     "price" DOUBLE PRECISION NOT NULL,
     "status" "TicketStatus" NOT NULL DEFAULT 'BOOKED',
     "paymentMethod" "PaymentMethod",
@@ -202,3 +204,6 @@ ALTER TABLE "Ticket" ADD CONSTRAINT "Ticket_userId_fkey" FOREIGN KEY ("userId") 
 
 -- AddForeignKey
 ALTER TABLE "Ticket" ADD CONSTRAINT "Ticket_scheduleId_fkey" FOREIGN KEY ("scheduleId") REFERENCES "Schedule"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Ticket" ADD CONSTRAINT "Ticket_seatId_fkey" FOREIGN KEY ("seatId") REFERENCES "Seat"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

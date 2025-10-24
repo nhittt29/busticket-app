@@ -6,7 +6,7 @@ import { CreateBrandDto, UpdateBrandDto } from '../dtos/brand.dto';
 export class BrandService {
   constructor(private readonly brandRepo: BrandRepository) {}
 
-  async findAll() {
+  findAll() {
     return this.brandRepo.findAll();
   }
 
@@ -16,15 +16,15 @@ export class BrandService {
     return brand;
   }
 
-  async create(dto: CreateBrandDto) {
+  create(dto: CreateBrandDto) {
     return this.brandRepo.create(dto);
   }
 
-  async update(id: number, dto: UpdateBrandDto) {
+  update(id: number, dto: UpdateBrandDto) {
     return this.brandRepo.update(id, dto);
   }
 
-  async delete(id: number) {
+  delete(id: number) {
     return this.brandRepo.delete(id);
   }
 }

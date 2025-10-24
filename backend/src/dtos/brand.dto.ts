@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString, IsInt, Min } from 'class-validator';
 
 export class CreateBrandDto {
   @IsString()
@@ -15,7 +15,11 @@ export class CreateBrandDto {
 
   @IsString()
   @IsOptional()
-  image?: string; // 👈 có thể null
+  image?: string;
+
+  @IsInt()
+  @Min(1)
+  dailyTicketLimit: number; // ✅ Thêm dòng này
 }
 
 export class UpdateBrandDto {
@@ -34,4 +38,9 @@ export class UpdateBrandDto {
   @IsString()
   @IsOptional()
   image?: string;
+
+  @IsInt()
+  @Min(1)
+  @IsOptional()
+  dailyTicketLimit?: number; // ✅ Thêm dòng này
 }

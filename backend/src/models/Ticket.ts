@@ -1,4 +1,5 @@
 import { Schedule } from './Schedule';
+import { Seat } from './Seat';
 
 export enum TicketStatus {
   BOOKED = 'BOOKED',
@@ -15,13 +16,14 @@ export enum PaymentMethod {
 
 export interface Ticket {
   id: number;
-  userId: number;               // Người đặt vé
-  scheduleId: number;           // Chuyến xe
-  seatNumber: number;           // Số ghế
-  price: number;                // Giá vé
-  status: TicketStatus;         // Trạng thái vé
-  paymentMethod?: PaymentMethod; // Phương thức thanh toán (nếu có)
-  createdAt?: Date;      // ✅
-  updatedAt?: Date;  
-  schedule?: Schedule;          // Thông tin chuyến xe
+  userId: number;
+  scheduleId: number;
+  seatId: number;
+  price: number;
+  status: TicketStatus;
+  paymentMethod?: PaymentMethod;
+  createdAt?: Date;
+  updatedAt?: Date;
+  schedule?: Schedule;
+  seat?: Seat;
 }

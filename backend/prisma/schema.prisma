@@ -33,15 +33,16 @@ model Role {
 }
 
 model Brand {
-  id          Int       @id @default(autoincrement())
-  name        String    @unique
-  phoneNumber String?
-  image       String?
-  address     String?
-  buses       Bus[]
-  routes      Route[]
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id                Int       @id @default(autoincrement())
+  name              String    @unique
+  phoneNumber       String?
+  image             String?
+  address           String?
+  dailyTicketLimit  Int       @default(100) // ✅ Thêm mới
+  buses             Bus[]
+  routes            Route[]
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 
   @@index([name])
 }
@@ -54,7 +55,7 @@ model Bus {
   type         BusType
   brand        Brand      @relation(fields: [brandId], references: [id])
   brandId      Int
-  seats        Seat[]     // ✅ Quan hệ 1-N với Seat
+  seats        Seat[]
   schedules    Schedule[]
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
@@ -66,9 +67,11 @@ model Bus {
 model Seat {
   id         Int      @id @default(autoincrement())
   seatNumber Int
-  code       String   @unique  // Mã ghế ví dụ: BUS1-01
+  code       String   @unique
+  isAvailable Boolean @default(true) // ✅ Thêm vào quản lý ghế
   bus        Bus      @relation(fields: [busId], references: [id])
   busId      Int
+  tickets    Ticket[]
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
@@ -116,7 +119,8 @@ model Ticket {
   userId        Int
   schedule      Schedule       @relation(fields: [scheduleId], references: [id])
   scheduleId    Int
-  seatNumber    Int
+  seat          Seat           @relation(fields: [seatId], references: [id]) // ✅ Cập nhật from seatNumber
+  seatId        Int
   price         Float
   status        TicketStatus   @default(BOOKED)
   paymentMethod PaymentMethod?
