@@ -72,12 +72,20 @@ export class TicketService {
       );
     }
 
+    // Cập nhật seat thành available
     await this.prisma.seat.update({
       where: { id: ticket.seatId },
       data: { isAvailable: true },
     });
 
-    return this.ticketRepo.delete(id);
+    // Xóa vé
+    await this.ticketRepo.delete(id);
+
+    // Trả về thông báo hủy thành công
+    return {
+      message: 'Hủy vé thành công',
+      ticketId: id,
+    };
   }
 
   async getTicketsByUser(userId: number) {

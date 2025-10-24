@@ -24,7 +24,7 @@ export class TicketRepository {
   findById(id: number) {
     return this.prisma.ticket.findUnique({
       where: { id },
-      include: { seat: true }
+      include: { seat: true },
     });
   }
 
