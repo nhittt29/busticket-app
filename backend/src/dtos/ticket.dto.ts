@@ -1,4 +1,4 @@
-import { IsInt, IsNotEmpty } from 'class-validator';
+import { IsInt, IsNotEmpty, Min } from 'class-validator';
 
 export class CreateTicketDto {
   @IsInt()
@@ -14,6 +14,6 @@ export class CreateTicketDto {
   seatId: number;
 
   @IsInt()
-  @IsNotEmpty()
+  @Min(0)
   price: number;
 }

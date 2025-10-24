@@ -1,8 +1,8 @@
-import { Body, Controller, Delete, Param, Post } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post } from '@nestjs/common';
 import { TicketService } from '../services/ticket.service';
 import { CreateTicketDto } from '../dtos/ticket.dto';
 
-@Controller('ticket')
+@Controller('tickets')
 export class TicketController {
   constructor(private readonly ticketService: TicketService) {}
 
@@ -14,5 +14,10 @@ export class TicketController {
   @Delete(':id')
   cancel(@Param('id') id: string) {
     return this.ticketService.cancel(Number(id));
+  }
+
+  @Get('user/:userId')
+  getUserTickets(@Param('userId') userId: string) {
+    return this.ticketService.getTicketsByUser(Number(userId));
   }
 }
