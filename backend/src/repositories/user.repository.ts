@@ -73,7 +73,7 @@ export class UserRepository {
   async updateUser(
     id: number,
     data: Partial<{
-      name: string;
+      name?: string;
       phone?: string;
       isActive?: boolean;
       roleId?: number;

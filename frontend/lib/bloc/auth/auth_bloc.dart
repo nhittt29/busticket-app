@@ -207,12 +207,17 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
   Future<void> _onUpdateUser(UpdateUserEvent event, Emitter<AuthState> emit) async {
     emit(state.copyWith(isLoading: true, success: false, error: null));
+    logger.i('Starting _onUpdateUser with event: $event');
     try {
       final prefs = await SharedPreferences.getInstance();
       final idToken = prefs.getString('idToken');
       final user = state.user;
+      logger.i('idToken: $idToken, user: $user');
       if (idToken == null || user == null) {
         throw Exception('Không tìm thấy token hoặc thông tin người dùng');
+      }
+      if (user['id'] == null) {
+        throw Exception('ID người dùng không tồn tại');
       }
 
       var uri = Uri.parse('http://10.0.2.2:3000/api/auth/update-profile');
@@ -224,13 +229,13 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         throw Exception('ID người dùng không hợp lệ');
       }
       request.fields['id'] = userId.toString();
-
       request.fields['name'] = event.name;
       request.fields['phone'] = event.phone ?? '';
       request.fields['dob'] = event.dob != null
           ? event.dob!.toIso8601String().split('T')[0]
           : '';
       request.fields['gender'] = event.gender ?? 'OTHER';
+      logger.i('Request fields: ${request.fields}');
 
       if (event.avatarPath != null && event.avatarPath!.isNotEmpty) {
         final file = File(event.avatarPath!);
@@ -241,13 +246,17 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
             file.path,
             contentType: MediaType.parse(mimeType),
           ));
+          logger.i('Added avatar file: ${file.path}, mimeType: $mimeType');
         } else {
           logger.w('File avatar not found: ${event.avatarPath}');
+          emit(state.copyWith(isLoading: false, error: 'File ảnh không tồn tại, vui lòng chọn lại.'));
+          return;
         }
       }
 
       final response = await request.send();
       final body = await response.stream.bytesToString();
+      logger.i('Response status: ${response.statusCode}, body: $body');
 
       if (response.statusCode == 200) {
         final updatedUser = jsonDecode(body);
@@ -265,11 +274,13 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         throw Exception('Cập nhật thất bại: ${jsonDecode(body)['message'] ?? body}');
       }
     } catch (e) {
+      logger.e('Error in _onUpdateUser: $e');
       emit(state.copyWith(
         isLoading: false,
         success: false,
         error: e.toString(),
       ));
     }
+    logger.i('State after _onUpdateUser: isLoading=${state.isLoading}, success=${state.success}, user=${state.user}');
   }
 }

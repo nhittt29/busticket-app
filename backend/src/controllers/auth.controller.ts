@@ -146,9 +146,11 @@ export class AuthController {
 
     // Chuyển đổi dob từ string sang Date nếu có
     const updatedData = {
-      ...body,
+      name: body.name,
+      phone: body.phone,
       dob: body.dob ? new Date(body.dob) : undefined,
-      avatar: file ? file.path : user.avatar, // Cập nhật avatar nếu có file mới
+      gender: body.gender,
+      avatar: file ? file.path : (user.avatar || 'uploads/avatars/default.png'), // Sử dụng default nếu user.avatar là null
     };
 
     const updatedUser = await this.authService.updateUserProfile(user.id, updatedData);

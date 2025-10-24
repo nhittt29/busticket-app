@@ -201,7 +201,7 @@ export class AuthService {
 
   async updateUserProfile(
     id: number,
-    data: { name?: string; phone?: string; dob?: Date; gender?: 'MALE' | 'FEMALE' | 'OTHER' },
+    data: { name?: string; phone?: string; dob?: Date; gender?: 'MALE' | 'FEMALE' | 'OTHER'; avatar?: string },
   ): Promise<User> {
     if (data.dob && isNaN(data.dob.getTime())) {
       throw new BadRequestException('Ngày sinh không hợp lệ');
