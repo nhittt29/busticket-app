@@ -161,7 +161,7 @@ class ProfileScreen extends StatelessWidget {
                   _buildSectionHeader("Thông tin thành viên"),
                   _buildMenuItem(
                     icon: Icons.person_outline,
-                    label: "Hồ sơ thành viên",
+                    label: "Thông tin tài khoản",
                     onTap: () {
                       Navigator.push(
                         context,
@@ -213,7 +213,9 @@ class ProfileScreen extends StatelessWidget {
                     label: "Đăng xuất",
                     iconColor: Colors.redAccent,
                     textColor: Colors.redAccent,
-                    onTap: () => homeBloc.add(LogoutEvent()),
+                    onTap: () {
+                      _showLogoutDialog(context, homeBloc);
+                    },
                   ),
                 ],
               ),
@@ -279,6 +281,65 @@ class ProfileScreen extends StatelessWidget {
         onTap: onTap,
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       ),
+    );
+  }
+
+  void _showLogoutDialog(BuildContext context, HomeBloc homeBloc) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          elevation: 8,
+          backgroundColor: Colors.white, // Background màu trắng
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.logout, size: 48, color: Colors.redAccent),
+                const SizedBox(height: 16),
+                const Text(
+                  "Bạn có chắc chắn muốn đăng xuất?",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF023E8A)),
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    TextButton(
+                      onPressed: () {
+                        Navigator.of(context).pop(); // Đóng dialog
+                      },
+                      style: TextButton.styleFrom(
+                        backgroundColor: Colors.grey[300],
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      child: const Text("Hủy", style: TextStyle(color: Colors.black87)),
+                    ),
+                    ElevatedButton(
+                      onPressed: () {
+                        homeBloc.add(LogoutEvent());
+                        Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.redAccent,
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      child: const Text("Xác nhận", style: TextStyle(color: Colors.white)),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }
