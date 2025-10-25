@@ -40,17 +40,15 @@ async function main() {
     // ======================================
     // 🔹 3. Tạo Admin mặc định
     // ======================================
-    const adminEmail = 'admin@busticket.com'; // ✅ Email hợp lệ
-    const adminPassword = 'Admin123/';        // ✅ Mật khẩu đủ mạnh cho Firebase
+    const adminEmail = 'admin@busticket.com';
+    const adminPassword = 'AdminBus123@@';
 
     let userRecord;
 
     try {
-      // Nếu đã tồn tại trên Firebase
       userRecord = await auth.getUserByEmail(adminEmail);
       console.log('ℹ️ Admin already exists in Firebase:', userRecord.uid);
     } catch {
-      // Nếu chưa có thì tạo mới
       userRecord = await auth.createUser({
         email: adminEmail,
         password: adminPassword,
@@ -66,30 +64,76 @@ async function main() {
       where: { email: adminEmail },
       update: {
         avatar: defaultAvatar,
-        dob: new Date("1990-01-01"), // 🔹 Sử dụng Date object cho dob
-        gender: "OTHER",             // 🔹 Giới tính mặc định
-      } as Prisma.UserUncheckedUpdateInput, // Sử dụng UncheckedUpdateInput
+        dob: new Date("1990-01-01"),
+        gender: "OTHER",
+      } as Prisma.UserUncheckedUpdateInput,
       create: {
         uid: userRecord.uid,
         name: 'NhiTr',
         email: adminEmail,
         phone: '0123456789',
-        dob: new Date("1990-01-01"), // 🔹 Sử dụng Date object cho dob
-        gender: "OTHER",             // 🔹 Giới tính mặc định
+        dob: new Date("1990-01-01"),
+        gender: "OTHER",
         avatar: defaultAvatar,
         roleId: adminRole.id,
         isActive: true,
-      } as Prisma.UserUncheckedCreateInput, // Sử dụng UncheckedCreateInput
+      } as Prisma.UserUncheckedCreateInput,
       include: {
-        role: true, // Bao gồm role
+        role: true,
       },
     });
 
     // ======================================
-    // ✅ 5. Log kết quả
+    // 🔹 5. Tạo Passenger mặc định
+    // ======================================
+    const passengerEmail = 'passenger@gmail.com';
+    const passengerPassword = 'BusTicket123@@';
+
+    let passengerRecord;
+
+    try {
+      passengerRecord = await auth.getUserByEmail(passengerEmail);
+      console.log('ℹ️ Passenger already exists in Firebase:', passengerRecord.uid);
+    } catch {
+      passengerRecord = await auth.createUser({
+        email: passengerEmail,
+        password: passengerPassword,
+        displayName: 'Default Passenger',
+      });
+      console.log('🆕 Created passenger in Firebase:', passengerRecord.uid);
+    }
+
+    // ======================================
+    // 🔹 6. Đồng bộ Passenger vào Prisma DB
+    // ======================================
+    const passengerUser = await prisma.user.upsert({
+      where: { email: passengerEmail },
+      update: {
+        avatar: defaultAvatar,
+        dob: new Date("1995-01-01"),
+        gender: "OTHER",
+      } as Prisma.UserUncheckedUpdateInput,
+      create: {
+        uid: passengerRecord.uid,
+        name: 'Passenger One',
+        email: passengerEmail,
+        phone: '0987654321',
+        dob: new Date("1995-01-01"),
+        gender: "OTHER",
+        avatar: defaultAvatar,
+        roleId: passengerRole.id,
+        isActive: true,
+      } as Prisma.UserUncheckedCreateInput,
+      include: {
+        role: true,
+      },
+    });
+
+    // ======================================
+    // ✅ 7. Log kết quả
     // ======================================
     console.log('\n✅ Admin user ready:');
-   console.table({
+    console.table({
       id: adminUser.id,
       name: adminUser.name,
       email: adminUser.email,
@@ -100,17 +144,30 @@ async function main() {
       avatar: adminUser.avatar,
     });
 
+    console.log('\n✅ Passenger user ready:');
+    console.table({
+      id: passengerUser.id,
+      name: passengerUser.name,
+      email: passengerUser.email,
+      phone: passengerUser.phone,
+      dob: (passengerUser as any).dob?.toISOString().split('T')[0] ?? 'N/A',
+      gender: (passengerUser as any).gender ?? 'N/A',
+      role: passengerUser.role?.name,
+      avatar: passengerUser.avatar,
+    });
 
     console.log('\n🎯 Seeding completed successfully!');
   } catch (error) {
     console.error('\n❌ Seed failed:', error);
 
-    // Nếu có lỗi khi tạo user, rollback lại user admin trong DB
+    // Rollback cả admin và passenger
     try {
       await prisma.user.deleteMany({
-        where: { email: 'admin@busticket.com' },
+        where: { 
+          email: { in: ['admin@busticket.com', 'passenger@gmail.com'] }
+        },
       });
-      console.log('🧹 Rolled back created admin user.');
+      console.log('🧹 Rolled back created users.');
     } catch (rollbackError) {
       console.error('Rollback failed:', rollbackError);
     }
