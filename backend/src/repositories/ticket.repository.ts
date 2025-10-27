@@ -16,10 +16,6 @@ export class TicketRepository {
     });
   }
 
-  delete(id: number) {
-    return this.prisma.ticket.delete({ where: { id } });
-  }
-
   findById(id: number) {
     return this.prisma.ticket.findUnique({
       where: { id },
@@ -34,6 +30,18 @@ export class TicketRepository {
     });
   }
 
+  checkSeatBooked(scheduleId: number, seatId: number) {
+    return this.prisma.ticket.findFirst({
+      where: {
+        scheduleId,
+        seatId,
+        status: {
+          in: [TicketStatus.BOOKED, TicketStatus.PAID],
+        },
+      },
+    });
+  }
+
   findByUserInDay(userId: number, date: Date) {
     const start = new Date(date.setHours(0, 0, 0, 0));
     const end = new Date(date.setHours(23, 59, 59, 999));
@@ -42,12 +50,6 @@ export class TicketRepository {
         userId,
         createdAt: { gte: start, lt: end },
       },
-    });
-  }
-
-  findBySeat(scheduleId: number, seatId: number) {
-    return this.prisma.ticket.findFirst({
-      where: { scheduleId, seatId },
     });
   }
 
@@ -64,9 +66,7 @@ export class TicketRepository {
     const end = new Date(now.setHours(23, 59, 59, 999));
     return this.prisma.ticket.count({
       where: {
-        schedule: {
-          bus: { brandId },
-        },
+        schedule: { bus: { brandId } },
         createdAt: { gte: start, lt: end },
       },
     });
