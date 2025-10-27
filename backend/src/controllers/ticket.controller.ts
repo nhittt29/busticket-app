@@ -16,6 +16,11 @@ export class TicketController {
     return this.ticketService.cancel(Number(id));
   }
 
+  @Post(':id/pay')
+  pay(@Param('id') id: string) {
+    return this.ticketService.payTicket(Number(id));
+  }
+
   @Get('user/:userId')
   getUserTickets(@Param('userId') userId: string) {
     return this.ticketService.getTicketsByUser(Number(userId));

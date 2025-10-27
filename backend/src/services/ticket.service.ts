@@ -6,6 +6,7 @@ import {
 import { TicketRepository } from '../repositories/ticket.repository';
 import { CreateTicketDto } from '../dtos/ticket.dto';
 import { PrismaService } from '../services/prisma.service';
+import { TicketStatus } from '../models/Ticket';
 
 @Injectable()
 export class TicketService {
@@ -29,23 +30,21 @@ export class TicketService {
     if (!seat) throw new NotFoundException('Seat not found');
 
     if (seat.busId !== schedule.busId) {
-      throw new BadRequestException(
-        'Ghế không thuộc xe của lịch trình này!',
-      );
+      throw new BadRequestException('Seat does not belong to this schedule bus!');
     }
 
     if (!seat.isAvailable) {
-      throw new BadRequestException('Ghế đã được đặt');
+      throw new BadRequestException('Seat already taken');
     }
 
     const userTickets = await this.ticketRepo.findByUserInDay(userId, new Date());
     if (userTickets >= 8) {
-      throw new BadRequestException('User đã đạt giới hạn 8 vé/ngày');
+      throw new BadRequestException('Max 8 tickets per day reached');
     }
 
     const brandTickets = await this.ticketRepo.countBrandSoldInDay(schedule.bus.brandId);
     if (brandTickets >= schedule.bus.brand.dailyTicketLimit) {
-      throw new BadRequestException('Brand đã hết vé cho phép trong hôm nay');
+      throw new BadRequestException('Brand reached daily ticket limit');
     }
 
     const ticket = await this.ticketRepo.create(dto);
@@ -58,34 +57,41 @@ export class TicketService {
     return ticket;
   }
 
+  async payTicket(id: number) {
+    const ticket = await this.ticketRepo.findById(id);
+    if (!ticket) throw new NotFoundException('Ticket not found');
+
+    const diffMinutes =
+      (Date.now() - new Date(ticket.createdAt).getTime()) / (1000 * 60);
+
+    if (diffMinutes > 15) {
+      throw new BadRequestException('Payment expired (over 15 minutes)');
+    }
+
+    return this.ticketRepo.update(id, {
+      status: TicketStatus.PAID,
+    });
+  }
+
   async cancel(id: number) {
     const ticket = await this.ticketRepo.findById(id);
     if (!ticket) throw new NotFoundException('Ticket not found');
 
     const diffDays =
-      (Date.now() - new Date(ticket.createdAt).getTime()) /
-      (1000 * 3600 * 24);
+      (Date.now() - new Date(ticket.createdAt).getTime()) / (1000 * 3600 * 24);
 
     if (diffDays > 2) {
-      throw new BadRequestException(
-        'Vé chỉ được hủy trong vòng 2 ngày sau khi đặt',
-      );
+      throw new BadRequestException('Ticket can only be canceled within 2 days');
     }
 
-    // Cập nhật seat thành available
     await this.prisma.seat.update({
       where: { id: ticket.seatId },
       data: { isAvailable: true },
     });
 
-    // Xóa vé
-    await this.ticketRepo.delete(id);
+    await this.ticketRepo.update(id, { status: TicketStatus.CANCELLED });
 
-    // Trả về thông báo hủy thành công
-    return {
-      message: 'Hủy vé thành công',
-      ticketId: id,
-    };
+    return { message: 'Cancel success', ticketId: id };
   }
 
   async getTicketsByUser(userId: number) {

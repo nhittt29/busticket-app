@@ -19,11 +19,10 @@ export interface Ticket {
   userId: number;
   scheduleId: number;
   seatId: number;
-  price: number;
+  price: number; // Float in prisma = number in TS ✅
   status: TicketStatus;
   paymentMethod?: PaymentMethod;
   createdAt?: Date;
   updatedAt?: Date;
-  schedule?: Schedule;
-  seat?: Seat;
 }
+
