@@ -2,11 +2,17 @@ import { Brand } from './Brand';
 import { Schedule } from './Schedule';
 import { Seat } from './Seat';
 
-export enum BusType {
-  MINIVAN_16 = 'MINIVAN_16',
-  COACH_30 = 'COACH_30',
-  COACH_45 = 'COACH_45',
+export enum BusCategory {
+  MINIVAN = 'MINIVAN',
+  COACH = 'COACH',
   LIMOUSINE = 'LIMOUSINE',
+  SLEEPER = 'SLEEPER',
+  VIP = 'VIP',
+}
+
+export enum SeatType {
+  SEAT = 'SEAT',
+  BERTH = 'BERTH',
 }
 
 export interface Bus {
@@ -14,7 +20,8 @@ export interface Bus {
   name: string;
   licensePlate: string;
   seatCount: number;
-  type: BusType;
+  category: BusCategory;
+  seatType: SeatType;
   brandId: number;
   brand?: Brand;
   seats?: Seat[];

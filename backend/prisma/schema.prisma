@@ -14,82 +14,84 @@ model User {
   email     String   @unique
   phone     String?
   dob       DateTime? @default(dbgenerated("'1970-01-01'::date"))
-  gender    String?  @default("OTHER")
+  gender    String?   @default("OTHER")
   avatar    String?
-  isActive  Boolean  @default(true)
-  role      Role     @relation(fields: [roleId], references: [id])
+  isActive  Boolean   @default(true)
+  role      Role      @relation(fields: [roleId], references: [id])
   roleId    Int
   tickets   Ticket[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 
   @@index([roleId])
 }
 
 model Role {
-  id    Int      @id @default(autoincrement())
-  name  RoleName @unique
+  id    Int       @id @default(autoincrement())
+  name  RoleName  @unique
   users User[]
 }
 
 model Brand {
-  id                Int       @id @default(autoincrement())
-  name              String    @unique
-  phoneNumber       String?
-  image             String?
-  address           String?
-  dailyTicketLimit  Int       @default(100) // ✅ Thêm mới
-  buses             Bus[]
-  routes            Route[]
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
+  id               Int      @id @default(autoincrement())
+  name             String   @unique
+  phoneNumber      String?
+  image            String?
+  address          String?
+  dailyTicketLimit Int      @default(100)
+  buses            Bus[]
+  routes           Route[]
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
   @@index([name])
 }
 
 model Bus {
-  id           Int        @id @default(autoincrement())
+  id           Int          @id @default(autoincrement())
   name         String
-  licensePlate String     @unique
+  licensePlate String       @unique
   seatCount    Int
-  type         BusType
-  brand        Brand      @relation(fields: [brandId], references: [id])
+  category     BusCategory  // Loại xe: COACH, LIMOUSINE, SLEEPER,...
+  seatType     SeatType     // Loại chỗ: Ghế ngồi / Giường nằm
+  brand        Brand        @relation(fields: [brandId], references: [id])
   brandId      Int
   seats        Seat[]
   schedules    Schedule[]
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
 
-  @@index([type])
+  @@index([category])
+  @@index([seatType])
   @@index([brandId])
 }
 
 model Seat {
-  id         Int      @id @default(autoincrement())
-  seatNumber Int
-  code       String   @unique
-  isAvailable Boolean @default(true) // ✅ Thêm vào quản lý ghế
-  bus        Bus      @relation(fields: [busId], references: [id])
-  busId      Int
-  tickets    Ticket[]
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id          Int      @id @default(autoincrement())
+  seatNumber  Int
+  code        String   @unique
+  isAvailable Boolean  @default(true)
+  bus         Bus      @relation(fields: [busId], references: [id])
+  busId       Int
+  tickets     Ticket[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   @@index([busId])
 }
 
 model Route {
-  id                 Int        @id @default(autoincrement())
-  startPoint         String
-  endPoint           String
+  id                Int       @id @default(autoincrement())
+  startPoint        String
+  endPoint          String
   averageDurationMin Int
-  lowestPrice        Float
-  distanceKm         Float?
-  brand              Brand?     @relation(fields: [brandId], references: [id])
-  brandId            Int?
-  schedules          Schedule[]
-  createdAt          DateTime   @default(now())
-  updatedAt          DateTime   @updatedAt
+  lowestPrice       Float
+  distanceKm        Float?
+  brand             Brand?    @relation(fields: [brandId], references: [id])
+  brandId           Int?
+  schedules         Schedule[]
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 
   @@index([startPoint])
   @@index([endPoint])
@@ -119,7 +121,7 @@ model Ticket {
   userId        Int
   schedule      Schedule       @relation(fields: [scheduleId], references: [id])
   scheduleId    Int
-  seat          Seat           @relation(fields: [seatId], references: [id]) // ✅ Cập nhật from seatNumber
+  seat          Seat           @relation(fields: [seatId], references: [id])
   seatId        Int
   price         Float
   status        TicketStatus   @default(BOOKED)
@@ -132,16 +134,26 @@ model Ticket {
   @@index([status])
 }
 
+// =============================================
+// ENUMS – CẬP NHẬT HOÀN TOÀN
+// =============================================
+
 enum RoleName {
   ADMIN
   PASSENGER
 }
 
-enum BusType {
-  MINIVAN_16
-  COACH_30
-  COACH_45
-  LIMOUSINE
+enum BusCategory {
+  MINIVAN     // Xe 16 chỗ
+  COACH       // Xe khách thường
+  LIMOUSINE   // Limousine
+  SLEEPER     // Xe giường nằm cao tốc
+  VIP         // Xe VIP, phòng riêng
+}
+
+enum SeatType {
+  SEAT        // Ghế ngồi
+  BERTH       // Giường nằm
 }
 
 enum ScheduleStatus {

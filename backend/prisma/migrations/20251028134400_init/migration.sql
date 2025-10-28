@@ -2,7 +2,10 @@
 CREATE TYPE "RoleName" AS ENUM ('ADMIN', 'PASSENGER');
 
 -- CreateEnum
-CREATE TYPE "BusType" AS ENUM ('MINIVAN_16', 'COACH_30', 'COACH_45', 'LIMOUSINE');
+CREATE TYPE "BusCategory" AS ENUM ('MINIVAN', 'COACH', 'LIMOUSINE', 'SLEEPER', 'VIP');
+
+-- CreateEnum
+CREATE TYPE "SeatType" AS ENUM ('SEAT', 'BERTH');
 
 -- CreateEnum
 CREATE TYPE "ScheduleStatus" AS ENUM ('UPCOMING', 'ONGOING', 'COMPLETED', 'CANCELLED');
@@ -59,7 +62,8 @@ CREATE TABLE "Bus" (
     "name" TEXT NOT NULL,
     "licensePlate" TEXT NOT NULL,
     "seatCount" INTEGER NOT NULL,
-    "type" "BusType" NOT NULL,
+    "category" "BusCategory" NOT NULL,
+    "seatType" "SeatType" NOT NULL,
     "brandId" INTEGER NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
@@ -146,7 +150,10 @@ CREATE INDEX "Brand_name_idx" ON "Brand"("name");
 CREATE UNIQUE INDEX "Bus_licensePlate_key" ON "Bus"("licensePlate");
 
 -- CreateIndex
-CREATE INDEX "Bus_type_idx" ON "Bus"("type");
+CREATE INDEX "Bus_category_idx" ON "Bus"("category");
+
+-- CreateIndex
+CREATE INDEX "Bus_seatType_idx" ON "Bus"("seatType");
 
 -- CreateIndex
 CREATE INDEX "Bus_brandId_idx" ON "Bus"("brandId");

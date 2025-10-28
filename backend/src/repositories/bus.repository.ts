@@ -28,12 +28,19 @@ export class BusRepository {
   }
 
   async create(data: CreateBusDto) {
-    // 🔹 Bước 1: Tạo xe
+    // Bước 1: Tạo xe
     const bus = await this.prisma.bus.create({
-      data,
+      data: {
+        name: data.name,
+        licensePlate: data.licensePlate,
+        seatCount: data.seatCount,
+        category: data.category,
+        seatType: data.seatType,
+        brandId: data.brandId,
+      },
     });
 
-    // 🔹 Bước 2: Tự động tạo danh sách ghế
+    // Bước 2: Tự động tạo ghế
     const seatsData = Array.from({ length: data.seatCount }).map((_, i) => ({
       seatNumber: i + 1,
       code: `BUS${bus.id}-${String(i + 1).padStart(2, '0')}`,

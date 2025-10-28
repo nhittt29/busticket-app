@@ -30,7 +30,6 @@ export class BusService {
     return this.busRepo.delete(id);
   }
 
-  // ✅ Lấy danh sách ghế theo busId
   async getSeatsByBus(busId: number) {
     const bus = await this.prisma.bus.findUnique({
       where: { id: busId },
@@ -38,17 +37,21 @@ export class BusService {
     });
 
     if (!bus) {
-      return { message: `Không tìm thấy xe có id = ${busId}` };
+      throw new Error(`Không tìm thấy xe có id = ${busId}`);
     }
 
     return {
       busId: bus.id,
       busName: bus.name,
+      licensePlate: bus.licensePlate,
+      category: bus.category,
+      seatType: bus.seatType,
       totalSeats: bus.seatCount,
       seats: bus.seats.map((s) => ({
         id: s.id,
         seatNumber: s.seatNumber,
         code: s.code,
+        isAvailable: s.isAvailable,
       })),
     };
   }

@@ -1,5 +1,5 @@
 import { IsInt, IsString, IsEnum, Min, IsNotEmpty } from 'class-validator';
-import { BusType } from '../models/Bus';
+import { BusCategory, SeatType } from '../models/Bus';
 
 export class CreateBusDto {
   @IsString()
@@ -14,8 +14,11 @@ export class CreateBusDto {
   @Min(1)
   seatCount: number;
 
-  @IsEnum(BusType)
-  type: BusType;
+  @IsEnum(BusCategory)
+  category: BusCategory;
+
+  @IsEnum(SeatType)
+  seatType: SeatType;
 
   @IsInt()
   @Min(1)
@@ -30,10 +33,14 @@ export class UpdateBusDto {
   licensePlate?: string;
 
   @IsInt()
+  @Min(1)
   seatCount?: number;
 
-  @IsEnum(BusType)
-  type?: BusType;
+  @IsEnum(BusCategory)
+  category?: BusCategory;
+
+  @IsEnum(SeatType)
+  seatType?: SeatType;
 
   @IsInt()
   brandId?: number;
