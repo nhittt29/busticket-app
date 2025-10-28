@@ -30,12 +30,44 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
 
+  // SỬA: Khi nhấn tab → push, và nhận kết quả khi pop về
   void _onItemTapped(int index) {
     setState(() => _selectedIndex = index);
     switch (index) {
-      case 0: break;
-      case 1: Navigator.pushNamed(context, '/my-tickets'); break;
-      case 2: Navigator.pushNamed(context, '/profile'); break;
+      case 0:
+        break;
+      case 1:
+        Navigator.pushNamed(context, '/my-tickets').then((_) {
+          // Khi quay lại từ MyTickets → reset về Trang chủ
+          if (mounted && _selectedIndex != 0) {
+            setState(() => _selectedIndex = 0);
+          }
+        });
+        break;
+      case 2:
+        Navigator.pushNamed(context, '/profile').then((result) {
+          // Khi quay lại từ Profile → reset về Trang chủ
+          if (mounted && _selectedIndex != 0) {
+            setState(() => _selectedIndex = 0);
+          }
+        });
+        break;
+    }
+  }
+
+  // SỬA: Xử lý khi nhấn nút back hệ thống (Android)
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    final ModalRoute? route = ModalRoute.of(context);
+    if (route is PageRoute) {
+      route.addScopedWillPopCallback(() async {
+        if (_selectedIndex != 0) {
+          setState(() => _selectedIndex = 0);
+        }
+        return true; // cho phép pop
+      });
     }
   }
 
@@ -44,11 +76,9 @@ class _HomeScreenState extends State<HomeScreen> {
       context: context,
       builder: (BuildContext context) {
         return Dialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           elevation: 8,
-          backgroundColor: Colors.white, // Background màu trắng
+          backgroundColor: Colors.white,
           child: Container(
             padding: const EdgeInsets.all(20),
             child: Column(
@@ -66,9 +96,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
                     TextButton(
-                      onPressed: () {
-                        Navigator.of(context).pop(); // Đóng dialog
-                      },
+                      onPressed: () => Navigator.of(context).pop(),
                       style: TextButton.styleFrom(
                         backgroundColor: Colors.grey[300],
                         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
@@ -109,8 +137,9 @@ class _HomeScreenState extends State<HomeScreen> {
       {"icon": Icons.payment, "label": "Thanh toán", "route": "/payment"},
     ];
 
-    // ✅ MÀU XANH ĐẬM HƠN: 0xFF1976D2 (Muted Blue)
-    const Color mutedBlue = Color(0xFF1976D2);
+    // MÀU CHÍNH
+    const Color greenSoft = Color(0xFF66BB6A);
+    const Color iconBlue = Color(0xFF1976D2);
 
     return Scaffold(
       backgroundColor: const Color(0xFFEAF6FF),
@@ -139,15 +168,15 @@ class _HomeScreenState extends State<HomeScreen> {
 
           return Column(
             children: [
-              // HERO BANNER - SOLID MUTED BLUE
+              // HERO BANNER - GIỮ NGUYÊN
               Container(
                 width: double.infinity,
                 height: 180,
                 margin: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: mutedBlue,
+                  color: greenSoft,
                   borderRadius: BorderRadius.circular(20),
-                  boxShadow: [BoxShadow(color: mutedBlue.withOpacity(0.2), blurRadius: 15, offset: const Offset(0, 8))],
+                  boxShadow: [BoxShadow(color: greenSoft.withOpacity(0.2), blurRadius: 15, offset: const Offset(0, 8))],
                 ),
                 child: Stack(
                   children: [
@@ -164,12 +193,13 @@ class _HomeScreenState extends State<HomeScreen> {
                           width: 140,
                           child: ElevatedButton.icon(
                             onPressed: () => Navigator.pushNamed(context, '/search-trips'),
-                            icon: Icon(Icons.search, size: 18, color: mutedBlue),
-                            label: Text('Tìm vé', style: TextStyle(fontSize: 12, color: mutedBlue)),
+                            icon: const Icon(Icons.search, size: 18, color: Colors.white),
+                            label: const Text('Tìm vé', style: TextStyle(fontSize: 12, color: Colors.white)),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.white,
+                              backgroundColor: Colors.white.withOpacity(0.2),
                               padding: const EdgeInsets.symmetric(vertical: 8),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                              side: const BorderSide(color: Colors.white, width: 1.5),
                             ),
                           ),
                         ),
@@ -182,36 +212,70 @@ class _HomeScreenState extends State<HomeScreen> {
               // SEARCH BAR
               Container(
                 margin: const EdgeInsets.symmetric(horizontal: 16),
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), boxShadow: [
-                  BoxShadow(color: Colors.grey.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, 2)),
-                ]),
-                child: Row(children: [
-                  Icon(Icons.search, color: mutedBlue),
-                  const SizedBox(width: 12),
-                  const Expanded(child: Text('Từ: Hà Nội, Đến: TP.HCM, Ngày: Hôm nay', style: TextStyle(color: Colors.black54, fontSize: 14))),
-                  ElevatedButton(
-                    onPressed: () => Navigator.pushNamed(context, '/search-trips'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: mutedBlue,
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: iconBlue.withOpacity(0.3), width: 1.2),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.grey.withOpacity(0.15),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
                     ),
-                    child: const Text('Tìm', style: TextStyle(color: Colors.white, fontSize: 12)),
-                  ),
-                ]),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    const Expanded(
+                      child: Text(
+                        'Từ: Hà Nội, Đến: TP.HCM, Ngày: Hôm nay',
+                        style: TextStyle(
+                          color: Colors.black87,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    SizedBox(
+                      height: 42,
+                      child: ElevatedButton.icon(
+                        onPressed: () => Navigator.pushNamed(context, '/search-trips'),
+                        icon: const Icon(Icons.search, size: 18, color: iconBlue),
+                        label: Text(
+                          'Tìm',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: iconBlue,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: greenSoft.withOpacity(0.15),
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                            side: BorderSide(color: greenSoft, width: 1.5),
+                          ),
+                          elevation: 0,
+                          shadowColor: Colors.transparent,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
 
-              const SizedBox(height: 20), // ✅ GIẢM: 32→20px (TẬN DỤNG KHOẢNG TRỐNG)
+              const SizedBox(height: 20),
 
-              // HORIZONTAL CAROUSEL
+              // CAROUSEL + DOTS + STACKED ROWS
               Expanded(
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // 1. HORIZONTAL CAROUSEL
                       const Padding(
                         padding: EdgeInsets.symmetric(horizontal: 8, vertical: 12),
                         child: Text("Nhanh chóng", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87)),
@@ -234,17 +298,27 @@ class _HomeScreenState extends State<HomeScreen> {
                                     child: Container(
                                       margin: const EdgeInsets.symmetric(horizontal: 6),
                                       decoration: BoxDecoration(
-                                        color: Colors.white,
+                                        color: greenSoft,
                                         borderRadius: BorderRadius.circular(16),
-                                        border: Border.all(color: mutedBlue, width: 2),
-                                        boxShadow: [BoxShadow(color: mutedBlue.withOpacity(0.15), blurRadius: 8, offset: const Offset(0, 4))],
+                                        boxShadow: [BoxShadow(color: greenSoft.withOpacity(0.2), blurRadius: 8, offset: const Offset(0, 4))],
                                       ),
                                       child: Column(
                                         mainAxisAlignment: MainAxisAlignment.center,
                                         children: [
-                                          Icon(item['icon'], color: mutedBlue, size: 24),
+                                          Container(
+                                            padding: const EdgeInsets.all(6),
+                                            decoration: BoxDecoration(
+                                              color: Colors.white.withOpacity(0.3),
+                                              shape: BoxShape.circle,
+                                            ),
+                                            child: Icon(item['icon'], color: iconBlue, size: 22),
+                                          ),
                                           const SizedBox(height: 6),
-                                          Text(item['label'], textAlign: TextAlign.center, style: TextStyle(color: Colors.black87, fontSize: 10, fontWeight: FontWeight.w600)),
+                                          Text(
+                                            item['label'],
+                                            textAlign: TextAlign.center,
+                                            style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w600),
+                                          ),
                                         ],
                                       ),
                                     ),
@@ -255,8 +329,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           },
                         ),
                       ),
-                      
-                      // DOTS INDICATOR
+
                       const SizedBox(height: 20),
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -267,38 +340,36 @@ class _HomeScreenState extends State<HomeScreen> {
                             width: _currentPage == index ? 8 : 6,
                             height: 6,
                             decoration: BoxDecoration(
-                              color: _currentPage == index ? mutedBlue : Colors.grey, 
-                              borderRadius: BorderRadius.circular(3)
+                              color: _currentPage == index ? greenSoft : Colors.grey,
+                              borderRadius: BorderRadius.circular(3),
                             ),
                           )),
                         ),
                       ),
                       const SizedBox(height: 20),
-                      
-                      // 2. STACKED ROWS - SOLID MUTED BLUE
+
                       const Padding(
                         padding: EdgeInsets.symmetric(horizontal: 8, vertical: 12),
                         child: Text("Khám phá", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87)),
                       ),
                       const SizedBox(height: 16),
                       ...List.generate(2, (rowIndex) {
-                        final start = rowIndex * 1;
-                        final end = (start + 1 < busFeatures.length - 3) ? start + 1 : busFeatures.length - 3;
+                        final start = rowIndex * 1 + 3;
+                        if (start >= busFeatures.length) return const SizedBox.shrink();
+                        final item = busFeatures[start];
                         return Padding(
                           padding: const EdgeInsets.only(bottom: 16),
                           child: Row(
-                            children: List.generate(end - start, (i) {
-                              final item = busFeatures[start + i + 3];
-                              return Expanded(
+                            children: [
+                              Expanded(
                                 child: GestureDetector(
                                   onTap: () => Navigator.pushNamed(context, item['route']),
                                   child: Container(
                                     height: 70,
-                                    margin: const EdgeInsets.only(right: 8),
                                     decoration: BoxDecoration(
-                                      color: mutedBlue,
+                                      color: greenSoft,
                                       borderRadius: BorderRadius.circular(16),
-                                      boxShadow: [BoxShadow(color: mutedBlue.withOpacity(0.15), blurRadius: 10, offset: const Offset(0, 5))],
+                                      boxShadow: [BoxShadow(color: greenSoft.withOpacity(0.2), blurRadius: 10, offset: const Offset(0, 5))],
                                     ),
                                     child: Column(
                                       mainAxisAlignment: MainAxisAlignment.center,
@@ -306,16 +377,20 @@ class _HomeScreenState extends State<HomeScreen> {
                                         Container(
                                           padding: const EdgeInsets.all(8),
                                           decoration: BoxDecoration(color: Colors.white.withOpacity(0.3), shape: BoxShape.circle),
-                                          child: Icon(item['icon'], color: Colors.white, size: 20),
+                                          child: Icon(item['icon'], color: iconBlue, size: 20),
                                         ),
                                         const SizedBox(height: 8),
-                                        Text(item['label'], textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w600)),
+                                        Text(
+                                          item['label'],
+                                          textAlign: TextAlign.center,
+                                          style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w600),
+                                        ),
                                       ],
                                     ),
                                   ),
                                 ),
-                              );
-                            }),
+                              ),
+                            ],
                           ),
                         );
                       }),
@@ -324,12 +399,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
 
-              // Bottom Navigation
+              // Bottom Navigation Bar
               BottomNavigationBar(
                 backgroundColor: Colors.white,
                 currentIndex: _selectedIndex,
                 onTap: _onItemTapped,
-                selectedItemColor: mutedBlue,
+                selectedItemColor: const Color(0xFF1976D2),
                 unselectedItemColor: Colors.grey,
                 elevation: 8,
                 items: const [
