@@ -1,13 +1,19 @@
 import { Module } from '@nestjs/common';
+import { BullModule } from '@nestjs/bull';
+
 import { TicketService } from '../services/ticket.service';
 import { TicketRepository } from '../repositories/ticket.repository';
 import { PrismaService } from '../services/prisma.service';
 import { TicketProcessor } from '../queues/ticket.processor';
-import { TicketQueueModule } from '../queues/ticket-queue.module';
 import { TicketController } from '../controllers/ticket.controller';
 
 @Module({
-  imports: [TicketQueueModule],
+  imports: [
+    // ✅ Đăng ký queue “ticket” vào Bull
+    BullModule.registerQueue({
+      name: 'ticket',
+    }),
+  ],
   controllers: [TicketController],
   providers: [
     TicketService,
@@ -15,5 +21,6 @@ import { TicketController } from '../controllers/ticket.controller';
     PrismaService,
     TicketProcessor,
   ],
+  exports: [TicketService],
 })
 export class TicketModule {}
