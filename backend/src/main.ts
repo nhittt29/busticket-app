@@ -5,8 +5,11 @@ import { join, resolve } from 'path';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import * as express from 'express';
 import * as admin from 'firebase-admin';
+import { startRedis } from './redis/redis.init';
 
 async function bootstrap() {
+  startRedis();
+
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
   // ✅ Prefix API
