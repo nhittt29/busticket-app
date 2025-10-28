@@ -35,21 +35,17 @@ export class TicketRepository {
       where: {
         scheduleId,
         seatId,
-        status: {
-          in: [TicketStatus.BOOKED, TicketStatus.PAID],
-        },
+        status: { in: [TicketStatus.BOOKED, TicketStatus.PAID] },
       },
     });
   }
 
-  findByUserInDay(userId: number, date: Date) {
-    const start = new Date(date.setHours(0, 0, 0, 0));
-    const end = new Date(date.setHours(23, 59, 59, 999));
+  findUserBookedToday(userId: number) {
+    const now = new Date();
+    const start = new Date(now.setHours(0, 0, 0, 0));
+    const end = new Date(now.setHours(23, 59, 59, 999));
     return this.prisma.ticket.count({
-      where: {
-        userId,
-        createdAt: { gte: start, lt: end },
-      },
+      where: { userId, createdAt: { gte: start, lt: end } },
     });
   }
 
@@ -60,7 +56,7 @@ export class TicketRepository {
     });
   }
 
-  countBrandSoldInDay(brandId: number) {
+  countBrandSoldToday(brandId: number) {
     const now = new Date();
     const start = new Date(now.setHours(0, 0, 0, 0));
     const end = new Date(now.setHours(23, 59, 59, 999));
