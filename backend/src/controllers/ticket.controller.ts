@@ -11,6 +11,11 @@ export class TicketController {
     return this.ticketService.create(dto);
   }
 
+  @Post('momo/callback')
+  momoCallback(@Body() data: any) {
+    return this.ticketService.handleMomoCallback(data);
+  }
+
   @Delete(':id')
   cancel(@Param('id') id: string) {
     return this.ticketService.cancel(Number(id));

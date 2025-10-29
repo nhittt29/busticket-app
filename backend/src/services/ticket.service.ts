@@ -10,6 +10,7 @@ import { TicketRepository } from '../repositories/ticket.repository';
 import { CreateTicketDto } from '../dtos/ticket.dto';
 import { PrismaService } from '../services/prisma.service';
 import { TicketStatus } from '../models/Ticket';
+import { MomoService } from './momo.service';
 
 @Injectable()
 export class TicketService {
@@ -18,17 +19,15 @@ export class TicketService {
   constructor(
     private readonly ticketRepo: TicketRepository,
     private readonly prisma: PrismaService,
+    private readonly momoService: MomoService,
     @InjectQueue('ticket') private readonly ticketQueue: Queue,
   ) {}
 
   /**
-   * ✅ 1. Đặt vé mới
-   * - Check ghế, brand, limit
-   * - Tạo ticket ở trạng thái BOOKED
-   * - Đưa job vào queue Redis (15 phút tự hủy nếu chưa thanh toán)
+   * ✅ 1. Đặt vé mới → Gọi API MoMo
    */
-  async create(dto: CreateTicketDto) {
-    const { userId, scheduleId, seatId } = dto;
+  async create(dto: CreateTicketDto): Promise<any> {
+    const { userId, scheduleId, seatId, price } = dto;
 
     const schedule = await this.prisma.schedule.findUnique({
       where: { id: scheduleId },
@@ -54,33 +53,47 @@ export class TicketService {
     if (brandTickets >= schedule.bus.brand.dailyTicketLimit)
       throw new BadRequestException('Brand daily limit reached');
 
-    // ✅ Tạo vé BOOKED
     const ticket = await this.ticketRepo.create(dto);
 
-    // ✅ Đưa vào Redis Queue: 15 phút sẽ tự hủy nếu chưa thanh toán
     await this.ticketQueue.add(
       'hold-expire',
       { ticketId: ticket.id },
       { delay: 15 * 60 * 1000 },
-        // ======================================================
-        // delay: 15 * 60 * 1000 (15 phút)
-        // delay: 30 * 1000 (30s)
-        // ======================================================
     );
 
-    this.logger.log(
-      `🎟️ Ticket #${ticket.id} booked. Hold 15 mins before payment.`,
+    const momoResponse = await this.momoService.createPayment(
+      ticket.id,
+      price,
     );
 
-    return ticket;
+    return {
+      message: 'Ticket booked successfully. Please complete payment.',
+      ticket,
+      momo: momoResponse,
+    };
   }
 
   /**
-   * ✅ 2. Thanh toán vé
-   * - Chỉ thanh toán trước giờ khởi hành ≥ 1 tiếng
-   * - Cập nhật trạng thái PAID
-   * - Khóa ghế vĩnh viễn
-   * - Xóa job trong Redis queue
+   * ✅ 2. Xử lý callback từ MoMo
+   *    → Tự động bỏ kiểm tra chữ ký khi môi trường sandbox
+   */
+  async handleMomoCallback(data: any) {
+    const isSandbox = process.env.MOMO_ENV === 'sandbox';
+    const isValid = isSandbox ? true : this.momoService.verifySignature(data);
+
+    if (!isValid) throw new BadRequestException('Invalid MoMo signature');
+
+    if (data.resultCode === 0) {
+      const [ticketId] = data.orderId.split('_');
+      await this.payTicket(Number(ticketId));
+      return { message: 'Payment confirmed from MoMo', success: true };
+    }
+
+    return { message: 'Payment failed or canceled', success: false };
+  }
+
+  /**
+   * ✅ 3. Thanh toán vé (nếu không qua MoMo)
    */
   async payTicket(id: number) {
     const ticket = await this.ticketRepo.findById(id);
@@ -101,7 +114,6 @@ export class TicketService {
         'Payment not allowed if less than 1 hour before departure',
       );
 
-    // ✅ Cập nhật trạng thái vé + khóa ghế
     await this.prisma.$transaction([
       this.ticketRepo.update(id, { status: TicketStatus.PAID }),
       this.prisma.seat.update({
@@ -110,7 +122,6 @@ export class TicketService {
       }),
     ]);
 
-    // ✅ Xóa job trong Redis queue
     const jobs = await this.ticketQueue.getDelayed();
     for (const job of jobs) {
       if (job.data.ticketId === id) await job.remove();
@@ -120,11 +131,6 @@ export class TicketService {
     return { message: 'Payment successful', ticketId: id };
   }
 
-  /**
-   * ✅ 3. Hủy vé
-   * - Chỉ cho phép hủy trước 2 tiếng khởi hành
-   * - Mở lại ghế
-   */
   async cancel(id: number) {
     const ticket = await this.ticketRepo.findById(id);
     if (!ticket) throw new NotFoundException('Ticket not found');
@@ -141,7 +147,6 @@ export class TicketService {
         'Cancel not allowed if less than 2 hours before departure',
       );
 
-    // ✅ Trả ghế + update trạng thái
     await this.prisma.$transaction([
       this.ticketRepo.update(id, { status: TicketStatus.CANCELLED }),
       this.prisma.seat.update({
@@ -154,9 +159,6 @@ export class TicketService {
     return { message: 'Cancel success', ticketId: id };
   }
 
-  /**
-   * ✅ 4. Lấy danh sách vé theo user
-   */
   async getTicketsByUser(userId: number) {
     return this.ticketRepo.getTicketsByUser(userId);
   }
