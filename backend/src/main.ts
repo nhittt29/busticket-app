@@ -1,3 +1,4 @@
+// src/main.ts
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
@@ -7,15 +8,19 @@ import * as express from 'express';
 import * as admin from 'firebase-admin';
 import { startRedis } from './redis/redis.init';
 
+// BẮT BUỘC: LOAD .env TRƯỚC KHI KHỞI ĐỘNG APP
+import * as dotenv from 'dotenv';
+dotenv.config();
+
 async function bootstrap() {
   startRedis();
 
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
-  // ✅ Prefix API
+  // Prefix API
   app.setGlobalPrefix('api');
 
-  // ✅ Validation global
+  // Validation global
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -24,7 +29,7 @@ async function bootstrap() {
     }),
   );
 
-  // ✅ Static files — point to correct uploads directory
+  // Static files — point to correct uploads directory
   const uploadsPath = resolve(__dirname, '..', '..', 'uploads');
   app.use('/uploads', express.static(uploadsPath));
 
@@ -35,6 +40,7 @@ async function bootstrap() {
 
   await app.listen(3000);
 
+  // Firebase check
   if (admin.apps.length) {
     console.log('🔥 Firebase connected successfully!');
   } else {
@@ -45,6 +51,6 @@ async function bootstrap() {
   const formattedPath = uploadsPath.replace(/\\/g, '/');
   console.log('🚀 Server running on: http://localhost:3000');
   console.log(`🖼️  Static files available at: http://localhost:3000/uploads`);
-  console.log(`📂  Physical path: ${formattedPath}`);
+  console.log(`📂 Physical path: ${formattedPath}`);
 }
 bootstrap();

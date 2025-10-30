@@ -52,8 +52,8 @@ model Bus {
   name         String
   licensePlate String       @unique
   seatCount    Int
-  category     BusCategory  // Loại xe: COACH, LIMOUSINE, SLEEPER,...
-  seatType     SeatType     // Loại chỗ: Ghế ngồi / Giường nằm
+  category     BusCategory
+  seatType     SeatType
   brand        Brand        @relation(fields: [brandId], references: [id])
   brandId      Int
   seats        Seat[]
@@ -126,6 +126,11 @@ model Ticket {
   price         Float
   status        TicketStatus   @default(BOOKED)
   paymentMethod PaymentMethod?
+  
+  // CHỈ @relation – KHÔNG ĐỂ fields/references
+  payment       PaymentHistory? @relation
+  paymentId     Int?           @unique
+
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
 
@@ -134,9 +139,22 @@ model Ticket {
   @@index([status])
 }
 
-// =============================================
-// ENUMS – CẬP NHẬT HOÀN TOÀN
-// =============================================
+model PaymentHistory {
+  id            Int      @id @default(autoincrement())
+  
+  // CHỈ ĐỂ fields + references Ở BÊN NÀY
+  ticket        Ticket   @relation(fields: [ticketId], references: [id])
+  ticketId      Int      @unique
+
+  method        PaymentMethod
+  amount        Float
+  transactionId String?
+  status        String
+  qrCode        String?
+  paidAt        DateTime @default(now())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
 
 enum RoleName {
   ADMIN
@@ -144,16 +162,16 @@ enum RoleName {
 }
 
 enum BusCategory {
-  MINIVAN     // Xe 16 chỗ
-  COACH       // Xe khách thường
-  LIMOUSINE   // Limousine
-  SLEEPER     // Xe giường nằm cao tốc
-  VIP         // Xe VIP, phòng riêng
+  MINIVAN
+  COACH
+  LIMOUSINE
+  SLEEPER
+  VIP
 }
 
 enum SeatType {
-  SEAT        // Ghế ngồi
-  BERTH       // Giường nằm
+  SEAT
+  BERTH
 }
 
 enum ScheduleStatus {

@@ -2,6 +2,7 @@
 import { Body, Controller, Delete, Get, Param, Post, Query, Redirect } from '@nestjs/common';
 import { TicketService } from '../services/ticket.service';
 import { CreateTicketDto } from '../dtos/ticket.dto';
+import { PaymentMethod } from '../models/Ticket';
 
 @Controller('tickets')
 export class TicketController {
@@ -12,16 +13,13 @@ export class TicketController {
     return this.ticketService.create(dto);
   }
 
-  // REDIRECT TỪ MOMO
   @Get('momo/redirect')
   @Redirect()
   async momoRedirect(@Query() query: any) {
     const result = await this.ticketService.handleMomoRedirect(query);
-    if (result.success) {
-      return { url: `http://localhost:3000/payment-success?ticketId=${result.ticketId}` };
-    } else {
-      return { url: `http://localhost:3000/payment-failed` };
-    }
+    return result.success
+      ? { url: `${process.env.FRONTEND_URL}/payment-success?ticketId=${result.ticketId}` }
+      : { url: `${process.env.FRONTEND_URL}/payment-failed` };
   }
 
   @Post('momo/callback')
@@ -34,9 +32,10 @@ export class TicketController {
     return this.ticketService.cancel(Number(id));
   }
 
+  // SỬA: GỌI PUBLIC METHOD + DÙNG ENUM
   @Post(':id/pay')
   pay(@Param('id') id: string) {
-    return this.ticketService.payTicket(Number(id));
+    return this.ticketService.payTicket(Number(id), PaymentMethod.CASH);
   }
 
   @Get('user/:userId')
@@ -47,5 +46,10 @@ export class TicketController {
   @Get(':id/status')
   getStatus(@Param('id') id: string) {
     return this.ticketService.getStatus(Number(id));
+  }
+
+  @Get(':id/payment')
+  getPaymentHistory(@Param('id') id: string) {
+    return this.ticketService.getPaymentHistory(Number(id));
   }
 }
