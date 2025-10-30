@@ -1,11 +1,11 @@
+// src/services/momo.service.ts
 import { Injectable, Logger } from '@nestjs/common';
 import axios from 'axios';
 import * as crypto from 'crypto';
 
 export interface MomoResponse {
-  payUrl?: string;
-  deeplink?: string;
-  resultCode?: number;
+  payUrl: string;
+  resultCode: number;
   message?: string;
   [key: string]: any;
 }
@@ -16,83 +16,73 @@ export class MomoService {
 
   private readonly endpoint = 'https://test-payment.momo.vn/v2/gateway/api/create';
 
-  private readonly partnerCode = process.env.MOMO_PARTNER_CODE || 'MOMO';
-  private readonly accessKey = process.env.MOMO_ACCESS_KEY || 'F8BBA842ECF85';
-  private readonly secretKey = process.env.MOMO_SECRET_KEY || 'K951B6PE1waDMi640xX08PD3vg6EkVlz';
+  private readonly partnerCode = process.env.MOMO_PARTNER_CODE!;
+  private readonly accessKey = process.env.MOMO_ACCESS_KEY!;
+  private readonly secretKey = process.env.MOMO_SECRET_KEY!;
 
-  /**
-   * ✅ 1. Tạo yêu cầu thanh toán MoMo
-   */
-  async createPayment(ticketId: number, amount: number): Promise<MomoResponse> {
-    const redirectUrl = process.env.MOMO_REDIRECT_URL || 'http://localhost:3000/momo/redirect';
-    const ipnUrl = process.env.MOMO_IPN_URL || 'http://localhost:3000/api/tickets/momo/callback';
+  async createPayment(ticketId: number, realPrice: number): Promise<MomoResponse> {
+    const redirectUrl = process.env.MOMO_REDIRECT_URL!;
+    const ipnUrl = process.env.MOMO_IPN_URL!;
 
     const requestId = `${this.partnerCode}${Date.now()}`;
-    const orderId = `${ticketId}_${Date.now()}`;
-    const orderInfo = `Thanh toan ve xe #${ticketId}`;
+    const orderId = `TICKET_${ticketId}_${Date.now()}`;
 
-    const rawSignature = `accessKey=${this.accessKey}&amount=${amount}&extraData=&ipnUrl=${ipnUrl}&orderId=${orderId}&orderInfo=${orderInfo}&partnerCode=${this.partnerCode}&redirectUrl=${redirectUrl}&requestId=${requestId}&requestType=captureWallet`;
+    const amount = realPrice.toString();
+    const displayPrice = realPrice.toLocaleString('vi-VN');
+    const orderInfo = `Thanh toán vé xe #${ticketId} - ${displayPrice}đ`;
+
+    const requestType = 'payWithMethod';
+    const paymentCode = this.getTestPaymentCode();
+
+    const rawSignature = `accessKey=${this.accessKey}&amount=${amount}&extraData=&ipnUrl=${ipnUrl}&orderId=${orderId}&orderInfo=${orderInfo}&partnerCode=${this.partnerCode}&redirectUrl=${redirectUrl}&requestId=${requestId}&requestType=${requestType}`;
     const signature = crypto.createHmac('sha256', this.secretKey).update(rawSignature).digest('hex');
 
     const payload = {
       partnerCode: this.partnerCode,
-      accessKey: this.accessKey,
+      partnerName: 'BusTicket',
+      storeId: 'BusTicketStore',
       requestId,
-      amount: amount.toString(),
+      amount,
       orderId,
       orderInfo,
       redirectUrl,
       ipnUrl,
-      requestType: 'captureWallet',
-      extraData: '',
-      signature,
       lang: 'vi',
-      expiry: 900, // ✅ 15 phút
+      requestType,
+      autoCapture: true,
+      extraData: '',
+      paymentCode,
+      signature,
     };
 
-    this.logger.debug(`📤 Payload gửi đến MoMo:\n${JSON.stringify(payload, null, 2)}`);
+    this.logger.debug(`Payload gửi MoMo:\n${JSON.stringify(payload, null, 2)}`);
 
     const res = await axios.post<MomoResponse>(this.endpoint, payload, {
       headers: { 'Content-Type': 'application/json' },
     });
 
-    const momoResponse = res.data;
-    this.logger.log(`🔗 MoMo response cho vé #${ticketId}: ${JSON.stringify(momoResponse)}`);
-
-    return momoResponse;
+    this.logger.log(`MoMo response: ${JSON.stringify(res.data)}`);
+    return res.data;
   }
 
-  /**
-   * ✅ 2. Xác minh chữ ký callback từ MoMo
-   */
+  private getTestPaymentCode(): string {
+    return 'T8Qii53fAXyUftPV3m9ysyRhEanUs9KlOPfHgpMR0ON50U10Bh+vZdpJU7VY4z+Z2y77fJHkoDc69scwwzLuW5MzeUKTwPo3ZMaB29imm6YulqnWfTkgzqRaion+EuD7FN9wZ4aXE1+mRt0gHsU193y+yxtRgpmY7SDMU9hCKoQtYyHsfFR5FUAOAKMdw2fzQqpToei3rnaYvZuYaxolprm9+/+WIETnPUDlxCYOiw7vPeaaYQQH0BF0TxyU3zu36ODx980rJvPAgtJzH1gUrlxcSS1HQeQ9ZaVM1eOK/jl8KJm6ijOwErHGbgf/hVymUQG65rHU2MWz9U8QUjvDWA==';
+  }
+
   verifySignature(data: any): boolean {
+    if (process.env.MOMO_ENV === 'sandbox') return true;
+
     try {
       const {
-        partnerCode,
-        orderId,
-        requestId,
-        amount,
-        orderInfo,
-        orderType,
-        transId,
-        resultCode,
-        message,
-        payType,
-        responseTime,
-        extraData,
-        signature,
+        partnerCode, orderId, requestId, amount, orderInfo, orderType,
+        transId, resultCode, message, payType, responseTime, extraData, signature
       } = data;
 
-      const rawSignature = `accessKey=${this.accessKey}&amount=${amount}&extraData=${extraData}&message=${message}&orderId=${orderId}&orderInfo=${orderInfo}&orderType=${orderType}&partnerCode=${partnerCode}&payType=${payType}&requestId=${requestId}&responseTime=${responseTime}&resultCode=${resultCode}&transId=${transId}`;
-      const computedSignature = crypto.createHmac('sha256', this.secretKey).update(rawSignature).digest('hex');
-
-      const isValid = computedSignature === signature;
-      if (!isValid) {
-        this.logger.warn('⚠️ Chữ ký MoMo không hợp lệ!');
-      }
-      return isValid;
+      const raw = `accessKey=${this.accessKey}&amount=${amount}&extraData=${extraData}&message=${message}&orderId=${orderId}&orderInfo=${orderInfo}&orderType=${orderType}&partnerCode=${partnerCode}&payType=${payType}&requestId=${requestId}&responseTime=${responseTime}&resultCode=${resultCode}&transId=${transId}`;
+      const computed = crypto.createHmac('sha256', this.secretKey).update(raw).digest('hex');
+      return computed === signature;
     } catch (err) {
-      this.logger.error('❌ Lỗi khi xác minh chữ ký MoMo', err);
+      this.logger.error('Lỗi xác minh chữ ký', err);
       return false;
     }
   }
