@@ -23,7 +23,12 @@ export class EmailService {
     const userName = ticket.user?.name || 'Khách hàng';
     const startPoint = ticket.schedule?.route?.startPoint || 'Không xác định';
     const endPoint = ticket.schedule?.route?.endPoint || 'Không xác định';
-    const busName = ticket.schedule?.bus?.name || 'Không xác định';
+
+    // Lấy thông tin xe
+    const bus = ticket.schedule?.bus;
+    const busName = bus?.name || 'Không xác định';
+    const busPlate = bus?.licensePlate || 'Không xác định';
+
     const seatCode = ticket.seat?.code || 'N/A';
 
     const departure = new Date(ticket.schedule.departureAt).toLocaleString('vi-VN', {
@@ -36,123 +41,113 @@ export class EmailService {
     });
 
     const html = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="UTF-8">
-      <title>Vé xe #${ticket.id} - BusTicket</title>
-      <style>
-        body { font-family: Arial, sans-serif; background: #f1f4f8; margin: 0; padding: 0; }
-        .container { max-width: 600px; margin: auto; background: #fff; border-radius: 10px; overflow: hidden; }
-        .header { background:#1976d2; padding:25px; color:#fff; text-align:center; }
-        .header h1 { margin:0; font-size:24px; }
-        .header p { margin:5px 0 0; opacity:.9; }
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Vé xe #${ticket.id} - BusTicket</title>
+<style>
+  body { font-family: Arial, sans-serif; background:#f1f4f8; padding:0; margin:0; }
+  .container { max-width:600px; margin:auto; background:#fff; border-radius:12px; overflow:hidden; box-shadow:0 4px 10px rgba(0,0,0,0.08); }
+  .header { background:#1565c0; padding:25px; color:white; text-align:center; }
+  .header h1{ margin:0; font-size:22px; font-weight:600; }
+  .content { padding:22px; font-size:15px; color:#222; line-height:1.6; }
 
-        .content { padding:25px; font-size:15px; color:#333; }
-        .ticket-box { border:1px dashed #cfd8dc; padding:20px; border-radius:8px; margin-top:15px; }
+  .ticket-box{ background:#fafbff; border:1px solid #e1e6f0; padding:20px; border-radius:10px; margin-top:15px; }
+  .ticket-header{ font-size:18px; font-weight:700; margin-bottom:10px; color:#1976d2; }
 
-        .row {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 25px;
-          margin-top:15px;
-          border-top: 1px solid #e0e0e0;
-          padding-top: 12px;
-        }
+  .info-grid{ display:grid; grid-template-columns:1fr 1fr; gap:18px; margin-top:12px; }
+  .info-row{ margin-bottom:8px; }
+  .label{ color:#666; font-size:14px; }
+  .value{ color:#111; font-weight:600; margin-top:2px; font-size:15px; }
 
-        .col div { margin-bottom: 10px; line-height: 1.5; }
+  .highlight-box{ background:#e8f2ff; padding:10px 14px; border-left:4px solid #1976d2; border-radius:6px; margin-bottom:12px; }
+  .highlight-value{ font-size:16px; font-weight:700; }
 
-        .label { color:#555; font-weight:600; font-size:14px; display:block; margin-bottom:2px; }
-        .value { color:#000; font-weight:500; }
+  .qr{text-align:center;margin-top:22px;}
+  .qr img{width:160px;height:160px;border-radius:8px;}
 
-        .qr { text-align:center; margin-top:25px; }
-        .qr img { width:160px; height:160px; border-radius:10px; }
+  .notice{background:#fff3cd;padding:14px;border-left:4px solid #ffca28;border-radius:8px;font-size:14px;margin-top:20px;}
+  .footer{background:#0d47a1;color:white;text-align:center;padding:12px;font-size:13px;}
 
-        .notice { background:#fff3cd; padding:15px; border-left:4px solid #ffca28; border-radius:6px; font-size:14px; margin-top:20px; }
+  @media(max-width:480px){ .info-grid{ grid-template-columns:1fr; } }
+</style>
+</head>
 
-        .footer { background:#1565c0; padding:18px; text-align:center; color:#fff; font-size:13px; }
-        .footer a { color:#bbdefb; text-decoration:none; }
+<body>
+<div class="container">
+  <div class="header"><h1>Vé xe điện tử – Xác nhận thành công ✅</h1></div>
 
-        @media(max-width:480px){
-          .row { grid-template-columns:1fr; }
-        }
-      </style>
-    </head>
+  <div class="content">
+    <p>Xin chào <strong>${userName}</strong>,</p>
+    <p>Cảm ơn bạn đã đặt vé cùng BusTicket. Dưới đây là thông tin vé của bạn:</p>
 
-    <body>
-    <div class="container">
+    <div class="ticket-box">
+      <div class="ticket-header">🎫 Mã vé: #${ticket.id}</div>
 
-      <div class="header">
-        <h1>Thanh toán thành công ✅</h1>
-        <p>Vé xe của bạn đã được xác nhận</p>
+      <div class="highlight-box">
+        <div class="label">Tuyến</div>
+        <div class="highlight-value">${startPoint} → ${endPoint}</div>
       </div>
 
-      <div class="content">
-        <p>Xin chào <strong>${userName}</strong>,</p>
-        <p>Cảm ơn bạn đã đặt vé cùng BusTicket. Thông tin vé của bạn như sau:</p>
+      <div class="highlight-box">
+        <div class="label">Khởi hành</div>
+        <div class="highlight-value">⏰ ${departure}</div>
+      </div>
 
-        <div class="ticket-box">
-          <div style="margin-bottom:8px;">
-            <span class="label">Mã vé:</span>
-            <span class="value">#${ticket.id}</span>
+      <div class="info-grid">
+
+        <div>
+          <div class="info-row">
+            <div class="label">Số ghế</div>
+            <div class="value">${seatCode}</div>
           </div>
 
-          <div class="row">
-            <!-- Cột trái -->
-            <div class="col">
-              <div>
-                <span class="label">Tuyến:</span>
-                <span class="value">${startPoint} → ${endPoint}</span>
-              </div>
-              <div>
-                <span class="label">Số ghế:</span>
-                <span class="value">${seatCode}</span>
-              </div>
-              <div>
-                <span class="label">Giá vé:</span>
-                <span class="value">${ticket.price.toLocaleString('vi-VN')}đ</span>
-              </div>
-            </div>
-
-            <!-- Cột phải -->
-            <div class="col">
-              <div>
-                <span class="label">Khởi hành:</span>
-                <span class="value">lúc ${departure}</span>
-              </div>
-              <div>
-                <span class="label">Xe:</span>
-                <span class="value">${busName}</span>
-              </div>
-              <div>
-                <span class="label">Thanh toán:</span>
-                <span class="value">MoMo</span>
-              </div>
-            </div>
+          <div class="info-row">
+            <div class="label">Giá vé</div>
+            <div class="value">${ticket.price.toLocaleString('vi-VN')}đ</div>
           </div>
         </div>
 
-        <div class="qr">
-          <p><strong>Quét mã QR khi lên xe</strong></p>
-          <img src="${qrCodeUrl}" alt="QR Code Ticket #${ticket.id}">
+        <div>
+          <div class="info-row">
+            <div class="label">Xe</div>
+            <div class="value">${busName}</div>
+          </div>
+
+          <div class="info-row">
+            <div class="label">Biển số</div>
+            <div class="value">${busPlate}</div>
+          </div>
+
+          <div class="info-row">
+            <div class="label">Thanh toán</div>
+            <div class="value">MoMo</div>
+          </div>
         </div>
 
-        <div class="notice">
-          ⚠️ Lưu ý:<br>
-          • Có mặt trước giờ khởi hành <strong>30 phút</strong><br>
-          • Xuất trình mã QR để lên xe<br>
-          • Chúc bạn có chuyến đi an toàn & thoải mái!
-        </div>
-      </div>
-
-      <div class="footer">
-        © 2025 BusTicket.vn — Đặt vé xe liên tỉnh nhanh chóng  
-        <br>Hỗ trợ: <a href="mailto:support@busticket.vn">support@busticket.vn</a> | 1900 1234
       </div>
     </div>
-    </body>
-    </html>
-    `;
+
+    <div class="qr">
+      <p><strong>Quét mã QR khi lên xe</strong></p>
+      <img src="${qrCodeUrl}" alt="QR Code Ticket #${ticket.id}">
+    </div>
+
+    <div class="notice">
+      ⚠️ Vui lòng có mặt trước <strong>30 phút</strong><br>
+      Xuất trình mã QR để lên xe<br>
+      Chúc bạn có chuyến đi vui vẻ!
+    </div>
+  </div>
+
+  <div class="footer">
+    © 2025 BusTicket.vn — Hỗ trợ: support@busticket.vn | 1900 1234
+  </div>
+</div>
+</body>
+</html>
+`;
 
     try {
       await this.transporter.sendMail({

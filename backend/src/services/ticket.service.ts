@@ -126,12 +126,18 @@ export class TicketService {
   async payTicket(id: number, method: PaymentMethod, transId?: string) {
     this.logger.log(`Bắt đầu thanh toán vé #${id} - method: ${method}, transId: ${transId}`);
 
+    // ✅ SỬA: include bus + brand
     const ticket = await this.prisma.ticket.findUnique({
       where: { id },
       include: {
         schedule: {
           include: {
             route: true,
+            bus: {
+              include: {
+                brand: true,
+              },
+            },
           },
         },
         seat: true,
@@ -139,89 +145,48 @@ export class TicketService {
       },
     });
 
-    if (!ticket) {
-      this.logger.error(`Ticket #${id} not found in payTicket`);
-      throw new NotFoundException('Vé không tồn tại');
-    }
-    if (ticket.status === TicketStatus.PAID) {
-      this.logger.warn(`Ticket #${id} already paid`);
+    if (!ticket) throw new NotFoundException('Vé không tồn tại');
+    if (ticket.status === TicketStatus.PAID)
       throw new BadRequestException('Vé đã thanh toán');
-    }
 
-    const diffHours = (new Date(ticket.schedule.departureAt).getTime() - Date.now()) / (3600000);
-    if (diffHours < 1) {
-      this.logger.warn(`Too close to departure: ${diffHours}h`);
-      throw new BadRequestException('Chỉ được thanh toán trước 1 giờ');
-    }
+    const diffHours = (new Date(ticket.schedule.departureAt).getTime() - Date.now()) / 3600000;
+    if (diffHours < 1) throw new BadRequestException('Chỉ được thanh toán trước 1 giờ');
 
-    // DÙNG SECURE QR
     const qrCodeUrl = await this.qrService.generateSecureTicketQR(id);
 
-    let payment;
-    try {
-      payment = await this.prisma.paymentHistory.create({
-        data: {
-          ticketId: id,
-          method,
-          amount: ticket.price,
-          transactionId: transId,
-          status: 'SUCCESS',
-          qrCode: qrCodeUrl,
-        },
-      });
-      this.logger.log(`PaymentHistory created: #${payment.id}`);
-    } catch (error) {
-      this.logger.error('Failed to create PaymentHistory:', error);
-      throw error;
-    }
+    const payment = await this.prisma.paymentHistory.create({
+      data: {
+        ticketId: id,
+        method,
+        amount: ticket.price,
+        transactionId: transId,
+        status: 'SUCCESS',
+        qrCode: qrCodeUrl,
+      },
+    });
 
-    try {
-      await this.prisma.$transaction([
-        this.prisma.ticket.update({
-          where: { id },
-          data: {
-            status: TicketStatus.PAID,
-            paymentId: payment.id,
-          },
-        }),
-        this.prisma.seat.update({
-          where: { id: ticket.seatId },
-          data: { isAvailable: false },
-        }),
-      ]);
-      this.logger.log(`Ticket #${id} đã chuyển thành PAID, paymentId = ${payment.id}`);
-    } catch (error) {
-      this.logger.error('Transaction failed:', error);
-      throw error;
-    }
+    await this.prisma.$transaction([
+      this.prisma.ticket.update({
+        where: { id },
+        data: { status: TicketStatus.PAID, paymentId: payment.id },
+      }),
+      this.prisma.seat.update({
+        where: { id: ticket.seatId },
+        data: { isAvailable: false },
+      }),
+    ]);
 
-    // XÓA JOB HỦY
     const jobs = await this.ticketQueue.getDelayed();
     for (const job of jobs) {
-      if (job.data.ticketId === id) {
-        await job.remove();
-        this.logger.log(`Job hold-expire cho vé #${id} đã bị xóa`);
-      }
+      if (job.data.ticketId === id) await job.remove();
     }
 
-    // GỬI EMAIL – AN TOÀN VỚI NULL
     if (ticket.user?.email) {
       try {
-        await this.emailService.sendTicketEmail(
-          ticket.user.email,
-          ticket, // ← ĐÃ ĐÚNG: truyền nguyên ticket (đã include user, schedule, seat)
-          qrCodeUrl,
-        );
-        this.logger.log(`Email đã gửi đến: ${ticket.user.email}`);
-      } catch (error) {
-        this.logger.error(`Email failed:`, error);
-        // Không throw → không làm hỏng thanh toán
-      }
-    } else {
-      this.logger.warn(`Không gửi email: user không có email (userId: ${ticket.userId})`);
+        await this.emailService.sendTicketEmail(ticket.user.email, ticket, qrCodeUrl);
+      } catch {}
     }
 
-    this.logger.log(`Thanh toán vé #${id} HOÀN TẤT`);
     return { message: 'Thanh toán thành công', ticketId: id, qrCode: qrCodeUrl };
   }
 
@@ -232,7 +197,7 @@ export class TicketService {
     });
     if (!ticket) throw new NotFoundException('Vé không tồn tại');
 
-    const diffHours = (new Date(ticket.schedule.departureAt).getTime() - Date.now()) / (3600000);
+    const diffHours = (new Date(ticket.schedule.departureAt).getTime() - Date.now()) / 3600000;
     if (diffHours < 2) throw new BadRequestException('Chỉ được hủy trước 2 giờ');
 
     await this.prisma.$transaction([
@@ -240,7 +205,6 @@ export class TicketService {
       this.prisma.seat.update({ where: { id: ticket.seatId }, data: { isAvailable: true } }),
     ]);
 
-    this.logger.log(`Ticket #${id} đã được hủy`);
     return { message: 'Hủy vé thành công', ticketId: id };
   }
 
