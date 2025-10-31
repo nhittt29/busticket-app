@@ -1,3 +1,4 @@
+// src/schedules/services/schedule.service.ts
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { ScheduleRepository } from '../repositories/schedule.repository';
 import { CreateScheduleDto } from '../dtos/schedule.dto';
@@ -20,10 +21,23 @@ export class ScheduleService {
     return schedule;
   }
 
-  // ✅ Lấy ghế theo lịch trình
   async getSeats(scheduleId: number) {
     const seats = await this.scheduleRepo.getSeatsBySchedule(scheduleId);
     if (!seats) throw new NotFoundException('Schedule not found');
     return seats;
+  }
+
+  // XÓA SCHEDULE
+  async deleteSchedule(id: number) {
+    const schedule = await this.scheduleRepo.getScheduleById(id);
+    if (!schedule) {
+      throw new NotFoundException(`Schedule with ID ${id} not found`);
+    }
+
+    // XÓA CẢ TICKETS LIÊN QUAN (nếu có)
+    await this.scheduleRepo.deleteTicketsByScheduleId(id);
+
+    // XÓA SCHEDULE
+    return this.scheduleRepo.deleteSchedule(id);
   }
 }

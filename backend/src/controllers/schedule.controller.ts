@@ -1,4 +1,13 @@
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+// src/schedules/controllers/schedule.controller.ts
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  NotFoundException,
+} from '@nestjs/common';
 import { ScheduleService } from '../services/schedule.service';
 import { CreateScheduleDto } from '../dtos/schedule.dto';
 
@@ -17,13 +26,19 @@ export class ScheduleController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: number) {
+  findOne(@Param('id') id: string) {
     return this.scheduleService.getScheduleById(Number(id));
   }
 
-  // ✅ API lấy danh sách ghế theo schedule
   @Get(':id/seats')
   getSeats(@Param('id') id: string) {
     return this.scheduleService.getSeats(Number(id));
+  }
+
+  // XÓA SCHEDULE
+  @Delete(':id')
+  async delete(@Param('id') id: string) {
+    const deleted = await this.scheduleService.deleteSchedule(Number(id));
+    return { message: 'Xóa lịch trình thành công', data: deleted };
   }
 }

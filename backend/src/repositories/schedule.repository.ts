@@ -1,3 +1,4 @@
+// src/schedules/repositories/schedule.repository.ts
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../services/prisma.service';
 
@@ -36,7 +37,6 @@ export class ScheduleRepository {
     });
   }
 
-  // ✅ Trả danh sách ghế + trạng thái đặt
   async getSeatsBySchedule(scheduleId: number) {
     const schedule = await this.prisma.schedule.findUnique({
       where: { id: scheduleId },
@@ -56,5 +56,19 @@ export class ScheduleRepository {
       code: seat.code,
       isBooked: schedule.tickets.some(t => t.seatId === seat.id),
     }));
+  }
+
+  // XÓA TICKETS THEO SCHEDULE
+  async deleteTicketsByScheduleId(scheduleId: number) {
+    return this.prisma.ticket.deleteMany({
+      where: { scheduleId },
+    });
+  }
+
+  // XÓA SCHEDULE
+  async deleteSchedule(id: number) {
+    return this.prisma.schedule.delete({
+      where: { id },
+    });
   }
 }
