@@ -15,6 +15,11 @@ export enum SeatType {
   BERTH = 'BERTH',
 }
 
+export enum BerthType {
+  SINGLE = 'SINGLE',
+  DOUBLE = 'DOUBLE',
+}
+
 export interface Bus {
   id: number;
   name: string;
@@ -22,6 +27,7 @@ export interface Bus {
   seatCount: number;
   category: BusCategory;
   seatType: SeatType;
+  berthType?: BerthType;
   brandId: number;
   brand?: Brand;
   seats?: Seat[];

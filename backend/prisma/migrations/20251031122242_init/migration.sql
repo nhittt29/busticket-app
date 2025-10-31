@@ -8,6 +8,12 @@ CREATE TYPE "BusCategory" AS ENUM ('MINIVAN', 'COACH', 'LIMOUSINE', 'SLEEPER', '
 CREATE TYPE "SeatType" AS ENUM ('SEAT', 'BERTH');
 
 -- CreateEnum
+CREATE TYPE "BerthType" AS ENUM ('SINGLE', 'DOUBLE');
+
+-- CreateEnum
+CREATE TYPE "RoomType" AS ENUM ('SINGLE', 'DOUBLE');
+
+-- CreateEnum
 CREATE TYPE "ScheduleStatus" AS ENUM ('UPCOMING', 'ONGOING', 'COMPLETED', 'CANCELLED');
 
 -- CreateEnum
@@ -64,6 +70,7 @@ CREATE TABLE "Bus" (
     "seatCount" INTEGER NOT NULL,
     "category" "BusCategory" NOT NULL,
     "seatType" "SeatType" NOT NULL,
+    "berthType" "BerthType",
     "brandId" INTEGER NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
@@ -77,6 +84,9 @@ CREATE TABLE "Seat" (
     "seatNumber" INTEGER NOT NULL,
     "code" TEXT NOT NULL,
     "isAvailable" BOOLEAN NOT NULL DEFAULT true,
+    "price" DOUBLE PRECISION NOT NULL,
+    "floor" INTEGER,
+    "roomType" "RoomType",
     "busId" INTEGER NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
@@ -171,6 +181,9 @@ CREATE INDEX "Bus_category_idx" ON "Bus"("category");
 
 -- CreateIndex
 CREATE INDEX "Bus_seatType_idx" ON "Bus"("seatType");
+
+-- CreateIndex
+CREATE INDEX "Bus_berthType_idx" ON "Bus"("berthType");
 
 -- CreateIndex
 CREATE INDEX "Bus_brandId_idx" ON "Bus"("brandId");

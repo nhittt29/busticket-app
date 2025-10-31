@@ -36,19 +36,34 @@ export class BusRepository {
         seatCount: data.seatCount,
         category: data.category,
         seatType: data.seatType,
+        berthType: data.berthType,
         brandId: data.brandId,
       },
     });
 
-    // Bước 2: Tự động tạo ghế
-    const seatsData = Array.from({ length: data.seatCount }).map((_, i) => ({
-      seatNumber: i + 1,
-      code: `BUS${bus.id}-${String(i + 1).padStart(2, '0')}`,
-      busId: bus.id,
-    }));
+    // Bước 2: Tạo ghế với giá do bạn gán
+    const seatsData = Array.from({ length: data.seatCount }).map((_, i) => {
+      const seatNum = i + 1;
+      let floor: number | null = null;
+      let roomType: 'SINGLE' | 'DOUBLE' | null = null;
+
+      if (data.seatType === 'BERTH') {
+        const isUpper = seatNum % 2 === 0;
+        floor = isUpper ? 2 : 1;
+        roomType = data.berthType === 'SINGLE' ? 'SINGLE' : 'DOUBLE';
+      }
+
+      return {
+        seatNumber: seatNum,
+        code: `BUS${bus.id}-${String(seatNum).padStart(2, '0')}`,
+        busId: bus.id,
+        price: data.price,
+        floor,
+        roomType,
+      };
+    });
 
     await this.prisma.seat.createMany({ data: seatsData });
-
     return this.findById(bus.id);
   }
 
