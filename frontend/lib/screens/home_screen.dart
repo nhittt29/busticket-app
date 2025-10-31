@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../bloc/home/home_bloc.dart';
 import '../bloc/home/home_event.dart';
 import '../bloc/home/home_state.dart';
+import '../booking/screens/search_screen.dart'; // ✅ IMPORT SEARCH SCREEN
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -38,7 +39,6 @@ class _HomeScreenState extends State<HomeScreen> {
         break;
       case 1:
         Navigator.pushNamed(context, '/my-tickets').then((_) {
-          // Khi quay lại từ MyTickets → reset về Trang chủ
           if (mounted && _selectedIndex != 0) {
             setState(() => _selectedIndex = 0);
           }
@@ -46,7 +46,6 @@ class _HomeScreenState extends State<HomeScreen> {
         break;
       case 2:
         Navigator.pushNamed(context, '/profile').then((result) {
-          // Khi quay lại từ Profile → reset về Trang chủ
           if (mounted && _selectedIndex != 0) {
             setState(() => _selectedIndex = 0);
           }
@@ -66,7 +65,7 @@ class _HomeScreenState extends State<HomeScreen> {
         if (_selectedIndex != 0) {
           setState(() => _selectedIndex = 0);
         }
-        return true; // cho phép pop
+        return true;
       });
     }
   }
@@ -168,7 +167,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
           return Column(
             children: [
-              // HERO BANNER - GIỮ NGUYÊN
+              // HERO BANNER - LIÊN KẾT SEARCH SCREEN
               Container(
                 width: double.infinity,
                 height: 180,
@@ -184,32 +183,39 @@ class _HomeScreenState extends State<HomeScreen> {
                     Positioned(
                       left: 20,
                       top: 30,
-                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                        const Text('ĐẶT VÉ XE NHANH CHÓNG', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 8),
-                        const Text('Hà Nội - TP.HCM chỉ từ 300k', style: TextStyle(color: Colors.white, fontSize: 14)),
-                        const SizedBox(height: 12),
-                        SizedBox(
-                          width: 140,
-                          child: ElevatedButton.icon(
-                            onPressed: () => Navigator.pushNamed(context, '/search-trips'),
-                            icon: const Icon(Icons.search, size: 18, color: Colors.white),
-                            label: const Text('Tìm vé', style: TextStyle(fontSize: 12, color: Colors.white)),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.white.withOpacity(0.2),
-                              padding: const EdgeInsets.symmetric(vertical: 8),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                              side: const BorderSide(color: Colors.white, width: 1.5),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('ĐẶT VÉ XE NHANH CHÓNG', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                          const SizedBox(height: 8),
+                          const Text('Hà Nội - TP.HCM chỉ từ 300k', style: TextStyle(color: Colors.white, fontSize: 14)),
+                          const SizedBox(height: 12),
+                          // ✅ LIÊN KẾT SEARCH SCREEN
+                          SizedBox(
+                            width: 140,
+                            child: ElevatedButton.icon(
+                              onPressed: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (_) => const SearchScreen()),
+                              ),
+                              icon: const Icon(Icons.search, size: 18, color: Colors.white),
+                              label: const Text('Tìm vé', style: TextStyle(fontSize: 12, color: Colors.white)),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.white.withOpacity(0.2),
+                                padding: const EdgeInsets.symmetric(vertical: 8),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                                side: const BorderSide(color: Colors.white, width: 1.5),
+                              ),
                             ),
                           ),
-                        ),
-                      ]),
+                        ],
+                      ),
                     ),
                   ],
                 ),
               ),
 
-              // SEARCH BAR
+              // SEARCH BAR - LIÊN KẾT SEARCH SCREEN
               Container(
                 margin: const EdgeInsets.symmetric(horizontal: 16),
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -241,7 +247,10 @@ class _HomeScreenState extends State<HomeScreen> {
                     SizedBox(
                       height: 42,
                       child: ElevatedButton.icon(
-                        onPressed: () => Navigator.pushNamed(context, '/search-trips'),
+                        onPressed: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const SearchScreen()),
+                        ),
                         icon: const Icon(Icons.search, size: 18, color: iconBlue),
                         label: Text(
                           'Tìm',
@@ -294,7 +303,14 @@ class _HomeScreenState extends State<HomeScreen> {
                                 final item = busFeatures[start + i];
                                 return Expanded(
                                   child: GestureDetector(
-                                    onTap: () => Navigator.pushNamed(context, item['route']),
+                                    onTap: () => Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => item['route'] == '/search-trips'
+                                            ? const SearchScreen()
+                                            : const Placeholder(), // Thay bằng screen tương ứng
+                                      ),
+                                    ),
                                     child: Container(
                                       margin: const EdgeInsets.symmetric(horizontal: 6),
                                       decoration: BoxDecoration(
@@ -363,7 +379,14 @@ class _HomeScreenState extends State<HomeScreen> {
                             children: [
                               Expanded(
                                 child: GestureDetector(
-                                  onTap: () => Navigator.pushNamed(context, item['route']),
+                                  onTap: () => Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => item['route'] == '/search-trips'
+                                          ? const SearchScreen()
+                                          : const Placeholder(), // Thay bằng screen tương ứng
+                                    ),
+                                  ),
                                   child: Container(
                                     height: 70,
                                     decoration: BoxDecoration(
