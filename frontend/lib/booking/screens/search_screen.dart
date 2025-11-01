@@ -10,7 +10,6 @@ const Color backgroundLight = Color(0xFFEAF6FF);
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
-
   @override
   State<SearchScreen> createState() => _SearchScreenState();
 }
@@ -31,6 +30,15 @@ class _SearchScreenState extends State<SearchScreen> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final cubit = context.read<BookingCubit>();
+    if (cubit.state.trips.isNotEmpty) {
+      cubit.clearTrips();
+    }
+  }
+
+  @override
   void dispose() {
     _fromController.dispose();
     _toController.dispose();
@@ -39,36 +47,39 @@ class _SearchScreenState extends State<SearchScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => BookingCubit(),
-      child: Scaffold(
+    return Scaffold(
+      backgroundColor: backgroundLight,
+      appBar: AppBar(
         backgroundColor: backgroundLight,
-        appBar: AppBar(
-          backgroundColor: backgroundLight,
-          elevation: 0,
-          centerTitle: true,
-          title: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Image.asset('assets/images/bus_logo.png', height: 30),
-              const SizedBox(width: 8),
-              const Text("Tìm chuyến xe", style: TextStyle(color: Color(0xFF023E8A), fontWeight: FontWeight.bold, fontSize: 24)),
-            ],
-          ),
-          leading: IconButton(icon: const Icon(Icons.arrow_back, color: iconBlue), onPressed: () => Navigator.pop(context)),
+        elevation: 0,
+        centerTitle: true,
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Image.asset('assets/images/bus_logo.png', height: 30),
+            const SizedBox(width: 8),
+            const Text("Tìm chuyến xe", style: TextStyle(color: Color(0xFF023E8A), fontWeight: FontWeight.bold, fontSize: 24)),
+          ],
         ),
-        body: Padding(
-          padding: const EdgeInsets.all(16),
-          child: BlocConsumer<BookingCubit, BookingState>(
-            listener: (context, state) {
-              if (state.error != null) {
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(state.error!)));
-              }
-              if (state.trips.isNotEmpty) {
-                Navigator.pushNamed(context, '/trip-list', arguments: state.trips);
-              }
-            },
+        leading: IconButton(icon: const Icon(Icons.arrow_back, color: iconBlue), onPressed: () => Navigator.pop(context)),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        child: BlocListener<BookingCubit, BookingState>(
+          listenWhen: (previous, current) =>
+              previous.loading && !current.loading && current.trips.isNotEmpty && current.error == null,
+          listener: (context, state) {
+            Navigator.pushNamed(context, '/trip-list', arguments: state.trips);
+          },
+          child: BlocBuilder<BookingCubit, BookingState>(
             builder: (context, state) {
+              if (state.error != null && !state.loading) {
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(state.error!), backgroundColor: Colors.red),
+                  );
+                });
+              }
               return Column(
                 children: [
                   _buildTextField(_fromController, 'Từ', Icons.location_on),
@@ -145,8 +156,16 @@ class _SearchScreenState extends State<SearchScreen> {
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton.icon(
-        onPressed: state.loading ? null : () => context.read<BookingCubit>().searchTrips(),
-        icon: state.loading ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) : const Icon(Icons.search, color: Colors.white),
+        onPressed: state.loading ? null : () {
+          if (state.from.isEmpty || state.to.isEmpty) {
+            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Vui lòng nhập điểm đi và điểm đến')));
+            return;
+          }
+          context.read<BookingCubit>().searchTrips();
+        },
+        icon: state.loading
+            ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+            : const Icon(Icons.search, color: Colors.white),
         label: Text(state.loading ? 'Đang tìm...' : 'Tìm chuyến xe', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
         style: ElevatedButton.styleFrom(
           backgroundColor: greenSoft,

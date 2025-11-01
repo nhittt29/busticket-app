@@ -29,7 +29,6 @@ class BookingState extends Equatable {
     required this.loadingSeats,
   });
 
-  // Không dùng const vì List<Trip>, List<Seat> không phải const
   factory BookingState.initial() => BookingState(
         from: '',
         to: '',
@@ -88,13 +87,13 @@ class BookingState extends Equatable {
       ];
 }
 
-// MODEL: Chuyến xe (dùng cho danh sách tìm kiếm)
+// MODEL: Chuyến xe (schedule)
 class Trip {
   final int id;
   final String busName;
   final String departure;
   final String arrival;
-  final double price; // lowestPrice
+  final double price;
   final String category;
   final String seatType;
 
@@ -110,25 +109,33 @@ class Trip {
 
   factory Trip.fromJson(Map<String, dynamic> json) {
     return Trip(
-      id: json['id'],
-      busName: json['bus']['name'],
-      departure: json['departureAt'],
-      arrival: json['arrivalAt'],
-      price: json['lowestPrice'].toDouble(),
-      category: json['bus']['category'],
-      seatType: json['bus']['seatType'],
+      id: json['id'] as int,
+      busName: (json['bus']?['name'] as String?) ?? 'Không rõ',
+      departure: json['departureAt'] as String,
+      arrival: json['arrivalAt'] as String,
+      price: _safeToDouble(json['lowestPrice'] ?? 0),
+      category: (json['bus']?['category'] as String?) ?? 'Standard',
+      seatType: (json['bus']?['seatType'] as String?) ?? 'SEAT',
     );
+  }
+
+  static double _safeToDouble(dynamic value) {
+    if (value == null) return 0.0;
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value) ?? 0.0;
+    return 0.0;
   }
 }
 
-// MODEL: Ghế (hỗ trợ phân tầng cho giường nằm)
+// MODEL: Ghế (seat)
 class Seat {
   final int id;
   final String seatNumber;
-  final String type;     // SEAT | BERTH
-  final String status;   // AVAILABLE | BOOKED
+  final String type; // 'SEAT' | 'BERTH'
+  final String status; // 'AVAILABLE' | 'BOOKED'
   final double price;
-  final int floor;       // 1 hoặc 2 (chỉ dùng cho BERTH)
+  final int? floor;
+  final String? roomType; // 'SINGLE' | 'DOUBLE'
 
   const Seat({
     required this.id,
@@ -136,19 +143,28 @@ class Seat {
     required this.type,
     required this.status,
     required this.price,
-    required this.floor,
+    this.floor,
+    this.roomType,
   });
 
   bool get isAvailable => status == 'AVAILABLE';
 
   factory Seat.fromJson(Map<String, dynamic> json) {
     return Seat(
-      id: json['id'],
-      seatNumber: json['seatNumber'],
-      type: json['seatType'],
-      status: json['status'],
-      price: json['price'].toDouble(),
-      floor: json['floor'] ?? 1, // Mặc định tầng 1 nếu backend không trả về
+      id: json['id'] as int,
+      seatNumber: (json['seatNumber'] ?? json['code'] ?? '').toString(), // HỖ TRỢ CẢ seatNumber VÀ code
+      type: (json['seatType'] as String?) ?? 'SEAT',
+      status: (json['isAvailable'] == true) ? 'AVAILABLE' : 'BOOKED',
+      price: _safeToDouble(json['price'] ?? 0),
+      floor: json['floor'] as int?,
+      roomType: json['roomType'] as String?,
     );
+  }
+
+  static double _safeToDouble(dynamic value) {
+    if (value == null) return 0.0;
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value) ?? 0.0;
+    return 0.0;
   }
 }
