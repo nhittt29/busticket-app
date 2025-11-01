@@ -1,6 +1,6 @@
 // lib/booking/widgets/seat_widget.dart
 import 'package:flutter/material.dart';
-import '../cubit/booking_state.dart'; // ĐÚNG: Lấy Seat từ đây
+import '../cubit/booking_state.dart';
 
 class SeatWidget extends StatelessWidget {
   final Seat seat;
@@ -18,7 +18,6 @@ class SeatWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // XÁC ĐỊNH MÀU
     Color baseColor;
     if (isSelected) {
       baseColor = Colors.orange;
@@ -33,49 +32,34 @@ class SeatWidget extends StatelessWidget {
     return GestureDetector(
       onTap: canTap ? onTap : null,
       child: Container(
-        width: 50,
-        height: 50,
-        margin: const EdgeInsets.all(4),
+        width: 40,  // NHỎ HƠN
+        height: 40, // NHỎ HƠN
+        margin: const EdgeInsets.all(2),
         decoration: BoxDecoration(
           color: baseColor.withAlpha(50),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: baseColor, width: 2),
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(color: baseColor, width: 1.5),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // ICON: Ghế hoặc Giường
             Icon(
               seat.type == 'SEAT' ? Icons.event_seat : Icons.bed,
-              size: 20,
+              size: 16,
               color: baseColor,
             ),
-            // SỐ GHẾ
             Text(
               seat.seatNumber,
               style: TextStyle(
-                fontSize: 10,
+                fontSize: 8,
                 color: baseColor,
                 fontWeight: FontWeight.bold,
               ),
             ),
-            // TẦNG (T1, T2)
             if (seat.floor != null)
               Text(
                 'T${seat.floor}',
-                style: const TextStyle(fontSize: 8, color: Colors.grey),
-              ),
-            // LOẠI PHÒNG (S: Single, D: Double)
-            if (seat.roomType != null)
-              Text(
-                seat.roomType == 'SINGLE' ? 'S' : 'D',
-                style: const TextStyle(fontSize: 8, color: Colors.purple),
-              ),
-            // VIP
-            if (isVip)
-              const Text(
-                'VIP',
-                style: TextStyle(fontSize: 8, color: Colors.amber, fontWeight: FontWeight.bold),
+                style: const TextStyle(fontSize: 7, color: Colors.grey),
               ),
           ],
         ),
