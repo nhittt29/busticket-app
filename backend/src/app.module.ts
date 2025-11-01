@@ -1,3 +1,4 @@
+// src/app.module.ts
 import { Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bull';
 
@@ -11,10 +12,11 @@ import { BrandModule } from './modules/brand.module';
 import { RouteModule } from './modules/route.module';
 import { ScheduleModule } from './modules/schedule.module';
 import { TicketModule } from './modules/ticket.module';
+import { SeatModule } from './modules/seat.module';
 
 @Module({
   imports: [
-    // ✅ Kết nối Redis cho Bull queue
+    // Kết nối Redis cho Bull queue
     BullModule.forRoot({
       redis: {
         host: '127.0.0.1',
@@ -22,12 +24,13 @@ import { TicketModule } from './modules/ticket.module';
       },
     }),
 
-    // ✅ Các module nghiệp vụ
+    // Các module nghiệp vụ
     BusModule,
     BrandModule,
     RouteModule,
     ScheduleModule,
     TicketModule,
+    SeatModule,
   ],
   controllers: [AuthController],
   providers: [AuthService, PrismaService, UserRepository],
