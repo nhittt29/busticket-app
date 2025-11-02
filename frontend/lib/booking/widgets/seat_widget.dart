@@ -7,6 +7,7 @@ class SeatWidget extends StatelessWidget {
   final bool isSelected;
   final VoidCallback onTap;
   final bool isVip;
+  final double scale;
 
   const SeatWidget({
     super.key,
@@ -14,6 +15,7 @@ class SeatWidget extends StatelessWidget {
     required this.isSelected,
     required this.onTap,
     this.isVip = false,
+    this.scale = 1.0,
   });
 
   @override
@@ -26,42 +28,52 @@ class SeatWidget extends StatelessWidget {
     } else {
       baseColor = Colors.red;
     }
-
     final bool canTap = seat.status == 'AVAILABLE';
 
     return GestureDetector(
       onTap: canTap ? onTap : null,
       child: Container(
-        width: 40,  // NHỎ HƠN
-        height: 40, // NHỎ HƠN
-        margin: const EdgeInsets.all(2),
+        width: 28,   // CỐ ĐỊNH KÍCH THƯỚC
+        height: 28,
+        margin: const EdgeInsets.all(1),
         decoration: BoxDecoration(
           color: baseColor.withAlpha(50),
-          borderRadius: BorderRadius.circular(6),
-          border: Border.all(color: baseColor, width: 1.5),
+          borderRadius: BorderRadius.circular(5),
+          border: Border.all(color: baseColor, width: 1),
         ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              seat.type == 'SEAT' ? Icons.event_seat : Icons.bed,
-              size: 16,
-              color: baseColor,
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: SizedBox(
+            width: 28 / scale,
+            height: 28 / scale,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  seat.type == 'SEAT' ? Icons.event_seat : Icons.bed,
+                  size: 12,
+                  color: baseColor,
+                ),
+                Text(
+                  seat.seatNumber,
+                  style: TextStyle(
+                    fontSize: 6,
+                    color: baseColor,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+                if (seat.floor != null)
+                  Text(
+                    'T${seat.floor}',
+                    style: const TextStyle(
+                      fontSize: 5,
+                      color: Colors.grey,
+                    ),
+                  ),
+              ],
             ),
-            Text(
-              seat.seatNumber,
-              style: TextStyle(
-                fontSize: 8,
-                color: baseColor,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            if (seat.floor != null)
-              Text(
-                'T${seat.floor}',
-                style: const TextStyle(fontSize: 7, color: Colors.grey),
-              ),
-          ],
+          ),
         ),
       ),
     );

@@ -32,10 +32,10 @@ class _SelectBusScreenState extends State<SelectBusScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: () async {
-        context.read<BookingCubit>().resetSeats();
-        return true;
+    return PopScope(
+      canPop: true,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) context.read<BookingCubit>().resetSeats();
       },
       child: Scaffold(
         backgroundColor: backgroundLight,
@@ -72,17 +72,32 @@ class _SelectBusScreenState extends State<SelectBusScreen> {
                 return const Center(child: CircularProgressIndicator());
               }
 
-              final seatType = state.seats.isNotEmpty ? state.seats.first.type : 'SEAT';
               final ticketPrice = state.seats.isNotEmpty ? state.seats.first.price : 0.0;
+              final seatCount = state.seats.length;
+              final isBerth34 = seatCount == 34 && state.seats.any((s) => s.floor != null);
+              final isSeat28 = seatCount == 28;
+              final isSeat45 = seatCount == 45;
 
               return Column(
                 children: [
-                  _buildLegend(ticketPrice, state.selectedSeats.isNotEmpty),
+                  LegendForm(
+                    ticketPrice: ticketPrice,
+                    hasSelected: state.selectedSeats.isNotEmpty,
+                  ),
                   const SizedBox(height: 16),
                   Expanded(
-                    child: seatType == 'BERTH'
-                        ? _buildBerthLayout(context, state.seats, state.selectedSeats)
-                        : _buildSeatLayout(context, state.seats, state.selectedSeats),
+                    child: Center(
+                      child: SizedBox(
+                        height: MediaQuery.of(context).size.height * 0.55,
+                        child: isBerth34
+                            ? SeatLayout34Form(context, state.seats, state.selectedSeats)
+                            : isSeat28
+                                ? SeatLayout28Form(context, state.seats, state.selectedSeats)
+                                : isSeat45
+                                    ? SeatLayout45Form(context, state.seats, state.selectedSeats)
+                                    : SeatLayoutDefaultForm(context, state.seats, state.selectedSeats),
+                      ),
+                    ),
                   ),
                   _buildBottomBar(state),
                 ],
@@ -94,7 +109,7 @@ class _SelectBusScreenState extends State<SelectBusScreen> {
     );
   }
 
-  Widget _buildLegend(double price, bool hasSelected) {
+  Widget LegendForm({required double ticketPrice, required bool hasSelected}) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.all(12),
@@ -103,21 +118,14 @@ class _SelectBusScreenState extends State<SelectBusScreen> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.1), blurRadius: 8)],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Wrap(
+        spacing: 16,
+        runSpacing: 8,
         children: [
-          const Text('Chú thích', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 16,
-            runSpacing: 8,
-            children: [
-              _legendItem(Icons.bed, Colors.green, 'Giường trống', '${price.toInt()}đ'),
-              _legendItem(Icons.bed, Colors.red, 'Giường đã bán'),
-              if (hasSelected) _legendItem(Icons.check_circle, Colors.orange, 'Đang chọn'),
-              _legendItem(Icons.close, Colors.grey, 'Không bán'),
-            ],
-          ),
+          _legendItem(Icons.bed, Colors.green, 'Giường trống', '${ticketPrice.toInt()}đ'),
+          _legendItem(Icons.bed, Colors.red, 'Giường đã bán'),
+          if (hasSelected) _legendItem(Icons.check_circle, Colors.orange, 'Đang chọn'),
+          _legendItem(Icons.close, Colors.grey, 'Không bán'),
         ],
       ),
     );
@@ -136,223 +144,10 @@ class _SelectBusScreenState extends State<SelectBusScreen> {
     );
   }
 
-  Widget _buildSeatLayout(BuildContext blocContext, List<Seat> seats, List<Seat> selectedSeats) {
-    final sortedSeats = List<Seat>.from(seats)..sort((a, b) => a.id.compareTo(b.id));
-    final totalSeats = sortedSeats.length;
-    final rows = (totalSeats / 4).ceil();
-
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.1), blurRadius: 10)],
-        ),
-        child: Column(
-          children: [
-            Row(
-              children: [
-                Container(
-                  width: 50,
-                  height: 50,
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade300,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Colors.grey.shade500, width: 2),
-                  ),
-                  child: const Icon(Icons.directions_car, size: 28, color: Colors.black87),
-                ),
-                const SizedBox(width: 16),
-                const Text('Tài xế', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                const Spacer(),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: Colors.blue.shade50,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.blue.shade300),
-                  ),
-                  child: const Text('Cửa xe', style: TextStyle(fontSize: 12, color: Colors.blue, fontWeight: FontWeight.bold)),
-                ),
-              ],
-            ),
-            const SizedBox(height: 24),
-
-            ...List.generate(rows, (rowIndex) {
-              final startIndex = rowIndex * 4;
-              final rowSeats = sortedSeats.skip(startIndex).take(4).toList();
-
-              return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                child: Row(
-                  children: [
-                    _buildSeatWithLabel(blocContext, rowSeats.isNotEmpty ? rowSeats[0] : null, selectedSeats, _getLabel(rowSeats, 0)),
-                    const SizedBox(width: 16),
-                    _buildSeatWithLabel(blocContext, rowSeats.length > 1 ? rowSeats[1] : null, selectedSeats, _getLabel(rowSeats, 1)),
-                    const SizedBox(width: 50),
-                    _buildSeatWithLabel(blocContext, rowSeats.length > 2 ? rowSeats[2] : null, selectedSeats, _getLabel(rowSeats, 2)),
-                    const SizedBox(width: 16),
-                    _buildSeatWithLabel(blocContext, rowSeats.length > 3 ? rowSeats[3] : null, selectedSeats, _getLabel(rowSeats, 3)),
-                  ],
-                ),
-              );
-            }),
-          ],
-        ),
-      ),
-    );
-  }
-
-  String _getLabel(List<Seat> rowSeats, int index) {
-    if (index < rowSeats.length) return rowSeats[index].seatNumber;
-    return '';
-  }
-
-  Widget _buildSeatWithLabel(BuildContext blocContext, Seat? seat, List<Seat> selectedSeats, String label) {
-    if (seat == null || label.isEmpty) {
-      return const SizedBox(width: 50, height: 50);
-    }
-
-    final displaySeat = Seat(
-      id: seat.id,
-      seatNumber: label,
-      type: seat.type,
-      status: seat.status,
-      price: seat.price,
-      floor: seat.floor,
-      roomType: seat.roomType,
-    );
-
-    return SeatWidget(
-      seat: displaySeat,
-      isSelected: selectedSeats.contains(seat),
-      onTap: seat.status == 'AVAILABLE'
-          ? () => blocContext.read<BookingCubit>().selectSeat(seat)
-          : () {},
-    );
-  }
-
-  Widget _buildBerthLayout(BuildContext blocContext, List<Seat> seats, List<Seat> selectedSeats) {
-    if (seats.length != 34) {
-      return const Center(child: Text('Chỉ hỗ trợ xe 34 giường'));
-    }
-
-    final sorted = List<Seat>.from(seats)..sort((a, b) => a.id.compareTo(b.id));
-
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.1), blurRadius: 10)],
-        ),
-        child: Column(
-          children: [
-            const Text('Sơ đồ giường nằm', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-            const SizedBox(height: 16),
-
-            ...List.generate(6, (rowIndex) {
-              final start = rowIndex * 5;
-              final rowSeats = sorted.skip(start).take(5).toList();
-              final isUpperRow = [0, 2, 3, 4].contains(rowIndex);
-
-              return Column(
-                children: [
-                  if (isUpperRow)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 6),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.arrow_upward, size: 16, color: Colors.blue),
-                          const SizedBox(width: 4),
-                          const Text('Tầng trên', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.blue)),
-                          const Spacer(),
-                          if (rowIndex == 0)
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: Colors.blue.shade50,
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: Colors.blue.shade300),
-                              ),
-                              child: const Text('Cửa xe', style: TextStyle(fontSize: 11, color: Colors.blue, fontWeight: FontWeight.bold)),
-                            ),
-                        ],
-                      ),
-                    ),
-
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        children: rowSeats.take(2).map((s) {
-                          final isUpper = s.floor == 2;
-                          return _buildSmallBerth(s, selectedSeats, blocContext, isUpper: isUpper);
-                        }).toList(),
-                      ),
-                      const SizedBox(width: 60),
-                      Row(
-                        children: rowSeats.skip(2).map((s) {
-                          final isUpper = s.floor == 2;
-                          return _buildSmallBerth(s, selectedSeats, blocContext, isUpper: isUpper);
-                        }).toList(),
-                      ),
-                    ],
-                  ),
-
-                  Padding(
-                    padding: const EdgeInsets.only(top: 6),
-                    child: Row(
-                      children: const [
-                        Icon(Icons.arrow_downward, size: 16, color: Colors.green),
-                        SizedBox(width: 4),
-                        Text('Tầng dưới', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.green)),
-                      ],
-                    ),
-                  ),
-
-                  if (rowIndex < 5)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      child: Divider(
-                        height: 1,
-                        thickness: 1,
-                        color: Colors.grey.shade300,
-                      ),
-                    ),
-                ],
-              );
-            }),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSmallBerth(Seat seat, List<Seat> selectedSeats, BuildContext blocContext, {required bool isUpper}) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 2),
-      child: SeatWidget(
-        seat: seat,
-        isSelected: selectedSeats.contains(seat),
-        onTap: seat.status == 'AVAILABLE'
-            ? () => blocContext.read<BookingCubit>().selectSeat(seat)
-            : () {},
-      ),
-    );
-  }
-
   Widget _buildBottomBar(BookingState state) {
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 8)],
-      ),
+      decoration: BoxDecoration(color: Colors.white, boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 8)]),
       child: Row(
         children: [
           Expanded(
@@ -368,9 +163,7 @@ class _SelectBusScreenState extends State<SelectBusScreen> {
             ),
           ),
           ElevatedButton(
-            onPressed: state.selectedSeats.isEmpty
-                ? null
-                : () => Navigator.pushNamed(context, '/payment'),
+            onPressed: state.selectedSeats.isEmpty ? null : () => Navigator.pushNamed(context, '/payment'),
             style: ElevatedButton.styleFrom(
               backgroundColor: greenSoft,
               padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
@@ -381,5 +174,310 @@ class _SelectBusScreenState extends State<SelectBusScreen> {
         ],
       ),
     );
+  }
+}
+
+// ======================
+// --- Sơ đồ 34 ghế với zoom in/out giống 28 ghế ---
+class SeatLayout34Form extends StatefulWidget {
+  final BuildContext blocContext;
+  final List<Seat> seats;
+  final List<Seat> selectedSeats;
+
+  const SeatLayout34Form(this.blocContext, this.seats, this.selectedSeats, {super.key});
+
+  @override
+  State<SeatLayout34Form> createState() => _SeatLayout34FormState();
+}
+
+class _SeatLayout34FormState extends State<SeatLayout34Form> {
+  double _seatScale = 0.85;
+
+  @override
+  Widget build(BuildContext context) {
+    final lowerSeats = widget.seats.where((s) => s.floor == 1).toList();
+    final upperSeats = widget.seats.where((s) => s.floor == 2).toList();
+
+    return Column(
+      children: [
+        Expanded(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 10),
+            child: Transform.scale(
+              scale: _seatScale,
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(18),
+                  boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.1), blurRadius: 10)],
+                ),
+                child: Column(
+                  children: [
+                    const Text('Sơ đồ giường nằm',
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17)),
+                    const SizedBox(height: 10),
+                    // Icon Tài xế bên trái
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: const [
+                          Icon(Icons.person, size: 32, color: Colors.black),
+                          SizedBox(width: 6),
+                          Text(
+                            "Tài xế",
+                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildFloorSide("Tầng dưới", Colors.green, lowerSeats),
+                        _buildFloorSide("Tầng trên", Colors.blue, upperSeats),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+        // Zoom control
+        Container(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.remove_circle_outline, color: Colors.grey),
+                onPressed: () => setState(() {
+                  _seatScale = (_seatScale - 0.1).clamp(0.6, 1.4);
+                }),
+              ),
+              Text('${(_seatScale * 100).toInt()}%', style: const TextStyle(fontWeight: FontWeight.bold)),
+              IconButton(
+                icon: const Icon(Icons.add_circle_outline, color: Colors.grey),
+                onPressed: () => setState(() {
+                  _seatScale = (_seatScale + 0.1).clamp(0.6, 1.4);
+                }),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFloorSide(String title, Color color, List<Seat> floorSeats) {
+    final List<int> config = [6, 5, 6, 5, 6, 6];
+    int index = 0;
+    List<List<Seat>> cols = [];
+    for (int count in config) {
+      cols.add(floorSeats.skip(index).take(count).toList());
+      index += count;
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(Icons.bed, color: color, size: 17),
+            const SizedBox(width: 4),
+            Text(title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: color)),
+          ],
+        ),
+        const SizedBox(height: 6),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            for (int i = 0; i < cols.length; i++) ...[
+              Column(
+                children: cols[i].map((seat) {
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    child: SeatWidget(
+                      seat: seat,
+                      isSelected: widget.selectedSeats.contains(seat),
+                      onTap: seat.status == 'AVAILABLE'
+                          ? () => widget.blocContext.read<BookingCubit>().selectSeat(seat)
+                          : () {},
+                    ),
+                  );
+                }).toList(),
+              ),
+              if (i < cols.length - 1) const SizedBox(width: 10),
+            ]
+          ],
+        )
+      ],
+    );
+  }
+}
+
+// ======================
+// --- Layout 28 ghế ---
+class SeatLayout28Form extends StatefulWidget {
+  final BuildContext blocContext;
+  final List<Seat> seats;
+  final List<Seat> selectedSeats;
+
+  const SeatLayout28Form(this.blocContext, this.seats, this.selectedSeats, {super.key});
+
+  @override
+  State<SeatLayout28Form> createState() => _SeatLayout28FormState();
+}
+
+class _SeatLayout28FormState extends State<SeatLayout28Form> {
+  double _seatScale = 0.85;
+
+  @override
+  Widget build(BuildContext context) {
+    final sortedSeats = List<Seat>.from(widget.seats)..sort((a, b) => a.id.compareTo(b.id));
+    final rows = (28 / 4).ceil();
+
+    return Column(
+      children: [
+        Expanded(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Transform.scale(
+              scale: _seatScale,
+              child: Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.1), blurRadius: 10)],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center, // tiêu đề căn giữa
+                  children: [
+                    const Text(
+                      'Sơ đồ ghế ngồi',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17),
+                    ),
+                    const SizedBox(height: 10),
+                    // Icon Tài xế bên trái
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: const [
+                          Icon(Icons.person, size: 32),
+                          SizedBox(width: 8),
+                          Text(
+                            "Tài xế",
+                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    ...List.generate(rows, (rowIndex) {
+                      final startIndex = rowIndex * 4;
+                      final rowSeats = sortedSeats.skip(startIndex).take(4).toList();
+
+                      if (rowIndex == 6) {
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: rowSeats.map((seat) {
+                              return Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 8),
+                                child: SeatWidget(
+                                  seat: seat,
+                                  isSelected: widget.selectedSeats.contains(seat),
+                                  onTap: seat.status == 'AVAILABLE'
+                                      ? () => widget.blocContext.read<BookingCubit>().selectSeat(seat)
+                                      : () {},
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                        );
+                      }
+
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: rowSeats.map((seat) {
+                            return SeatWidget(
+                              seat: seat,
+                              isSelected: widget.selectedSeats.contains(seat),
+                              onTap: seat.status == 'AVAILABLE'
+                                  ? () => widget.blocContext.read<BookingCubit>().selectSeat(seat)
+                                  : () {},
+                            );
+                          }).toList(),
+                        ),
+                      );
+                    }),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+        Container(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.remove_circle_outline, color: Colors.grey),
+                onPressed: () => setState(() {
+                  _seatScale = (_seatScale - 0.1).clamp(0.6, 1.4);
+                }),
+              ),
+              Text('${(_seatScale * 100).toInt()}%', style: const TextStyle(fontWeight: FontWeight.bold)),
+              IconButton(
+                icon: const Icon(Icons.add_circle_outline, color: Colors.grey),
+                onPressed: () => setState(() {
+                  _seatScale = (_seatScale + 0.1).clamp(0.6, 1.4);
+                }),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ======================
+// --- Layout 45 ghế ---
+class SeatLayout45Form extends StatelessWidget {
+  final BuildContext blocContext;
+  final List<Seat> seats;
+  final List<Seat> selectedSeats;
+
+  const SeatLayout45Form(this.blocContext, this.seats, this.selectedSeats, {super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const Center(child: Text("Layout 45 chỗ"));
+  }
+}
+
+// ======================
+// --- Layout mặc định ---
+class SeatLayoutDefaultForm extends StatelessWidget {
+  final BuildContext blocContext;
+  final List<Seat> seats;
+  final List<Seat> selectedSeats;
+
+  const SeatLayoutDefaultForm(this.blocContext, this.seats, this.selectedSeats, {super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const Center(child: Text("Layout thường"));
   }
 }
