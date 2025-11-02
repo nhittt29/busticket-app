@@ -66,7 +66,8 @@ class _SelectBusScreenState extends State<SelectBusScreen> {
             buildWhen: (prev, curr) =>
                 prev.seats != curr.seats ||
                 prev.selectedSeats != curr.selectedSeats ||
-                prev.loadingSeats != curr.loadingSeats,
+                prev.loadingSeats != curr.loadingSeats ||
+                prev.selectedTrip != curr.selectedTrip, // Thêm để cập nhật khi có schedule
             builder: (context, state) {
               if (state.loadingSeats) {
                 return const Center(child: CircularProgressIndicator());
@@ -75,10 +76,20 @@ class _SelectBusScreenState extends State<SelectBusScreen> {
               final ticketPrice = state.seats.isNotEmpty ? state.seats.first.price : 0.0;
               final seatCount = state.seats.length;
 
+              // LẤY THÔNG TIN XE TỪ selectedTrip (schedule)
+              final schedule = state.selectedTrip;
+              final category = schedule?.category.toUpperCase();
+              final seatType = schedule?.seatType.toUpperCase();
+
+              // === XÁC ĐỊNH LOẠI SƠ ĐỒ ===
               final isBerth34 = seatCount == 34 && state.seats.any((s) => s.floor != null);
+              final isBerth41 = seatCount == 41 && state.seats.any((s) => s.floor != null);
+
+              // 45 ghế: ghế ngồi nếu COACH + SEAT, còn lại là giường nằm
+              final isSeat45 = seatCount == 45 && category == "COACH" && seatType == "SEAT";
+              final isBerth45 = seatCount == 45 && !isSeat45;
+
               final isSeat28 = seatCount == 28;
-              final isSeat41 = seatCount == 41 && state.seats.any((s) => s.floor != null);
-              final isSeat45 = seatCount == 45;
 
               return Column(
                 children: [
@@ -91,15 +102,17 @@ class _SelectBusScreenState extends State<SelectBusScreen> {
                     child: Center(
                       child: SizedBox(
                         height: MediaQuery.of(context).size.height * 0.55,
-                        child: isSeat41
+                        child: isBerth41
                             ? SeatLayout41Form(context, state.seats, state.selectedSeats)
                             : isBerth34
                                 ? SeatLayout34Form(context, state.seats, state.selectedSeats)
                                 : isSeat28
                                     ? SeatLayout28Form(context, state.seats, state.selectedSeats)
                                     : isSeat45
-                                        ? SeatLayout45Form(context, state.seats, state.selectedSeats)
-                                        : SeatLayoutDefaultForm(context, state.seats, state.selectedSeats),
+                                        ? SeatLayout45Form(context, state.seats, state.selectedSeats) // Ghế ngồi 45
+                                        : isBerth45
+                                            ? SeatLayoutDefaultForm(context, state.seats, state.selectedSeats) // Giường nằm 45 → dùng mặc định tạm
+                                            : SeatLayoutDefaultForm(context, state.seats, state.selectedSeats),
                       ),
                     ),
                   ),
@@ -120,7 +133,7 @@ class _SelectBusScreenState extends State<SelectBusScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.1), blurRadius: 8)],
+        boxShadow: [BoxShadow(color: Colors.grey.withAlpha(25), blurRadius: 8)],
       ),
       child: Wrap(
         spacing: 16,
@@ -151,7 +164,10 @@ class _SelectBusScreenState extends State<SelectBusScreen> {
   Widget _buildBottomBar(BookingState state) {
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: Colors.white, boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 8)]),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [BoxShadow(color: Colors.black.withAlpha(30), blurRadius: 8)],
+      ),
       child: Row(
         children: [
           Expanded(
@@ -173,7 +189,7 @@ class _SelectBusScreenState extends State<SelectBusScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
             ),
-            child: const Text('Tiếp theo', style: TextStyle(fontSize: 16)),
+            child: const Text('Tiếp theo', style: const TextStyle(fontSize: 16)),
           ),
         ],
       ),
@@ -187,7 +203,6 @@ class SeatLayout41Form extends StatefulWidget {
   final BuildContext blocContext;
   final List<Seat> seats;
   final List<Seat> selectedSeats;
-
   const SeatLayout41Form(this.blocContext, this.seats, this.selectedSeats, {super.key});
 
   @override
@@ -201,10 +216,8 @@ class _SeatLayout41FormState extends State<SeatLayout41Form> {
   Widget build(BuildContext context) {
     final lowerSeats = widget.seats.where((s) => s.floor == 1).toList();
     final upperSeats = widget.seats.where((s) => s.floor == 2).toList();
-
     final mainUpperSeats = upperSeats.take(18).toList();
     final lastRowUpperSeats = upperSeats.skip(18).take(2).toList();
-
     final movedSeats = lowerSeats.skip(6 * 3).take(3).toList();
     lowerSeats.removeWhere((s) => movedSeats.contains(s));
     lastRowUpperSeats.addAll(movedSeats);
@@ -221,7 +234,7 @@ class _SeatLayout41FormState extends State<SeatLayout41Form> {
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(18),
-                  boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.1), blurRadius: 10)],
+                  boxShadow: [BoxShadow(color: Colors.grey.withAlpha(25), blurRadius: 10)],
                 ),
                 child: Column(
                   children: [
@@ -304,13 +317,11 @@ class _SeatLayout41FormState extends State<SeatLayout41Form> {
     for (int i = 0; i < seats.length; i++) {
       columns[i % columnCount].add(seats[i]);
     }
-
     List<double> columnSpacing = List.filled(columnCount - 1, 16);
     if (columnCount >= 3) {
       columnSpacing[0] = 6;
       columnSpacing[columnCount - 2] = 6;
     }
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
@@ -343,12 +354,11 @@ class _SeatLayout41FormState extends State<SeatLayout41Form> {
                   );
                 }).toList(),
               ),
-              if (i < columns.length - 1)
-                SizedBox(width: columnSpacing[i]),
+              if (i < columns.length - 1) SizedBox(width: columnSpacing[i]),
             ],
             const SizedBox(width: 12),
           ],
-        )
+        ),
       ],
     );
   }
@@ -360,7 +370,6 @@ class SeatLayout34Form extends StatefulWidget {
   final BuildContext blocContext;
   final List<Seat> seats;
   final List<Seat> selectedSeats;
-
   const SeatLayout34Form(this.blocContext, this.seats, this.selectedSeats, {super.key});
 
   @override
@@ -387,7 +396,7 @@ class _SeatLayout34FormState extends State<SeatLayout34Form> {
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(18),
-                  boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.1), blurRadius: 10)],
+                  boxShadow: [BoxShadow(color: Colors.grey.withAlpha(25), blurRadius: 10)],
                 ),
                 child: Column(
                   children: [
@@ -452,7 +461,6 @@ class _SeatLayout34FormState extends State<SeatLayout34Form> {
       cols.add(floorSeats.skip(index).take(count).toList());
       index += count;
     }
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -483,21 +491,20 @@ class _SeatLayout34FormState extends State<SeatLayout34Form> {
                 }).toList(),
               ),
               if (i < cols.length - 1) const SizedBox(width: 10),
-            ]
+            ],
           ],
-        )
+        ),
       ],
     );
   }
 }
 
 // ======================
-// --- Layout 28 ghế ---
+// --- Layout 28 ghế – SIZE GHẾ ĐỒNG NHẤT 100% VỚI SƠ ĐỒ 45 ---
 class SeatLayout28Form extends StatefulWidget {
   final BuildContext blocContext;
   final List<Seat> seats;
   final List<Seat> selectedSeats;
-
   const SeatLayout28Form(this.blocContext, this.seats, this.selectedSeats, {super.key});
 
   @override
@@ -510,7 +517,6 @@ class _SeatLayout28FormState extends State<SeatLayout28Form> {
   @override
   Widget build(BuildContext context) {
     final sortedSeats = List<Seat>.from(widget.seats)..sort((a, b) => a.id.compareTo(b.id));
-    final rows = (28 / 4).ceil();
 
     return Column(
       children: [
@@ -524,7 +530,7 @@ class _SeatLayout28FormState extends State<SeatLayout28Form> {
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(20),
-                  boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.1), blurRadius: 10)],
+                  boxShadow: [BoxShadow(color: Colors.grey.withAlpha(25), blurRadius: 10)],
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
@@ -534,68 +540,106 @@ class _SeatLayout28FormState extends State<SeatLayout28Form> {
                       style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17),
                     ),
                     const SizedBox(height: 10),
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: const [
-                          Icon(Icons.person, size: 32),
-                          SizedBox(width: 8),
-                          Text(
-                            "Tài xế",
-                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    ...List.generate(rows, (rowIndex) {
-                      final startIndex = rowIndex * 4;
-                      final rowSeats = sortedSeats.skip(startIndex).take(4).toList();
 
-                      if (rowIndex == 6) {
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 12),
+                    // ICON TÀI XẾ
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.only(left: 35, top: 12),
                           child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: rowSeats.map((seat) {
-                              return Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 8),
-                                child: SeatWidget(
-                                  seat: seat,
-                                  isSelected: widget.selectedSeats.contains(seat),
-                                  onTap: seat.status == 'AVAILABLE'
-                                      ? () => widget.blocContext.read<BookingCubit>().selectSeat(seat)
-                                      : () {},
-                                ),
-                              );
-                            }).toList(),
+                            children: const [
+                              Icon(Icons.person, size: 32),
+                              SizedBox(width: 8),
+                              Text("Tài xế", style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                            ],
                           ),
-                        );
-                      }
+                        ),
+                        const Spacer(),
+                      ],
+                    ),
 
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
+                    const SizedBox(height: 16),
+
+                    // === 6 HÀNG ĐẦU (1–6): 2-2 CỘT TRÁI/PHẢI ===
+                    for (int row = 0; row < 6; row++)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 10),
                         child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                          children: rowSeats.map((seat) {
-                            return SeatWidget(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            // CỘT TRÁI: 2 ghế
+                            Padding(
+                              padding: const EdgeInsets.only(left: 35),
+                              child: Row(
+                                children: [
+                                  for (int i = 0; i < 2; i++)
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6),
+                                      child: SeatWidget(
+                                        seat: sortedSeats[row * 4 + i],
+                                        isSelected: widget.selectedSeats.contains(sortedSeats[row * 4 + i]),
+                                        onTap: sortedSeats[row * 4 + i].status == 'AVAILABLE'
+                                            ? () => widget.blocContext.read<BookingCubit>().selectSeat(sortedSeats[row * 4 + i])
+                                            : () {},
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+
+                            const SizedBox(width: 70), // LỐI ĐI
+
+                            // CỘT PHẢI: 2 ghế
+                            Padding(
+                              padding: const EdgeInsets.only(right: 35),
+                              child: Row(
+                                children: [
+                                  for (int i = 2; i < 4; i++)
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6),
+                                      child: SeatWidget(
+                                        seat: sortedSeats[row * 4 + i],
+                                        isSelected: widget.selectedSeats.contains(sortedSeats[row * 4 + i]),
+                                        onTap: sortedSeats[row * 4 + i].status == 'AVAILABLE'
+                                            ? () => widget.blocContext.read<BookingCubit>().selectSeat(sortedSeats[row * 4 + i])
+                                            : () {},
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                    // === HÀNG CUỐI: 5 GHẾ – ĐỒNG SIZE VỚI 45 ===
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: sortedSeats.skip(24).take(5).map((seat) {
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 6),
+                            child: SeatWidget(
                               seat: seat,
                               isSelected: widget.selectedSeats.contains(seat),
                               onTap: seat.status == 'AVAILABLE'
                                   ? () => widget.blocContext.read<BookingCubit>().selectSeat(seat)
                                   : () {},
-                            );
-                          }).toList(),
-                        ),
-                      );
-                    }),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ),
                   ],
                 ),
               ),
             ),
           ),
         ),
+
+        // NÚT ZOOM
         Container(
           padding: const EdgeInsets.symmetric(vertical: 8),
           child: Row(
@@ -623,12 +667,11 @@ class _SeatLayout28FormState extends State<SeatLayout28Form> {
 }
 
 // ======================
-// --- Layout 45 ghế ---
+// --- Layout 45 ghế – SIZE GHẾ CHUẨN (ĐÃ ĐỒNG BỘ VỚI 28) ---
 class SeatLayout45Form extends StatefulWidget {
   final BuildContext blocContext;
   final List<Seat> seats;
   final List<Seat> selectedSeats;
-
   const SeatLayout45Form(this.blocContext, this.seats, this.selectedSeats, {super.key});
 
   @override
@@ -642,14 +685,9 @@ class _SeatLayout45FormState extends State<SeatLayout45Form> {
   Widget build(BuildContext context) {
     final sortedSeats = List<Seat>.from(widget.seats)..sort((a, b) => a.id.compareTo(b.id));
 
-    // 4 cột chính, 10 ghế mỗi cột = 40 ghế
-    final mainSeats = sortedSeats.take(40).toList();
-    final lastFiveSeats = sortedSeats.skip(40).take(5).toList();
-
-    List<List<Seat>> columns = List.generate(4, (_) => []);
-    for (int i = 0; i < mainSeats.length; i++) {
-      columns[i % 4].add(mainSeats[i]);
-    }
+    final first24Seats = sortedSeats.take(24).toList();
+    final next16Seats = sortedSeats.skip(24).take(16).toList();
+    final last5Seats = sortedSeats.skip(40).take(5).toList();
 
     return Column(
       children: [
@@ -663,7 +701,7 @@ class _SeatLayout45FormState extends State<SeatLayout45Form> {
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(20),
-                  boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.1), blurRadius: 10)],
+                  boxShadow: [BoxShadow(color: Colors.grey.withAlpha(25), blurRadius: 10)],
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
@@ -673,56 +711,172 @@ class _SeatLayout45FormState extends State<SeatLayout45Form> {
                       style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17),
                     ),
                     const SizedBox(height: 10),
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: const [
-                          Icon(Icons.person, size: 32),
-                          SizedBox(width: 8),
-                          Text(
-                            "Tài xế",
-                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 16),
+
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        for (int i = 0; i < columns.length; i++)
-                          Column(
-                            children: columns[i].map((seat) {
-                              return Padding(
-                                padding: const EdgeInsets.symmetric(vertical: 12),
-                                child: SeatWidget(
-                                  seat: seat,
-                                  isSelected: widget.selectedSeats.contains(seat),
-                                  onTap: seat.status == 'AVAILABLE'
-                                      ? () => widget.blocContext.read<BookingCubit>().selectSeat(seat)
-                                      : () {},
-                                ),
-                              );
-                            }).toList(),
+                        Padding(
+                          padding: const EdgeInsets.only(left: 35, top: 12),
+                          child: Row(
+                            children: const [
+                              Icon(Icons.person, size: 32),
+                              SizedBox(width: 8),
+                              Text("Tài xế", style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                            ],
                           ),
+                        ),
+                        const Spacer(),
                       ],
                     ),
+
                     const SizedBox(height: 16),
+
+                    // 6 HÀNG ĐẦU
+                    for (int row = 0; row < 6; row++)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.only(left: 35),
+                              child: Row(
+                                children: [
+                                  for (int i = 0; i < 2; i++)
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6),
+                                      child: SeatWidget(
+                                        seat: first24Seats[row * 4 + i],
+                                        isSelected: widget.selectedSeats.contains(first24Seats[row * 4 + i]),
+                                        onTap: first24Seats[row * 4 + i].status == 'AVAILABLE'
+                                            ? () => widget.blocContext.read<BookingCubit>().selectSeat(first24Seats[row * 4 + i])
+                                            : () {},
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 70),
+                            Padding(
+                              padding: const EdgeInsets.only(right: 35),
+                              child: Row(
+                                children: [
+                                  for (int i = 2; i < 4; i++)
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6),
+                                      child: SeatWidget(
+                                        seat: first24Seats[row * 4 + i],
+                                        isSelected: widget.selectedSeats.contains(first24Seats[row * 4 + i]),
+                                        onTap: first24Seats[row * 4 + i].status == 'AVAILABLE'
+                                            ? () => widget.blocContext.read<BookingCubit>().selectSeat(first24Seats[row * 4 + i])
+                                            : () {},
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                    // HÀNG 7–10
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
-                      children: lastFiveSeats.map((seat) {
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 12),
-                          child: SeatWidget(
-                            seat: seat,
-                            isSelected: widget.selectedSeats.contains(seat),
-                            onTap: seat.status == 'AVAILABLE'
-                                ? () => widget.blocContext.read<BookingCubit>().selectSeat(seat)
-                                : () {},
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.only(left: 35),
+                          child: Column(
+                            children: List.generate(4, (row) {
+                              final seat1 = next16Seats[row * 4];
+                              final seat2 = next16Seats[row * 4 + 1];
+                              return Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 10),
+                                child: Row(
+                                  children: [
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6),
+                                      child: SeatWidget(
+                                        seat: seat1,
+                                        isSelected: widget.selectedSeats.contains(seat1),
+                                        onTap: seat1.status == 'AVAILABLE'
+                                            ? () => widget.blocContext.read<BookingCubit>().selectSeat(seat1)
+                                            : () {},
+                                      ),
+                                    ),
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6),
+                                      child: SeatWidget(
+                                        seat: seat2,
+                                        isSelected: widget.selectedSeats.contains(seat2),
+                                        onTap: seat2.status == 'AVAILABLE'
+                                            ? () => widget.blocContext.read<BookingCubit>().selectSeat(seat2)
+                                            : () {},
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }),
                           ),
-                        );
-                      }).toList(),
+                        ),
+                        const SizedBox(width: 70),
+                        Padding(
+                          padding: const EdgeInsets.only(right: 35),
+                          child: Column(
+                            children: List.generate(4, (row) {
+                              final seat1 = next16Seats[row * 4 + 2];
+                              final seat2 = next16Seats[row * 4 + 3];
+                              return Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 10),
+                                child: Row(
+                                  children: [
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6),
+                                      child: SeatWidget(
+                                        seat: seat1,
+                                        isSelected: widget.selectedSeats.contains(seat1),
+                                        onTap: seat1.status == 'AVAILABLE'
+                                            ? () => widget.blocContext.read<BookingCubit>().selectSeat(seat1)
+                                            : () {},
+                                      ),
+                                    ),
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6),
+                                      child: SeatWidget(
+                                        seat: seat2,
+                                        isSelected: widget.selectedSeats.contains(seat2),
+                                        onTap: seat2.status == 'AVAILABLE'
+                                            ? () => widget.blocContext.read<BookingCubit>().selectSeat(seat2)
+                                            : () {},
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }),
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    // HÀNG 11
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: last5Seats.map((seat) {
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 6),
+                            child: SeatWidget(
+                              seat: seat,
+                              isSelected: widget.selectedSeats.contains(seat),
+                              onTap: seat.status == 'AVAILABLE'
+                                  ? () => widget.blocContext.read<BookingCubit>().selectSeat(seat)
+                                  : () {},
+                            ),
+                          );
+                        }).toList(),
+                      ),
                     ),
                   ],
                 ),
@@ -730,6 +884,7 @@ class _SeatLayout45FormState extends State<SeatLayout45Form> {
             ),
           ),
         ),
+
         Container(
           padding: const EdgeInsets.symmetric(vertical: 8),
           child: Row(
@@ -762,7 +917,6 @@ class SeatLayoutDefaultForm extends StatelessWidget {
   final BuildContext blocContext;
   final List<Seat> seats;
   final List<Seat> selectedSeats;
-
   const SeatLayoutDefaultForm(this.blocContext, this.seats, this.selectedSeats, {super.key});
 
   @override
