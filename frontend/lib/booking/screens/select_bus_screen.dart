@@ -74,8 +74,10 @@ class _SelectBusScreenState extends State<SelectBusScreen> {
 
               final ticketPrice = state.seats.isNotEmpty ? state.seats.first.price : 0.0;
               final seatCount = state.seats.length;
+
               final isBerth34 = seatCount == 34 && state.seats.any((s) => s.floor != null);
               final isSeat28 = seatCount == 28;
+              final isSeat41 = seatCount == 41 && state.seats.any((s) => s.floor != null);
               final isSeat45 = seatCount == 45;
 
               return Column(
@@ -89,13 +91,15 @@ class _SelectBusScreenState extends State<SelectBusScreen> {
                     child: Center(
                       child: SizedBox(
                         height: MediaQuery.of(context).size.height * 0.55,
-                        child: isBerth34
-                            ? SeatLayout34Form(context, state.seats, state.selectedSeats)
-                            : isSeat28
-                                ? SeatLayout28Form(context, state.seats, state.selectedSeats)
-                                : isSeat45
-                                    ? SeatLayout45Form(context, state.seats, state.selectedSeats)
-                                    : SeatLayoutDefaultForm(context, state.seats, state.selectedSeats),
+                        child: isSeat41
+                            ? SeatLayout41Form(context, state.seats, state.selectedSeats)
+                            : isBerth34
+                                ? SeatLayout34Form(context, state.seats, state.selectedSeats)
+                                : isSeat28
+                                    ? SeatLayout28Form(context, state.seats, state.selectedSeats)
+                                    : isSeat45
+                                        ? SeatLayout45Form(context, state.seats, state.selectedSeats)
+                                        : SeatLayoutDefaultForm(context, state.seats, state.selectedSeats),
                       ),
                     ),
                   ),
@@ -178,7 +182,180 @@ class _SelectBusScreenState extends State<SelectBusScreen> {
 }
 
 // ======================
-// --- Sơ đồ 34 ghế với zoom in/out giống 28 ghế ---
+// --- Layout 41 ghế ---
+class SeatLayout41Form extends StatefulWidget {
+  final BuildContext blocContext;
+  final List<Seat> seats;
+  final List<Seat> selectedSeats;
+
+  const SeatLayout41Form(this.blocContext, this.seats, this.selectedSeats, {super.key});
+
+  @override
+  State<SeatLayout41Form> createState() => _SeatLayout41FormState();
+}
+
+class _SeatLayout41FormState extends State<SeatLayout41Form> {
+  double _seatScale = 0.85;
+
+  @override
+  Widget build(BuildContext context) {
+    final lowerSeats = widget.seats.where((s) => s.floor == 1).toList();
+    final upperSeats = widget.seats.where((s) => s.floor == 2).toList();
+
+    final mainUpperSeats = upperSeats.take(18).toList();
+    final lastRowUpperSeats = upperSeats.skip(18).take(2).toList();
+
+    final movedSeats = lowerSeats.skip(6 * 3).take(3).toList();
+    lowerSeats.removeWhere((s) => movedSeats.contains(s));
+    lastRowUpperSeats.addAll(movedSeats);
+
+    return Column(
+      children: [
+        Expanded(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 10),
+            child: Transform.scale(
+              scale: _seatScale,
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(18),
+                  boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.1), blurRadius: 10)],
+                ),
+                child: Column(
+                  children: [
+                    const Text('Sơ đồ giường nằm', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17)),
+                    const SizedBox(height: 10),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: const [
+                          Icon(Icons.person, size: 32, color: Colors.black),
+                          SizedBox(width: 6),
+                          Text("Tài xế", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildFloor("Tầng dưới", Colors.green, lowerSeats, 3),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            _buildFloor("Tầng trên", Colors.blue, mainUpperSeats, 3),
+                            if (lastRowUpperSeats.isNotEmpty)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 12),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: lastRowUpperSeats.map((seat) {
+                                    return SeatWidget(
+                                      seat: seat,
+                                      isSelected: widget.selectedSeats.contains(seat),
+                                      onTap: seat.status == 'AVAILABLE'
+                                          ? () => widget.blocContext.read<BookingCubit>().selectSeat(seat)
+                                          : () {},
+                                    );
+                                  }).toList(),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+        Container(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.remove_circle_outline, color: Colors.grey),
+                onPressed: () => setState(() {
+                  _seatScale = (_seatScale - 0.1).clamp(0.6, 1.4);
+                }),
+              ),
+              Text('${(_seatScale * 100).toInt()}%', style: const TextStyle(fontWeight: FontWeight.bold)),
+              IconButton(
+                icon: const Icon(Icons.add_circle_outline, color: Colors.grey),
+                onPressed: () => setState(() {
+                  _seatScale = (_seatScale + 0.1).clamp(0.6, 1.4);
+                }),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFloor(String title, Color color, List<Seat> seats, int columnCount) {
+    List<List<Seat>> columns = List.generate(columnCount, (_) => []);
+    for (int i = 0; i < seats.length; i++) {
+      columns[i % columnCount].add(seats[i]);
+    }
+
+    List<double> columnSpacing = List.filled(columnCount - 1, 16);
+    if (columnCount >= 3) {
+      columnSpacing[0] = 6;
+      columnSpacing[columnCount - 2] = 6;
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.bed, color: color, size: 17),
+            const SizedBox(width: 4),
+            Text(title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: color)),
+          ],
+        ),
+        const SizedBox(height: 6),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(width: 12),
+            for (int i = 0; i < columns.length; i++) ...[
+              Column(
+                children: columns[i].map((seat) {
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    child: SeatWidget(
+                      seat: seat,
+                      isSelected: widget.selectedSeats.contains(seat),
+                      onTap: seat.status == 'AVAILABLE'
+                          ? () => widget.blocContext.read<BookingCubit>().selectSeat(seat)
+                          : () {},
+                    ),
+                  );
+                }).toList(),
+              ),
+              if (i < columns.length - 1)
+                SizedBox(width: columnSpacing[i]),
+            ],
+            const SizedBox(width: 12),
+          ],
+        )
+      ],
+    );
+  }
+}
+
+// ======================
+// --- Layout 34 ghế ---
 class SeatLayout34Form extends StatefulWidget {
   final BuildContext blocContext;
   final List<Seat> seats;
@@ -214,10 +391,8 @@ class _SeatLayout34FormState extends State<SeatLayout34Form> {
                 ),
                 child: Column(
                   children: [
-                    const Text('Sơ đồ giường nằm',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17)),
+                    const Text('Sơ đồ giường nằm', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17)),
                     const SizedBox(height: 10),
-                    // Icon Tài xế bên trái
                     Align(
                       alignment: Alignment.centerLeft,
                       child: Row(
@@ -225,10 +400,7 @@ class _SeatLayout34FormState extends State<SeatLayout34Form> {
                         children: const [
                           Icon(Icons.person, size: 32, color: Colors.black),
                           SizedBox(width: 6),
-                          Text(
-                            "Tài xế",
-                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-                          ),
+                          Text("Tài xế", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                         ],
                       ),
                     ),
@@ -247,7 +419,6 @@ class _SeatLayout34FormState extends State<SeatLayout34Form> {
             ),
           ),
         ),
-        // Zoom control
         Container(
           padding: const EdgeInsets.symmetric(vertical: 8),
           child: Row(
@@ -356,14 +527,13 @@ class _SeatLayout28FormState extends State<SeatLayout28Form> {
                   boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.1), blurRadius: 10)],
                 ),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center, // tiêu đề căn giữa
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     const Text(
                       'Sơ đồ ghế ngồi',
                       style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17),
                     ),
                     const SizedBox(height: 10),
-                    // Icon Tài xế bên trái
                     Align(
                       alignment: Alignment.centerLeft,
                       child: Row(
@@ -454,7 +624,7 @@ class _SeatLayout28FormState extends State<SeatLayout28Form> {
 
 // ======================
 // --- Layout 45 ghế ---
-class SeatLayout45Form extends StatelessWidget {
+class SeatLayout45Form extends StatefulWidget {
   final BuildContext blocContext;
   final List<Seat> seats;
   final List<Seat> selectedSeats;
@@ -462,8 +632,127 @@ class SeatLayout45Form extends StatelessWidget {
   const SeatLayout45Form(this.blocContext, this.seats, this.selectedSeats, {super.key});
 
   @override
+  State<SeatLayout45Form> createState() => _SeatLayout45FormState();
+}
+
+class _SeatLayout45FormState extends State<SeatLayout45Form> {
+  double _seatScale = 0.85;
+
+  @override
   Widget build(BuildContext context) {
-    return const Center(child: Text("Layout 45 chỗ"));
+    final sortedSeats = List<Seat>.from(widget.seats)..sort((a, b) => a.id.compareTo(b.id));
+
+    // 4 cột chính, 10 ghế mỗi cột = 40 ghế
+    final mainSeats = sortedSeats.take(40).toList();
+    final lastFiveSeats = sortedSeats.skip(40).take(5).toList();
+
+    List<List<Seat>> columns = List.generate(4, (_) => []);
+    for (int i = 0; i < mainSeats.length; i++) {
+      columns[i % 4].add(mainSeats[i]);
+    }
+
+    return Column(
+      children: [
+        Expanded(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Transform.scale(
+              scale: _seatScale,
+              child: Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.1), blurRadius: 10)],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    const Text(
+                      'Sơ đồ ghế ngồi',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17),
+                    ),
+                    const SizedBox(height: 10),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: const [
+                          Icon(Icons.person, size: 32),
+                          SizedBox(width: 8),
+                          Text(
+                            "Tài xế",
+                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        for (int i = 0; i < columns.length; i++)
+                          Column(
+                            children: columns[i].map((seat) {
+                              return Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 12),
+                                child: SeatWidget(
+                                  seat: seat,
+                                  isSelected: widget.selectedSeats.contains(seat),
+                                  onTap: seat.status == 'AVAILABLE'
+                                      ? () => widget.blocContext.read<BookingCubit>().selectSeat(seat)
+                                      : () {},
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: lastFiveSeats.map((seat) {
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 12),
+                          child: SeatWidget(
+                            seat: seat,
+                            isSelected: widget.selectedSeats.contains(seat),
+                            onTap: seat.status == 'AVAILABLE'
+                                ? () => widget.blocContext.read<BookingCubit>().selectSeat(seat)
+                                : () {},
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+        Container(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.remove_circle_outline, color: Colors.grey),
+                onPressed: () => setState(() {
+                  _seatScale = (_seatScale - 0.1).clamp(0.6, 1.4);
+                }),
+              ),
+              Text('${(_seatScale * 100).toInt()}%', style: const TextStyle(fontWeight: FontWeight.bold)),
+              IconButton(
+                icon: const Icon(Icons.add_circle_outline, color: Colors.grey),
+                onPressed: () => setState(() {
+                  _seatScale = (_seatScale + 0.1).clamp(0.6, 1.4);
+                }),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
   }
 }
 
