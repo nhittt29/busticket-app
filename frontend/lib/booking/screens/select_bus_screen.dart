@@ -67,7 +67,7 @@ class _SelectBusScreenState extends State<SelectBusScreen> {
                 prev.seats != curr.seats ||
                 prev.selectedSeats != curr.selectedSeats ||
                 prev.loadingSeats != curr.loadingSeats ||
-                prev.selectedTrip != curr.selectedTrip, // Thêm để cập nhật khi có schedule
+                prev.selectedTrip != curr.selectedTrip,
             builder: (context, state) {
               if (state.loadingSeats) {
                 return const Center(child: CircularProgressIndicator());
@@ -76,19 +76,14 @@ class _SelectBusScreenState extends State<SelectBusScreen> {
               final ticketPrice = state.seats.isNotEmpty ? state.seats.first.price : 0.0;
               final seatCount = state.seats.length;
 
-              // LẤY THÔNG TIN XE TỪ selectedTrip (schedule)
               final schedule = state.selectedTrip;
               final category = schedule?.category.toUpperCase();
               final seatType = schedule?.seatType.toUpperCase();
 
-              // === XÁC ĐỊNH LOẠI SƠ ĐỒ ===
               final isBerth34 = seatCount == 34 && state.seats.any((s) => s.floor != null);
               final isBerth41 = seatCount == 41 && state.seats.any((s) => s.floor != null);
-
-              // 45 ghế: ghế ngồi nếu COACH + SEAT, còn lại là giường nằm
               final isSeat45 = seatCount == 45 && category == "COACH" && seatType == "SEAT";
               final isBerth45 = seatCount == 45 && !isSeat45;
-
               final isSeat28 = seatCount == 28;
 
               return Column(
@@ -109,9 +104,9 @@ class _SelectBusScreenState extends State<SelectBusScreen> {
                                 : isSeat28
                                     ? SeatLayout28Form(context, state.seats, state.selectedSeats)
                                     : isSeat45
-                                        ? SeatLayout45Form(context, state.seats, state.selectedSeats) // Ghế ngồi 45
+                                        ? SeatLayout45Form(context, state.seats, state.selectedSeats)
                                         : isBerth45
-                                            ? SeatLayoutDefaultForm(context, state.seats, state.selectedSeats) // Giường nằm 45 → dùng mặc định tạm
+                                            ? SeatLayoutDefaultForm(context, state.seats, state.selectedSeats)
                                             : SeatLayoutDefaultForm(context, state.seats, state.selectedSeats),
                       ),
                     ),
@@ -161,35 +156,65 @@ class _SelectBusScreenState extends State<SelectBusScreen> {
     );
   }
 
+  // === CẬP NHẬT: Hiển thị ghế trống + Nút Xóa tất cả ===
   Widget _buildBottomBar(BookingState state) {
+    final availableSeats = state.seats.where((s) => s.isAvailable).length;
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         boxShadow: [BoxShadow(color: Colors.black.withAlpha(30), blurRadius: 8)],
       ),
-      child: Row(
+      child: Column(
         children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('${state.selectedSeats.length} giường', style: const TextStyle(fontSize: 14)),
-                Text(
-                  'Tổng: ${state.totalPrice.toInt()}đ',
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.red),
-                ),
-              ],
-            ),
+          // HÀNG 1: Thông tin ghế + tiền
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('Còn trống: $availableSeats ghế', style: const TextStyle(fontSize: 14, color: Colors.green)),
+              Text('${state.selectedSeats.length} ghế đã chọn', style: const TextStyle(fontSize: 14)),
+              Text(
+                '${state.totalPrice.toInt()}đ',
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.red),
+              ),
+            ],
           ),
-          ElevatedButton(
-            onPressed: state.selectedSeats.isEmpty ? null : () => Navigator.pushNamed(context, '/payment'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: greenSoft,
-              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-            ),
-            child: const Text('Tiếp theo', style: const TextStyle(fontSize: 16)),
+          const SizedBox(height: 12),
+
+          // HÀNG 2: Nút Xóa + Tiếp theo
+          Row(
+            children: [
+              // NÚT XÓA TẤT CẢ
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: state.selectedSeats.isEmpty
+                      ? null
+                      : () => context.read<BookingCubit>().clearSelection(),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.red,
+                    side: const BorderSide(color: Colors.red),
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                  ),
+                  child: const Text('Xóa tất cả'),
+                ),
+              ),
+              const SizedBox(width: 12),
+              // NÚT TIẾP THEO
+              Expanded(
+                flex: 2,
+                child: ElevatedButton(
+                  onPressed: state.selectedSeats.isEmpty ? null : () => Navigator.pushNamed(context, '/payment'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: greenSoft,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                  ),
+                  child: const Text('Tiếp theo', style: TextStyle(fontSize: 16)),
+                ),
+              ),
+            ],
           ),
         ],
       ),
