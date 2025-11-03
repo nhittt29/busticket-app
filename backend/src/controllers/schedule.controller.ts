@@ -7,6 +7,7 @@ import {
   Param,
   Post,
   NotFoundException,
+  Query,
 } from '@nestjs/common';
 import { ScheduleService } from '../services/schedule.service';
 import { CreateScheduleDto } from '../dtos/schedule.dto';
@@ -20,9 +21,14 @@ export class ScheduleController {
     return this.scheduleService.createSchedule(dto);
   }
 
+  // TÌM KIẾM THEO NƠI ĐI, NƠI ĐẾN, NGÀY
   @Get()
-  findAll() {
-    return this.scheduleService.getAllSchedules();
+  findAll(
+    @Query('startPoint') startPoint?: string,
+    @Query('endPoint') endPoint?: string,
+    @Query('date') date?: string,
+  ) {
+    return this.scheduleService.getAllSchedules({ startPoint, endPoint, date });
   }
 
   @Get(':id')
@@ -30,8 +36,9 @@ export class ScheduleController {
     return this.scheduleService.getScheduleById(Number(id));
   }
 
-  @Get(':id/seats')
-  getSeats(@Param('id') id: string) {
+  // LẤY GHẾ THEO SCHEDULE
+  @Get(':id/seats/by-schedule')
+  getSeatsBySchedule(@Param('id') id: string) {
     return this.scheduleService.getSeats(Number(id));
   }
 

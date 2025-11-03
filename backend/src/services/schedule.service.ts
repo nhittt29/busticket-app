@@ -11,8 +11,12 @@ export class ScheduleService {
     return this.scheduleRepo.createSchedule(dto);
   }
 
-  async getAllSchedules() {
-    return this.scheduleRepo.getAllSchedules();
+  async getAllSchedules(query: {
+    startPoint?: string;
+    endPoint?: string;
+    date?: string;
+  }) {
+    return this.scheduleRepo.getAllSchedules(query);
   }
 
   async getScheduleById(id: number) {
@@ -27,17 +31,13 @@ export class ScheduleService {
     return seats;
   }
 
-  // XÓA SCHEDULE
   async deleteSchedule(id: number) {
     const schedule = await this.scheduleRepo.getScheduleById(id);
     if (!schedule) {
       throw new NotFoundException(`Schedule with ID ${id} not found`);
     }
 
-    // XÓA CẢ TICKETS LIÊN QUAN (nếu có)
     await this.scheduleRepo.deleteTicketsByScheduleId(id);
-
-    // XÓA SCHEDULE
     return this.scheduleRepo.deleteSchedule(id);
   }
 }

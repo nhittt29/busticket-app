@@ -1,3 +1,4 @@
+// src/schedules/dtos/schedule.dto.ts
 import { IsInt, IsDateString, IsOptional, IsEnum } from 'class-validator';
 import { ScheduleStatus } from '@prisma/client';
 

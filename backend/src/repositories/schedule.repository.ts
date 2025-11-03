@@ -18,12 +18,58 @@ export class ScheduleRepository {
     });
   }
 
-  async getAllSchedules() {
+  // LỌC CHÍNH XÁC: NƠI ĐI, NƠI ĐẾN, NGÀY
+  async getAllSchedules(query?: {
+    startPoint?: string;
+    endPoint?: string;
+    date?: string;
+  }) {
+    const where: any = { AND: [] };
+
+    if (query?.startPoint) {
+      where.AND.push({
+        route: {
+          startPoint: {
+            contains: query.startPoint,
+            mode: 'insensitive',
+          },
+        },
+      });
+    }
+
+    if (query?.endPoint) {
+      where.AND.push({
+        route: {
+          endPoint: {
+            contains: query.endPoint,
+            mode: 'insensitive',
+          },
+        },
+      });
+    }
+
+    if (query?.date) {
+      const startOfDay = new Date(query.date);
+      const endOfDay = new Date(startOfDay);
+      endOfDay.setHours(23, 59, 59, 999);
+
+      where.AND.push({
+        departureAt: {
+          gte: startOfDay,
+          lte: endOfDay,
+        },
+      });
+    }
+
     return this.prisma.schedule.findMany({
+      where,
       include: {
-        bus: true,
+        bus: {
+          include: { brand: true },
+        },
         route: true,
       },
+      orderBy: { departureAt: 'asc' },
     });
   }
 
@@ -58,14 +104,12 @@ export class ScheduleRepository {
     }));
   }
 
-  // XÓA TICKETS THEO SCHEDULE
   async deleteTicketsByScheduleId(scheduleId: number) {
     return this.prisma.ticket.deleteMany({
       where: { scheduleId },
     });
   }
 
-  // XÓA SCHEDULE
   async deleteSchedule(id: number) {
     return this.prisma.schedule.delete({
       where: { id },
