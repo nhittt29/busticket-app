@@ -24,7 +24,11 @@ class BookingCubit extends Cubit<BookingState> {
         state.to,
         state.date,
       );
-      emit(state.copyWith(trips: trips, loading: false));
+
+      // LỌC CHUYẾN FULL TRƯỚC KHI HIỂN THỊ
+      final filteredTrips = trips.where((t) => t.status != 'FULL').toList();
+
+      emit(state.copyWith(trips: filteredTrips, loading: false));
     } catch (e) {
       emit(state.copyWith(error: e.toString(), loading: false));
     }
@@ -61,7 +65,7 @@ class BookingCubit extends Cubit<BookingState> {
     emit(state.copyWith(selectedSeats: [], totalPrice: 0.0));
   }
 
-  /// ✅ Reset ghế + tiền khi thoát màn chọn ghế
+  /// Reset ghế + tiền khi thoát màn chọn ghế
   void resetSeats() {
     emit(state.copyWith(
       seats: [],

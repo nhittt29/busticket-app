@@ -12,41 +12,44 @@ dependencies:
     sdk: flutter
   cupertino_icons: ^1.0.8
 
-  # ✅ Gọi API backend
+  # Gọi API backend
   http: ^1.2.0
 
-  # ✅ MIME & HTTP Parser (fix lỗi lookupMimeType, MediaType)
+  # MIME & HTTP Parser (fix lỗi lookupMimeType, MediaType)
   mime: ^1.0.5
   http_parser: ^4.0.2
 
-  # ✅ Lưu token, uid, session
+  # Lưu token, uid, session
   shared_preferences: ^2.5.3
 
-  # ✅ Firebase core (bắt buộc để khởi tạo Firebase)
+  # Firebase core (bắt buộc để khởi tạo Firebase)
   firebase_core: ^4.1.1
 
-  # ✅ Firebase Auth (đăng ký, đăng nhập, xác thực user)
+  # Firebase Auth (đăng ký, đăng nhập, xác thực user)
   firebase_auth: ^6.1.0
 
-  # ✅ Firestore (nếu muốn lưu thêm thông tin user, vé xe…)
+  # Firestore (nếu muốn lưu thêm thông tin user, vé xe…)
   cloud_firestore: ^6.0.2
 
-  # ✅ Google Fonts for custom typography
+  # Google Fonts for custom typography
   google_fonts: ^6.3.2
 
-  # ✅ Image Picker for selecting images from gallery or camera
+  # Image Picker for selecting images from gallery or camera
   image_picker: ^1.1.2
 
-  # ✅ Cache ảnh từ network (tối ưu avatar loading)
+  # Cache ảnh từ network (tối ưu avatar loading)
   cached_network_image: ^3.4.1
   flutter_cache_manager: ^3.4.1  # Đã thêm để giải quyết lỗi depend_on_referenced_packages
 
-  # ✅ Bloc cho quản lý trạng thái
+  # Bloc cho quản lý trạng thái
   flutter_bloc: ^9.1.1
   equatable: ^2.0.7
 
-  # ✅ Thêm logger để thay thế print trong debug
+  # Thêm logger để thay thế print trong debug
   logger: ^1.1.0
+
+  # Mở link MoMo thanh toán trong trình duyệt
+  url_launcher: ^6.2.6
 
 dev_dependencies:
   flutter_test:
@@ -56,7 +59,7 @@ dev_dependencies:
 flutter:
   uses-material-design: true
 
-  # ✅ Khai báo đường dẫn ảnh (logo, background,…)
+  # Khai báo đường dẫn ảnh (logo, background,…)
   assets:
     - assets/images/default.png
     - assets/images/bus_logo.png

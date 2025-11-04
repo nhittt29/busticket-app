@@ -39,12 +39,37 @@ class TripListScreen extends StatelessWidget {
               itemCount: trips.length,
               itemBuilder: (context, index) {
                 final trip = trips[index];
-                return TripCard(
-                  trip: trip,
-                  onTap: () {
-                    context.read<BookingCubit>().selectTrip(trip);
-                    Navigator.pushNamed(context, '/select-bus', arguments: trip.id);
-                  },
+                return Column(
+                  children: [
+                    TripCard(
+                      trip: trip,
+                      onTap: () {
+                        context.read<BookingCubit>().selectTrip(trip);
+                        Navigator.pushNamed(context, '/select-bus', arguments: trip.id);
+                      },
+                    ),
+                    // HIỂN THỊ CẢNH BÁO NẾU FEW_SEATS
+                    if (trip.status == 'FEW_SEATS')
+                      Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.shade100,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.orange),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.warning, size: 16, color: Colors.orange.shade700),
+                            const SizedBox(width: 6),
+                            Text(
+                              'Còn ít ghế trống!',
+                              style: TextStyle(color: Colors.orange.shade700, fontSize: 12, fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
                 );
               },
             ),

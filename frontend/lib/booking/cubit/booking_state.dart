@@ -96,6 +96,7 @@ class Trip {
   final double price;
   final String category;
   final String seatType;
+  final String status; // THÊM: UPCOMING, FULL, FEW_SEATS
 
   const Trip({
     required this.id,
@@ -105,6 +106,7 @@ class Trip {
     required this.price,
     required this.category,
     required this.seatType,
+    required this.status,
   });
 
   factory Trip.fromJson(Map<String, dynamic> json) {
@@ -116,6 +118,7 @@ class Trip {
       price: _safeToDouble(json['lowestPrice'] ?? 0),
       category: (json['bus']?['category'] as String?) ?? 'Standard',
       seatType: (json['bus']?['seatType'] as String?) ?? 'SEAT',
+      status: (json['status'] as String?) ?? 'UPCOMING',
     );
   }
 
