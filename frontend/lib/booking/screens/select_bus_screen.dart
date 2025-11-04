@@ -21,6 +21,7 @@ class _SelectBusScreenState extends State<SelectBusScreen> {
   @override
   void initState() {
     super.initState();
+    // SỬA: GỌI loadSeats với đúng scheduleId
     context.read<BookingCubit>().loadSeats(widget.scheduleId);
   }
 
@@ -156,7 +157,6 @@ class _SelectBusScreenState extends State<SelectBusScreen> {
     );
   }
 
-  // === CẬP NHẬT: Hiển thị ghế trống + Nút Xóa tất cả ===
   Widget _buildBottomBar(BookingState state) {
     final availableSeats = state.seats.where((s) => s.isAvailable).length;
 
@@ -168,7 +168,6 @@ class _SelectBusScreenState extends State<SelectBusScreen> {
       ),
       child: Column(
         children: [
-          // HÀNG 1: Thông tin ghế + tiền
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -181,11 +180,8 @@ class _SelectBusScreenState extends State<SelectBusScreen> {
             ],
           ),
           const SizedBox(height: 12),
-
-          // HÀNG 2: Nút Xóa + Tiếp theo
           Row(
             children: [
-              // NÚT XÓA TẤT CẢ
               Expanded(
                 child: OutlinedButton(
                   onPressed: state.selectedSeats.isEmpty
@@ -201,7 +197,6 @@ class _SelectBusScreenState extends State<SelectBusScreen> {
                 ),
               ),
               const SizedBox(width: 12),
-              // NÚT TIẾP THEO
               Expanded(
                 flex: 2,
                 child: ElevatedButton(
@@ -566,7 +561,6 @@ class _SeatLayout28FormState extends State<SeatLayout28Form> {
                     ),
                     const SizedBox(height: 10),
 
-                    // ICON TÀI XẾ
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -586,14 +580,12 @@ class _SeatLayout28FormState extends State<SeatLayout28Form> {
 
                     const SizedBox(height: 16),
 
-                    // === 6 HÀNG ĐẦU (1–6): 2-2 CỘT TRÁI/PHẢI ===
                     for (int row = 0; row < 6; row++)
                       Padding(
                         padding: const EdgeInsets.symmetric(vertical: 10),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            // CỘT TRÁI: 2 ghế
                             Padding(
                               padding: const EdgeInsets.only(left: 35),
                               child: Row(
@@ -613,9 +605,8 @@ class _SeatLayout28FormState extends State<SeatLayout28Form> {
                               ),
                             ),
 
-                            const SizedBox(width: 70), // LỐI ĐI
+                            const SizedBox(width: 70),
 
-                            // CỘT PHẢI: 2 ghế
                             Padding(
                               padding: const EdgeInsets.only(right: 35),
                               child: Row(
@@ -638,7 +629,6 @@ class _SeatLayout28FormState extends State<SeatLayout28Form> {
                         ),
                       ),
 
-                    // === HÀNG CUỐI: 5 GHẾ – ĐỒNG SIZE VỚI 45 ===
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 10),
                       child: Row(
@@ -664,7 +654,6 @@ class _SeatLayout28FormState extends State<SeatLayout28Form> {
           ),
         ),
 
-        // NÚT ZOOM
         Container(
           padding: const EdgeInsets.symmetric(vertical: 8),
           child: Row(
@@ -756,7 +745,6 @@ class _SeatLayout45FormState extends State<SeatLayout45Form> {
 
                     const SizedBox(height: 16),
 
-                    // 6 HÀNG ĐẦU
                     for (int row = 0; row < 6; row++)
                       Padding(
                         padding: const EdgeInsets.symmetric(vertical: 10),
@@ -804,7 +792,6 @@ class _SeatLayout45FormState extends State<SeatLayout45Form> {
                         ),
                       ),
 
-                    // HÀNG 7–10
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -884,7 +871,6 @@ class _SeatLayout45FormState extends State<SeatLayout45Form> {
                       ],
                     ),
 
-                    // HÀNG 11
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 10),
                       child: Row(
