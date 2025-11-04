@@ -7,14 +7,16 @@ export enum ScheduleStatus {
   ONGOING = 'ONGOING',
   COMPLETED = 'COMPLETED',
   CANCELLED = 'CANCELLED',
+  FULL = 'FULL',
+  FEW_SEATS = 'FEW_SEATS'
 }
 
 export interface Schedule {
   id: number;
   busId: number;             // Khóa ngoại Bus
   routeId: number;           // Khóa ngoại Route
-  departureAt: Date;        // Thời gian khởi hành
-  arrivalAt: Date;         // Thời gian đến
+  departureAt: Date;         // Thời gian khởi hành
+  arrivalAt: Date;           // Thời gian đến
   status: ScheduleStatus;    // Trạng thái chuyến
   createdAt?: Date;     
   updatedAt?: Date;  

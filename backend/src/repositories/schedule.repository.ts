@@ -1,6 +1,7 @@
 // src/schedules/repositories/schedule.repository.ts
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../services/prisma.service';
+import { ScheduleStatus } from '@prisma/client';
 
 @Injectable()
 export class ScheduleRepository {
@@ -102,6 +103,14 @@ export class ScheduleRepository {
       code: seat.code,
       isBooked: schedule.tickets.some(t => t.seatId === seat.id),
     }));
+  }
+
+  // MỚI: CẬP NHẬT TRẠNG THÁI SCHEDULE
+  async updateScheduleStatus(scheduleId: number, status: ScheduleStatus) {
+    return this.prisma.schedule.update({
+      where: { id: scheduleId },
+      data: { status },
+    });
   }
 
   async deleteTicketsByScheduleId(scheduleId: number) {
