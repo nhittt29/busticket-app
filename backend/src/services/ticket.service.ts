@@ -14,6 +14,7 @@ import { TicketStatus, PaymentMethod } from '../models/Ticket';
 import { MomoService } from './momo.service';
 import { EmailService } from './email.service';
 import { QrService } from './qr.service';
+import { CreateResponse, BulkCreateResponse } from '../dtos/ticket.response.dto'; // THÊM DÒNG NÀY
 
 @Injectable()
 export class TicketService {
@@ -28,7 +29,7 @@ export class TicketService {
     @InjectQueue('ticket') private readonly ticketQueue: Queue,
   ) {}
 
-  async create(dto: CreateTicketDto): Promise<any> {
+  async create(dto: CreateTicketDto): Promise<CreateResponse> {
     const { userId, scheduleId, seatId, price } = dto;
 
     const schedule = await this.prisma.schedule.findUnique({
@@ -61,6 +62,18 @@ export class TicketService {
       message: 'Đặt vé thành công. Vui lòng thanh toán trong 15 phút.',
       ticket,
       payment: momoResponse,
+    };
+  }
+
+  async createBulk(dtos: CreateTicketDto[]): Promise<BulkCreateResponse> {
+    const results: CreateResponse[] = [];
+    for (const dto of dtos) {
+      const result = await this.create(dto);
+      results.push(result);
+    }
+    return {
+      tickets: results.map(r => r.ticket),
+      payment: results[0].payment,
     };
   }
 
@@ -126,7 +139,6 @@ export class TicketService {
   async payTicket(id: number, method: PaymentMethod, transId?: string) {
     this.logger.log(`Bắt đầu thanh toán vé #${id} - method: ${method}, transId: ${transId}`);
 
-    // ✅ SỬA: include bus + brand
     const ticket = await this.prisma.ticket.findUnique({
       where: { id },
       include: {

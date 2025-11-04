@@ -132,4 +132,12 @@ export class QrController {
       </html>
     `);
   }
+
+  @Get('generate')
+  async generate(@Query('ticketId') ticketId: string) {
+    const id = Number(ticketId);
+    if (isNaN(id)) throw new BadRequestException('ticketId không hợp lệ');
+    const qrCode = await this.qrService.generateSecureTicketQR(id);
+    return { qrCode };
+  }
 }

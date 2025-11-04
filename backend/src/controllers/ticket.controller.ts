@@ -3,6 +3,7 @@ import { Body, Controller, Delete, Get, Param, Post, Query, Redirect } from '@ne
 import { TicketService } from '../services/ticket.service';
 import { CreateTicketDto } from '../dtos/ticket.dto';
 import { PaymentMethod } from '../models/Ticket';
+import { BulkCreateResponse } from '../dtos/ticket.response.dto'; // THÊM DÒNG NÀY
 
 @Controller('tickets')
 export class TicketController {
@@ -11,6 +12,11 @@ export class TicketController {
   @Post()
   create(@Body() dto: CreateTicketDto) {
     return this.ticketService.create(dto);
+  }
+
+  @Post('bulk')
+  async createBulk(@Body() dto: { tickets: CreateTicketDto[] }): Promise<BulkCreateResponse> {
+    return this.ticketService.createBulk(dto.tickets);
   }
 
   @Get('momo/redirect')
@@ -32,7 +38,6 @@ export class TicketController {
     return this.ticketService.cancel(Number(id));
   }
 
-  // SỬA: GỌI PUBLIC METHOD + DÙNG ENUM
   @Post(':id/pay')
   pay(@Param('id') id: string) {
     return this.ticketService.payTicket(Number(id), PaymentMethod.CASH);
