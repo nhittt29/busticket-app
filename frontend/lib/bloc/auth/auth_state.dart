@@ -1,3 +1,4 @@
+// lib/bloc/auth/auth_state.dart
 import 'package:equatable/equatable.dart';
 
 class AuthState extends Equatable {
@@ -6,6 +7,7 @@ class AuthState extends Equatable {
   final String? message;
   final String? error;
   final Map<String, dynamic>? user;
+  final int? userId; // THÊM: userId
 
   const AuthState({
     this.isLoading = false,
@@ -13,6 +15,7 @@ class AuthState extends Equatable {
     this.message,
     this.error,
     this.user,
+    this.userId,
   });
 
   AuthState copyWith({
@@ -21,6 +24,7 @@ class AuthState extends Equatable {
     String? message,
     String? error,
     Map<String, dynamic>? user,
+    int? userId,
   }) {
     return AuthState(
       isLoading: isLoading ?? this.isLoading,
@@ -28,9 +32,10 @@ class AuthState extends Equatable {
       message: message,
       error: error,
       user: user ?? this.user,
+      userId: userId ?? this.userId,
     );
   }
 
   @override
-  List<Object?> get props => [isLoading, success, message, error, user];
+  List<Object?> get props => [isLoading, success, message, error, user, userId];
 }

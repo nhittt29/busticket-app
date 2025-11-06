@@ -20,6 +20,11 @@ import 'booking/screens/search_screen.dart';
 import 'booking/screens/trip_list_screen.dart';
 import 'booking/screens/select_bus_screen.dart';
 
+// THANH TOÁN
+import 'payment/screens/payment_screen.dart';
+import 'payment/screens/ticket_qr_screen.dart';
+import 'payment/screens/my_tickets_screen.dart';
+
 import 'theme/app_theme.dart';
 
 Future<void> main() async {
@@ -78,6 +83,11 @@ class MyApp extends StatelessWidget {
             }
             return SelectBusScreen(scheduleId: args);
           },
+
+          // THANH TOÁN ROUTES
+          '/payment': (context) => const PaymentScreen(),
+          '/ticket-qr': (context) => const TicketQRScreen(),
+          '/my-tickets': (context) => const MyTicketsScreen(),
         },
         onUnknownRoute: (settings) {
           return MaterialPageRoute(

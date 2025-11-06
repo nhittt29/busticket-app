@@ -1,3 +1,4 @@
+// lib/bloc/auth/auth_bloc.dart
 import 'dart:convert';
 import 'dart:io';
 import 'package:logger/logger.dart';
@@ -32,7 +33,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({"email": event.email, "password": event.password}),
       );
-
       final responseBody = jsonDecode(response.body);
       if (response.statusCode == 200) {
         if (responseBody['user']['avatar'] != null &&
@@ -44,11 +44,14 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         await prefs.setString('uid', responseBody['uid']);
         await prefs.setString('user', jsonEncode(responseBody['user']));
 
+        final userId = responseBody['user']['id'] as int; // LẤY userId
+
         emit(state.copyWith(
           isLoading: false,
           success: true,
           message: "Đăng nhập thành công",
           user: responseBody['user'],
+          userId: userId, // GÁN userId
         ));
       } else {
         throw Exception(responseBody['message'] ?? "Sai email hoặc mật khẩu");
@@ -60,7 +63,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         error: e.toString(),
       ));
     }
-    logger.i('State after login: isLoading=${state.isLoading}, success=${state.success}, user=${state.user}');
+    logger.i('State after login: isLoading=${state.isLoading}, success=${state.success}, user=${state.user}, userId=${state.userId}');
   }
 
   Future<void> _onRegister(RegisterEvent event, Emitter<AuthState> emit) async {
@@ -69,7 +72,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     try {
       var uri = Uri.parse('http://10.0.2.2:3000/api/auth/register');
       var request = http.MultipartRequest('POST', uri);
-
       request.fields['email'] = event.email;
       request.fields['password'] = event.password;
       request.fields['name'] = event.name;
@@ -78,7 +80,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
           ? event.dob!.toIso8601String().split('T')[0]
           : '';
       request.fields['gender'] = event.gender ?? 'OTHER';
-
       if (event.avatarPath != null && event.avatarPath!.isNotEmpty) {
         final file = File(event.avatarPath!);
         if (await file.exists()) {
@@ -92,10 +93,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
           logger.w('File avatar not found: ${event.avatarPath}');
         }
       }
-
       final response = await request.send();
       final body = await response.stream.bytesToString();
-
       if (response.statusCode == 201) {
         final data = jsonDecode(body);
         if (data['avatar'] != null && !data['avatar'].toString().startsWith('http')) {
@@ -108,6 +107,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
           success: true,
           message: "Đăng ký thành công",
           user: null,
+          userId: null,
         ));
       } else {
         throw Exception("Đăng ký thất bại: ${jsonDecode(body)['message'] ?? body}");
@@ -137,7 +137,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
           "newPassword": event.newPassword,
         }),
       );
-
       if (response.statusCode == 200) {
         final prefs = await SharedPreferences.getInstance();
         await prefs.clear();
@@ -146,6 +145,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
           success: true,
           message: "Đặt lại mật khẩu thành công",
           user: null,
+          userId: null,
         ));
       } else {
         throw Exception("Không thể reset mật khẩu: ${response.body}");
@@ -168,13 +168,15 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         if (userData['avatar'] != null && !userData['avatar'].toString().startsWith('http')) {
           userData['avatar'] = 'http://10.0.2.2:3000/${userData['avatar']}';
         }
+        final userId = userData['id'] as int;
         emit(state.copyWith(
           isLoading: false,
           success: true,
           user: userData,
+          userId: userId,
         ));
       } else {
-        emit(state.copyWith(isLoading: false, user: null));
+        emit(state.copyWith(isLoading: false, user: null, userId: null));
       }
     } catch (e) {
       emit(state.copyWith(
@@ -195,6 +197,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         success: true,
         message: "Đăng xuất thành công",
         user: null,
+        userId: null,
       ));
     } catch (e) {
       emit(state.copyWith(
@@ -219,11 +222,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       if (user['id'] == null) {
         throw Exception('ID người dùng không tồn tại');
       }
-
       var uri = Uri.parse('http://10.0.2.2:3000/api/auth/update-profile');
       var request = http.MultipartRequest('PUT', uri);
       request.headers['Authorization'] = 'Bearer $idToken';
-
       final userId = int.tryParse(user['id'].toString()) ?? 0;
       if (userId == 0) {
         throw Exception('ID người dùng không hợp lệ');
@@ -236,7 +237,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
           : '';
       request.fields['gender'] = event.gender ?? 'OTHER';
       logger.i('Request fields: ${request.fields}');
-
       if (event.avatarPath != null && event.avatarPath!.isNotEmpty) {
         final file = File(event.avatarPath!);
         if (await file.exists()) {
@@ -253,11 +253,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
           return;
         }
       }
-
       final response = await request.send();
       final body = await response.stream.bytesToString();
       logger.i('Response status: ${response.statusCode}, body: $body');
-
       if (response.statusCode == 200) {
         final updatedUser = jsonDecode(body);
         if (updatedUser['avatar'] != null && !updatedUser['avatar'].toString().startsWith('http')) {
@@ -269,6 +267,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
           success: true,
           message: 'Cập nhật thông tin thành công',
           user: updatedUser,
+          userId: updatedUser['id'] as int,
         ));
       } else {
         throw Exception('Cập nhật thất bại: ${jsonDecode(body)['message'] ?? body}');
