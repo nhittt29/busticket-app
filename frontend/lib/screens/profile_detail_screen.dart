@@ -1,3 +1,4 @@
+// lib/screens/profile_detail_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../bloc/auth/auth_bloc.dart';
@@ -15,13 +16,13 @@ class ProfileDetailScreen extends StatelessWidget {
     return BlocProvider(
       create: (context) => AuthBloc()..add(LoadUserEvent()),
       child: Scaffold(
-        backgroundColor: const Color(0xFFEAF6FF), // ✅ BACKGROUND XÁC NHẬN
+        backgroundColor: const Color(0xFFEAF6FF),
         appBar: AppBar(
-          backgroundColor: const Color(0xFF4CAF50), // ✅ HEADER XANH LÁ
+          backgroundColor: const Color(0xFF4CAF50),
           elevation: 0,
           centerTitle: true,
           title: const Text(
-            "Hồ sơ thành viên",
+            "Hồ sơ tài khoản",
             style: TextStyle(
               color: Colors.white,
               fontWeight: FontWeight.bold,
@@ -35,26 +36,38 @@ class ProfileDetailScreen extends StatelessWidget {
             if (state.isLoading) {
               return const Center(child: CircularProgressIndicator());
             }
-            
+
             final userData = state.user ?? user ?? {};
             final name = userData['name'] ?? 'Không có tên';
             final email = userData['email'] ?? 'Không có email';
             final phone = userData['phone'] ?? 'Chưa cập nhật số điện thoại';
-            final dob = userData['dob'] != null
-                ? (userData['dob'] is DateTime
-                    ? (userData['dob'] as DateTime).toIso8601String().split('T')[0]
-                    : userData['dob'].toString())
-                : 'Chưa cập nhật ngày sinh';
+
+            // SỬA NGÀY SINH: Chỉ lấy YYYY-MM-DD
+            String dob = 'Chưa cập nhật ngày sinh';
+            final dobValue = userData['dob'];
+            if (dobValue != null) {
+              if (dobValue is DateTime) {
+                dob = '${dobValue.year.toString().padLeft(4, '0')}-${dobValue.month.toString().padLeft(2, '0')}-${dobValue.day.toString().padLeft(2, '0')}';
+              } else if (dobValue is String) {
+                try {
+                  final parsed = DateTime.parse(dobValue);
+                  dob = '${parsed.year.toString().padLeft(4, '0')}-${parsed.month.toString().padLeft(2, '0')}-${parsed.day.toString().padLeft(2, '0')}';
+                } catch (e) {
+                  dob = dobValue.split('T')[0];
+                }
+              }
+            }
+
             final genderDisplay = _getGenderDisplay(userData['gender'] ?? 'OTHER');
             final avatarUrl = userData['avatar'] ?? 'assets/images/default.png';
 
             return SingleChildScrollView(
-              padding: const EdgeInsets.all(24), // ✅ TĂNG PADDING
+              padding: const EdgeInsets.all(24),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   const SizedBox(height: 20),
-                  
+
                   // Avatar Card
                   Card(
                     elevation: 4,
@@ -67,7 +80,7 @@ class ProfileDetailScreen extends StatelessWidget {
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
                               border: Border.all(
-                                color: Colors.grey.withOpacity(0.3),
+                                color: Colors.grey.withAlpha(77), // SỬA: withOpacity → withAlpha
                                 width: 2,
                               ),
                             ),
@@ -101,9 +114,9 @@ class ProfileDetailScreen extends StatelessWidget {
                       ),
                     ),
                   ),
-                  
+
                   const SizedBox(height: 30),
-                  
+
                   // Info Cards
                   _buildInfoCard(Icons.email_outlined, 'Email', email),
                   const SizedBox(height: 12),
@@ -112,9 +125,9 @@ class ProfileDetailScreen extends StatelessWidget {
                   _buildInfoCard(Icons.calendar_today, 'Ngày sinh', dob),
                   const SizedBox(height: 12),
                   _buildInfoCard(Icons.wc, 'Giới tính', genderDisplay),
-                  
+
                   const SizedBox(height: 40),
-                  
+
                   // Edit Button
                   SizedBox(
                     width: double.infinity,
@@ -128,7 +141,7 @@ class ProfileDetailScreen extends StatelessWidget {
                         );
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF4CAF50), // ✅ BUTTON XANH LÁ
+                        backgroundColor: const Color(0xFF4CAF50),
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -177,7 +190,7 @@ class ProfileDetailScreen extends StatelessWidget {
         leading: Icon(icon, color: const Color(0xFF0077B6)),
         title: Text(
           title,
-          style: TextStyle(
+          style: const TextStyle(
             fontWeight: FontWeight.w500,
             color: Colors.black54,
             fontSize: 14,

@@ -1,3 +1,4 @@
+// lib/screens/profile_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -16,12 +17,12 @@ class ProfileScreen extends StatelessWidget {
 
     return BlocProvider.value(
       value: homeBloc,
-      child: WillPopScope(
-        // SỬA: Bắt sự kiện nhấn back hệ thống (Android)
-        onWillPop: () async {
-          // Truyền kết quả về HomeScreen: reset về tab 0
-          Navigator.pop(context, 0);
-          return false; // Không cho hệ thống xử lý back nữa
+      child: PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, result) {
+          if (!didPop) {
+            Navigator.pop(context, 0);
+          }
         },
         child: Scaffold(
           backgroundColor: const Color(0xFFEAF6FF),
@@ -30,10 +31,9 @@ class ProfileScreen extends StatelessWidget {
             elevation: 0,
             centerTitle: true,
             leading: IconButton(
-              // SỬA: Nút back trong AppBar cũng truyền kết quả
               icon: const Icon(Icons.arrow_back, color: Colors.white),
               onPressed: () {
-                Navigator.pop(context, 0); // Truyền index 0 về Home
+                Navigator.pop(context, 0);
               },
             ),
             title: const Text(
@@ -48,10 +48,8 @@ class ProfileScreen extends StatelessWidget {
           ),
           body: BlocConsumer<HomeBloc, HomeState>(
             listener: (context, state) {
-              if (!state.loading && state.user == null) {
-                if (state.error != null) {
-                  if (kDebugMode) print('Error loading user: ${state.error}');
-                }
+              if (!state.loading && state.user == null && state.error != null) {
+                if (kDebugMode) debugPrint('Error loading user: ${state.error}');
               }
             },
             builder: (context, state) {
@@ -66,9 +64,9 @@ class ProfileScreen extends StatelessWidget {
 
               final email = user['email'] ?? '';
               final name = user['name'] ?? '';
-              String? avatarUrl = user['avatar'];
+              String avatarUrl = user['avatar'] ?? '';
 
-              if (avatarUrl != null && avatarUrl.isNotEmpty) {
+              if (avatarUrl.isNotEmpty) {
                 avatarUrl = avatarUrl.replaceAll("\\", "/");
                 if (!avatarUrl.startsWith('http')) {
                   avatarUrl = 'http://10.0.2.2:3000/$avatarUrl';
@@ -83,8 +81,7 @@ class ProfileScreen extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     const SizedBox(height: 20),
-                    
-                    // User Info Card
+
                     Container(
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
@@ -92,7 +89,7 @@ class ProfileScreen extends StatelessWidget {
                         borderRadius: BorderRadius.circular(16),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.grey.withOpacity(0.15),
+                            color: Colors.grey.withAlpha(38),
                             blurRadius: 10,
                             offset: const Offset(0, 5),
                           ),
@@ -104,13 +101,10 @@ class ProfileScreen extends StatelessWidget {
                           Container(
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              border: Border.all(
-                                color: Colors.grey.withOpacity(0.3), 
-                                width: 2
-                              ),
+                              border: Border.all(color: Colors.grey.withAlpha(77), width: 2),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.grey.withOpacity(0.1),
+                                  color: Colors.grey.withAlpha(26),
                                   blurRadius: 5,
                                   offset: const Offset(0, 2),
                                 ),
@@ -119,12 +113,12 @@ class ProfileScreen extends StatelessWidget {
                             child: ClipOval(
                               child: FadeInImage.assetNetwork(
                                 placeholder: 'assets/images/default.png',
-                                image: avatarUrl ?? 'assets/images/default.png',
+                                image: avatarUrl,
                                 width: 80,
                                 height: 80,
                                 fit: BoxFit.cover,
                                 imageErrorBuilder: (context, error, stackTrace) {
-                                  if (kDebugMode) print('Avatar load error: $error');
+                                  if (kDebugMode) debugPrint('Avatar load error: $error');
                                   return Image.asset(
                                     'assets/images/default.png',
                                     width: 80,
@@ -270,7 +264,7 @@ class ProfileScreen extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
+            color: Colors.grey.withAlpha(26),
             blurRadius: 5,
             offset: const Offset(0, 2),
           ),
@@ -286,11 +280,7 @@ class ProfileScreen extends StatelessWidget {
             fontWeight: FontWeight.w500,
           ),
         ),
-        trailing: const Icon(
-          Icons.chevron_right, 
-          color: Color(0xFF0077B6),
-          size: 24
-        ),
+        trailing: const Icon(Icons.chevron_right, color: Color(0xFF0077B6), size: 24),
         onTap: onTap,
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       ),
@@ -302,9 +292,7 @@ class ProfileScreen extends StatelessWidget {
       context: context,
       builder: (BuildContext context) {
         return Dialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           elevation: 8,
           backgroundColor: Colors.white,
           child: Container(
@@ -324,9 +312,7 @@ class ProfileScreen extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
                     TextButton(
-                      onPressed: () {
-                        Navigator.of(context).pop();
-                      },
+                      onPressed: () => Navigator.of(context).pop(),
                       style: TextButton.styleFrom(
                         backgroundColor: Colors.grey[300],
                         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
