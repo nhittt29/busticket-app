@@ -20,25 +20,32 @@ import 'booking/screens/search_screen.dart';
 import 'booking/screens/trip_list_screen.dart';
 import 'booking/screens/select_bus_screen.dart';
 
-// THANH TOÁN
 import 'payment/screens/payment_screen.dart';
 import 'payment/screens/ticket_qr_screen.dart';
 import 'payment/screens/my_tickets_screen.dart';
+import 'payment/screens/payment_success_screen.dart';
 
+import 'payment/services/deep_link_service.dart';
 import 'theme/app_theme.dart';
 
-Future<void> main() async {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
   try {
     await Firebase.initializeApp();
   } catch (e) {
-    print('Firebase initialization failed: $e');
+    debugPrint('Firebase initialization failed: $e');
   }
+
+  DeepLinkService.instance.init();
+
   runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
+
+  static final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
   @override
   Widget build(BuildContext context) {
@@ -46,15 +53,15 @@ class MyApp extends StatelessWidget {
       providers: [
         BlocProvider(create: (context) => AuthBloc()),
         BlocProvider(create: (context) => HomeBloc()),
-        BlocProvider(create: (context) => BookingCubit()), // TOÀN CỤC
+        BlocProvider(create: (context) => BookingCubit()),
       ],
       child: MaterialApp(
         title: 'BusTicket App',
         theme: AppTheme.lightTheme,
         debugShowCheckedModeBanner: false,
+        navigatorKey: navigatorKey,
         initialRoute: '/login',
         routes: {
-          // AUTH
           '/login': (context) => const LoginScreen(),
           '/register': (context) => const RegisterScreen(),
           '/forgot-password': (context) => const ForgotPasswordScreen(),
@@ -65,38 +72,28 @@ class MyApp extends StatelessWidget {
             }
             return ResetPasswordScreen(email: args['email'] as String);
           },
-
-          // HOME & PROFILE
           '/home': (context) => const HomeScreen(),
           '/profile': (context) => const ProfileScreen(),
           '/profile-detail': (context) => const ProfileDetailScreen(),
           '/edit-profile': (context) => const EditProfileScreen(),
-
-          // BOOKING ROUTES
           '/search-trips': (context) => const SearchScreen(),
           '/trip-list': (context) => const TripListScreen(),
           '/select-bus': (context) {
             final args = ModalRoute.of(context)!.settings.arguments;
-            if (args is! int) {
-              // Nếu không có hoặc sai kiểu → về tìm kiếm
-              return const SearchScreen();
-            }
+            if (args is! int) return const SearchScreen();
             return SelectBusScreen(scheduleId: args);
           },
-
-          // THANH TOÁN ROUTES
           '/payment': (context) => const PaymentScreen(),
           '/ticket-qr': (context) => const TicketQRScreen(),
           '/my-tickets': (context) => const MyTicketsScreen(),
+          '/payment-success': (context) => const PaymentSuccessScreen(),
         },
-        onUnknownRoute: (settings) {
-          return MaterialPageRoute(
-            builder: (context) => Scaffold(
-              appBar: AppBar(title: const Text('Lỗi')),
-              body: Center(child: Text('Không tìm thấy: ${settings.name}')),
-            ),
-          );
-        },
+        onUnknownRoute: (settings) => MaterialPageRoute(
+          builder: (context) => Scaffold(
+            appBar: AppBar(title: const Text('Lỗi')),
+            body: Center(child: Text('Không tìm thấy: ${settings.name}')),
+          ),
+        ),
       ),
     );
   }

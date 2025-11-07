@@ -39,7 +39,7 @@ dependencies:
 
   # Cache ảnh từ network (tối ưu avatar loading)
   cached_network_image: ^3.4.1
-  flutter_cache_manager: ^3.4.1  # Đã thêm để giải quyết lỗi depend_on_referenced_packages
+  flutter_cache_manager: ^3.4.1
 
   # Bloc cho quản lý trạng thái
   flutter_bloc: ^9.1.1
@@ -50,6 +50,9 @@ dependencies:
 
   # Mở link MoMo thanh toán trong trình duyệt
   url_launcher: ^6.2.6
+
+  # Bắt deep link khi MoMo redirect về app (payment-success)
+  app_links: ^3.5.1
 
 dev_dependencies:
   flutter_test:

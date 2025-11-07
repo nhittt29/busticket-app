@@ -115,7 +115,11 @@ class PaymentScreen extends StatelessWidget {
                 listener: (context, state) {
                   if (state is PaymentSuccess) {
                     if (state.momoPayUrl != null) {
-                      launchUrl(Uri.parse(state.momoPayUrl!));
+                      // MỞ APP MOMO THẬT – BẮT BUỘC DÙNG externalApplication
+                      launchUrl(
+                        Uri.parse(state.momoPayUrl!),
+                        mode: LaunchMode.externalApplication,
+                      );
                     } else {
                       Navigator.pushNamed(context, '/ticket-qr', arguments: state.ticketId);
                     }
@@ -139,11 +143,11 @@ class PaymentScreen extends StatelessWidget {
                           ? null
                           : () {
                               context.read<PaymentCubit>().pay(
-                                    userId: userId, // TRUYỀN userId
-                                    scheduleId: scheduleId!,
-                                    seatIds: selectedSeats.map((s) => s.id).toList(),
-                                    totalPrice: totalPrice,
-                                  );
+                                userId: userId,
+                                scheduleId: scheduleId!,
+                                seatIds: selectedSeats.map((s) => s.id).toList(),
+                                totalPrice: totalPrice,
+                              );
                             },
                       child: isLoading
                           ? const CircularProgressIndicator(color: Colors.white)
