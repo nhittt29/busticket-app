@@ -20,7 +20,7 @@ export class MomoService {
   private readonly accessKey = process.env.MOMO_ACCESS_KEY!;
   private readonly secretKey = process.env.MOMO_SECRET_KEY!;
 
-  async createPayment(ticketId: number, realPrice: number): Promise<MomoResponse> {
+  async createPayment(ticketId: number, realPrice: number, orderInfo?: string): Promise<MomoResponse> {
     const redirectUrl = process.env.MOMO_REDIRECT_URL!;
     const ipnUrl = process.env.MOMO_IPN_URL!;
 
@@ -29,12 +29,13 @@ export class MomoService {
 
     const amount = realPrice.toString();
     const displayPrice = realPrice.toLocaleString('vi-VN');
-    const orderInfo = `Thanh toán vé xe #${ticketId} - ${displayPrice}đ`;
+    const defaultOrderInfo = `Thanh toán vé xe #${ticketId} - ${displayPrice}đ`;
+    const finalOrderInfo = orderInfo || defaultOrderInfo;
 
     const requestType = 'payWithMethod';
     const paymentCode = this.getTestPaymentCode();
 
-    const rawSignature = `accessKey=${this.accessKey}&amount=${amount}&extraData=&ipnUrl=${ipnUrl}&orderId=${orderId}&orderInfo=${orderInfo}&partnerCode=${this.partnerCode}&redirectUrl=${redirectUrl}&requestId=${requestId}&requestType=${requestType}`;
+    const rawSignature = `accessKey=${this.accessKey}&amount=${amount}&extraData=&ipnUrl=${ipnUrl}&orderId=${orderId}&orderInfo=${finalOrderInfo}&partnerCode=${this.partnerCode}&redirectUrl=${redirectUrl}&requestId=${requestId}&requestType=${requestType}`;
     const signature = crypto.createHmac('sha256', this.secretKey).update(rawSignature).digest('hex');
 
     const payload = {
@@ -44,7 +45,7 @@ export class MomoService {
       requestId,
       amount,
       orderId,
-      orderInfo,
+      orderInfo: finalOrderInfo,
       redirectUrl,
       ipnUrl,
       lang: 'vi',

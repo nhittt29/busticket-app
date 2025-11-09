@@ -1,3 +1,4 @@
+// src/repositories/ticket.repository.ts
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../services/prisma.service';
 import { CreateTicketDto } from '../dtos/ticket.dto';
@@ -52,7 +53,14 @@ export class TicketRepository {
   getTicketsByUser(userId: number) {
     return this.prisma.ticket.findMany({
       where: { userId },
-      include: { schedule: true, seat: true },
+      include: {
+        schedule: {
+          include: {
+            route: true, // ĐÃ THÊM: LẤY startPoint, endPoint
+          },
+        },
+        seat: true,
+      },
     });
   }
 

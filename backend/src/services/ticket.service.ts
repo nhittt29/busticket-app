@@ -14,7 +14,7 @@ import { TicketStatus, PaymentMethod } from '../models/Ticket';
 import { MomoService } from './momo.service';
 import { EmailService } from './email.service';
 import { QrService } from './qr.service';
-import { CreateResponse, BulkCreateResponse } from '../dtos/ticket.response.dto'; // THÊM DÒNG NÀY
+import { CreateResponse, BulkCreateResponse } from '../dtos/ticket.response.dto';
 
 @Injectable()
 export class TicketService {
@@ -22,7 +22,7 @@ export class TicketService {
 
   constructor(
     private readonly ticketRepo: TicketRepository,
-    private readonly prisma: PrismaService,
+    private readonly prism: PrismaService,
     private readonly momoService: MomoService,
     private readonly emailService: EmailService,
     private readonly qrService: QrService,
@@ -32,13 +32,13 @@ export class TicketService {
   async create(dto: CreateTicketDto): Promise<CreateResponse> {
     const { userId, scheduleId, seatId, price } = dto;
 
-    const schedule = await this.prisma.schedule.findUnique({
+    const schedule = await this.prism.schedule.findUnique({
       where: { id: scheduleId },
       include: { bus: { include: { brand: true } } },
     });
     if (!schedule) throw new NotFoundException('Lịch trình không tồn tại');
 
-    const seat = await this.prisma.seat.findUnique({ where: { id: seatId } });
+    const seat = await this.prism.seat.findUnique({ where: { id: seatId } });
     if (!seat || seat.busId !== schedule.busId)
       throw new BadRequestException('Ghế không thuộc xe của lịch trình này');
 
@@ -65,15 +65,23 @@ export class TicketService {
     };
   }
 
-  async createBulk(dtos: CreateTicketDto[]): Promise<BulkCreateResponse> {
+  async createBulk(dtos: CreateTicketDto[], totalAmount: number): Promise<BulkCreateResponse> {
     const results: CreateResponse[] = [];
     for (const dto of dtos) {
       const result = await this.create(dto);
       results.push(result);
     }
+
+    const firstTicketId = results[0].ticket.id;
+    const momoResponse = await this.momoService.createPayment(
+      firstTicketId,
+      totalAmount,
+      `Thanh toán ${results.length} vé xe - ${totalAmount.toLocaleString('vi-VN')}đ`
+    );
+
     return {
       tickets: results.map(r => r.ticket),
-      payment: results[0].payment,
+      payment: momoResponse,
     };
   }
 
@@ -117,7 +125,7 @@ export class TicketService {
     }
 
     const ticketId = Number(match[1]);
-    const ticket = await this.prisma.ticket.findUnique({ where: { id: ticketId } });
+    const ticket = await this.prism.ticket.findUnique({ where: { id: ticketId } });
     if (!ticket) {
       this.logger.error(`Ticket not found: ${ticketId}`);
       return { success: false, message: 'Vé không tồn tại' };
@@ -139,12 +147,12 @@ export class TicketService {
   async payTicket(id: number, method: PaymentMethod, transId?: string) {
     this.logger.log(`Bắt đầu thanh toán vé #${id} - method: ${method}, transId: ${transId}`);
 
-    const ticket = await this.prisma.ticket.findUnique({
+    const ticket = await this.prism.ticket.findUnique({
       where: { id },
       include: {
         schedule: {
           include: {
-            route: true,
+            route: true, // ĐÃ THÊM: LẤY startPoint, endPoint
             bus: {
               include: {
                 brand: true,
@@ -166,7 +174,7 @@ export class TicketService {
 
     const qrCodeUrl = await this.qrService.generateSecureTicketQR(id);
 
-    const payment = await this.prisma.paymentHistory.create({
+    const payment = await this.prism.paymentHistory.create({
       data: {
         ticketId: id,
         method,
@@ -177,12 +185,12 @@ export class TicketService {
       },
     });
 
-    await this.prisma.$transaction([
-      this.prisma.ticket.update({
+    await this.prism.$transaction([
+      this.prism.ticket.update({
         where: { id },
         data: { status: TicketStatus.PAID, paymentId: payment.id },
       }),
-      this.prisma.seat.update({
+      this.prism.seat.update({
         where: { id: ticket.seatId },
         data: { isAvailable: false },
       }),
@@ -203,7 +211,7 @@ export class TicketService {
   }
 
   async cancel(id: number) {
-    const ticket = await this.prisma.ticket.findUnique({
+    const ticket = await this.prism.ticket.findUnique({
       where: { id },
       include: { schedule: true },
     });
@@ -212,9 +220,9 @@ export class TicketService {
     const diffHours = (new Date(ticket.schedule.departureAt).getTime() - Date.now()) / 3600000;
     if (diffHours < 2) throw new BadRequestException('Chỉ được hủy trước 2 giờ');
 
-    await this.prisma.$transaction([
-      this.prisma.ticket.update({ where: { id }, data: { status: TicketStatus.CANCELLED } }),
-      this.prisma.seat.update({ where: { id: ticket.seatId }, data: { isAvailable: true } }),
+    await this.prism.$transaction([
+      this.prism.ticket.update({ where: { id }, data: { status: TicketStatus.CANCELLED } }),
+      this.prism.seat.update({ where: { id: ticket.seatId }, data: { isAvailable: true } }),
     ]);
 
     return { message: 'Hủy vé thành công', ticketId: id };
@@ -225,7 +233,7 @@ export class TicketService {
   }
 
   async getStatus(id: number) {
-    const ticket = await this.prisma.ticket.findUnique({
+    const ticket = await this.prism.ticket.findUnique({
       where: { id },
       select: { id: true, status: true, paymentId: true, createdAt: true },
     });
@@ -234,9 +242,31 @@ export class TicketService {
   }
 
   async getPaymentHistory(ticketId: number) {
-    return this.prisma.paymentHistory.findUnique({
+    return this.prism.paymentHistory.findUnique({
       where: { ticketId },
       include: { ticket: { include: { user: true, schedule: true } } },
     });
+  }
+
+  // ĐÃ THÊM HÀM NÀY → SỬA LỖI 2339
+  async getTicketById(id: number) {
+    const ticket = await this.prism.ticket.findUnique({
+      where: { id },
+      include: {
+        schedule: {
+          include: {
+            route: true, // LẤY startPoint, endPoint
+            bus: {
+              include: { brand: true },
+            },
+          },
+        },
+        seat: true,
+        user: true,
+      },
+    });
+
+    if (!ticket) throw new NotFoundException('Vé không tồn tại');
+    return ticket;
   }
 }
