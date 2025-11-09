@@ -6,7 +6,7 @@ import '../../main.dart';
 import '../../bloc/home/home_bloc.dart';
 import '../../bloc/home/home_event.dart';
 import '../../ticket/screens/ticket_detail_screen.dart';
-import '../../ticket/services/ticket_api_service.dart'; // ĐÃ THÊM
+import '../../ticket/services/ticket_api_service.dart';
 
 class DeepLinkService {
   static final DeepLinkService _instance = DeepLinkService._();
@@ -44,8 +44,9 @@ class DeepLinkService {
 
     navigator.pushNamedAndRemoveUntil('/home', (route) => false);
 
-    // GỌI API ĐỂ LẤY DỮ LIỆU ĐẦY ĐỦ (có route)
+    // GỌI API ĐỂ LẤY DỮ LIỆU ĐẦY ĐỦ → LƯU VÀO HomeBloc ĐỂ HIỂN THỊ TRONG "Vé của tôi"
     final ticketData = await TicketApiService.getTicketDetail(ticketId);
+    homeBloc.add(SetNewTicketEvent(ticketData));
 
     Future.delayed(const Duration(milliseconds: 500), () {
       if (context.mounted) {
@@ -54,7 +55,6 @@ class DeepLinkService {
           MaterialPageRoute(
             builder: (_) => TicketDetailScreen(
               ticketId: ticketId,
-              // BỎ ticketData → DÙNG API TRỰC TIẾP TRONG TicketDetailScreen
             ),
           ),
         );
