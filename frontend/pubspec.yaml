@@ -12,47 +12,51 @@ dependencies:
     sdk: flutter
   cupertino_icons: ^1.0.8
 
-  # Gọi API backend
-  http: ^1.2.0
-
-  # MIME & HTTP Parser (fix lỗi lookupMimeType, MediaType)
+  # ────────────────────────────────
+  # 1. GỌI API & XỬ LÝ HTTP
+  # ────────────────────────────────
+  http: ^1.2.2
   mime: ^1.0.5
   http_parser: ^4.0.2
 
-  # Lưu token, uid, session
+  # ────────────────────────────────
+  # 2. LƯU TRỮ & XÁC THỰC
+  # ────────────────────────────────
   shared_preferences: ^2.5.3
-
-  # Firebase core (bắt buộc để khởi tạo Firebase)
   firebase_core: ^4.1.1
-
-  # Firebase Auth (đăng ký, đăng nhập, xác thực user)
   firebase_auth: ^6.1.0
-
-  # Firestore (nếu muốn lưu thêm thông tin user, vé xe…)
   cloud_firestore: ^6.0.2
 
-  # Google Fonts for custom typography
+  # ────────────────────────────────
+  # 3. GIAO DIỆN & HÌNH ẢNH
+  # ────────────────────────────────
   google_fonts: ^6.3.2
-
-  # Image Picker for selecting images from gallery or camera
   image_picker: ^1.1.2
-
-  # Cache ảnh từ network (tối ưu avatar loading)
   cached_network_image: ^3.4.1
   flutter_cache_manager: ^3.4.1
 
-  # Bloc cho quản lý trạng thái
+  # ────────────────────────────────
+  # 4. QUẢN LÝ TRẠNG THÁI
+  # ────────────────────────────────
   flutter_bloc: ^9.1.1
   equatable: ^2.0.7
 
-  # Thêm logger để thay thế print trong debug
-  logger: ^1.1.0
-
-  # Mở link MoMo thanh toán trong trình duyệt
+  # ────────────────────────────────
+  # 5. HỖ TRỢ THANH TOÁN & DEEP LINK
+  # ────────────────────────────────
   url_launcher: ^6.2.6
-
-  # Bắt deep link khi MoMo redirect về app (payment-success)
   app_links: ^3.5.1
+
+  # ────────────────────────────────
+  # 6. CHIA SẺ & LƯU QR
+  # ────────────────────────────────
+  share_plus: ^7.2.2
+  path_provider: ^2.1.2
+
+  # ────────────────────────────────
+  # 7. DEBUG & LOGGING
+  # ────────────────────────────────
+  logger: ^1.1.0
 
 dev_dependencies:
   flutter_test:
@@ -62,7 +66,9 @@ dev_dependencies:
 flutter:
   uses-material-design: true
 
-  # Khai báo đường dẫn ảnh (logo, background,…)
+  # ────────────────────────────────
+  # 8. TÀI NGUYÊN ẢNH
+  # ────────────────────────────────
   assets:
     - assets/images/default.png
     - assets/images/bus_logo.png

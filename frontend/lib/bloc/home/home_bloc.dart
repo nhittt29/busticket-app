@@ -1,15 +1,19 @@
+// lib/bloc/home/home_bloc.dart
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'home_event.dart';
 import 'home_state.dart';
-import '../../repositories/user_repository.dart'; // Cập nhật đường dẫn
+import '../../repositories/user_repository.dart';
 
 class HomeBloc extends Bloc<HomeEvent, HomeState> {
-  final UserRepository _userRepository = UserRepository(); // Khởi tạo đúng
+  final UserRepository _userRepository = UserRepository();
 
   HomeBloc() : super(const HomeState()) {
     on<LoadUserEvent>(_onLoadUser);
     on<LogoutEvent>(_onLogout);
+    on<ClearTicketIdEvent>(_onClearTicketId);
+    on<SetTicketIdEvent>(_onSetTicketId);
+    on<SetNewTicketEvent>(_onSetNewTicket);
   }
 
   Future<void> _onLoadUser(LoadUserEvent event, Emitter<HomeState> emit) async {
@@ -31,7 +35,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
         userData['avatar'] = avatar;
         emit(state.copyWith(loading: false, user: userData));
       } else {
-        emit(state.copyWith(loading: false, user: null)); // Sửa thành false
+        emit(state.copyWith(loading: false, user: null));
       }
     } catch (e) {
       emit(state.copyWith(loading: false, error: e.toString()));
@@ -47,5 +51,17 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
     } catch (e) {
       emit(state.copyWith(loading: false, error: e.toString()));
     }
+  }
+
+  void _onClearTicketId(ClearTicketIdEvent event, Emitter<HomeState> emit) {
+    emit(state.copyWith(ticketId: null));
+  }
+
+  void _onSetTicketId(SetTicketIdEvent event, Emitter<HomeState> emit) {
+    emit(state.copyWith(ticketId: event.ticketId));
+  }
+
+  void _onSetNewTicket(SetNewTicketEvent event, Emitter<HomeState> emit) {
+    emit(state.copyWith(newTicketData: event.ticketData));
   }
 }

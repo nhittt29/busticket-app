@@ -289,14 +289,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   final item = busFeatures[start + i];
                                   return Expanded(
                                     child: GestureDetector(
-                                      onTap: () => Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (_) => item['route'] == '/search-trips'
-                                              ? const SearchScreen()
-                                              : const Placeholder(),
-                                        ),
-                                      ),
+                                      onTap: () => Navigator.pushNamed(context, item['route']),
                                       child: Container(
                                         margin: const EdgeInsets.symmetric(horizontal: 6),
                                         decoration: BoxDecoration(
@@ -365,14 +358,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               children: [
                                 Expanded(
                                   child: GestureDetector(
-                                    onTap: () => Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (_) => item['route'] == '/search-trips'
-                                            ? const SearchScreen()
-                                            : const Placeholder(),
-                                      ),
-                                    ),
+                                    onTap: () => Navigator.pushNamed(context, item['route']),
                                     child: Container(
                                       height: 70,
                                       decoration: BoxDecoration(

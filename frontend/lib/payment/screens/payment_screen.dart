@@ -52,7 +52,6 @@ class PaymentScreen extends StatelessWidget {
           padding: const EdgeInsets.all(16),
           child: Column(
             children: [
-              // THÔNG TIN GHẾ
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -115,7 +114,6 @@ class PaymentScreen extends StatelessWidget {
                 listener: (context, state) {
                   if (state is PaymentSuccess) {
                     if (state.momoPayUrl != null) {
-                      // MỞ APP MOMO THẬT – BẮT BUỘC DÙNG externalApplication
                       launchUrl(
                         Uri.parse(state.momoPayUrl!),
                         mode: LaunchMode.externalApplication,
@@ -143,6 +141,7 @@ class PaymentScreen extends StatelessWidget {
                           ? null
                           : () {
                               context.read<PaymentCubit>().pay(
+                                context: context, // ĐÃ THÊM
                                 userId: userId,
                                 scheduleId: scheduleId!,
                                 seatIds: selectedSeats.map((s) => s.id).toList(),
