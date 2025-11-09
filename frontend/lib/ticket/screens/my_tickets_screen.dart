@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../bloc/auth/auth_bloc.dart';
 import '../cubit/ticket_cubit.dart';
 import '../cubit/ticket_state.dart';
+import '../widgets/ticket_card.dart';
 import 'ticket_detail_screen.dart';
 
 class MyTicketsScreen extends StatefulWidget {
@@ -87,44 +88,21 @@ class _MyTicketsScreenState extends State<MyTicketsScreen> {
                 padding: const EdgeInsets.all(12),
                 itemCount: tickets.length,
                 itemBuilder: (context, index) {
-                  final ticket = tickets[index];
-                  final isPaid = ticket['status'] == 'PAID';
-                  final route = ticket['schedule']?['route'];
-                  final startPoint = route?['startPoint']?.toString() ?? 'Không rõ';
-                  final endPoint = route?['endPoint']?.toString() ?? 'Không rõ';
-                  final seatCode = ticket['seat']?['code']?.toString() ?? 'N/A';
-                  final departureAt = ticket['schedule']?['departureAt']?.toString() ?? '';
-                  final ticketId = ticket['id'];
+                  final ticket = tickets[index] as Map<String, dynamic>;
+                  final ticketId = ticket['id'] as int?;
 
-                  return Card(
-                    color: ticketId == _highlightTicketId ? Colors.green.withAlpha(26) : null,
-                    margin: const EdgeInsets.only(bottom: 12),
-                    child: ListTile(
-                      onTap: () {
+                  return TicketCard(
+                    ticket: ticket,
+                    onTap: () {
+                      if (ticketId != null) {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
                             builder: (_) => TicketDetailScreen(ticketId: ticketId),
                           ),
                         );
-                      },
-                      leading: CircleAvatar(
-                        backgroundColor: _getColor(ticket['status'] ?? 'UNKNOWN'),
-                        child: Text('#$ticketId', style: const TextStyle(color: Colors.white, fontSize: 10)),
-                      ),
-                      title: Text('$startPoint to $endPoint', style: const TextStyle(fontWeight: FontWeight.bold)),
-                      subtitle: Text('$seatCode • ${_formatDate(departureAt)}'),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          if (isPaid) const Icon(Icons.qr_code, color: Colors.green),
-                          Chip(
-                            label: Text(_getStatusText(ticket['status'] ?? 'UNKNOWN'), style: const TextStyle(fontSize: 10)),
-                            backgroundColor: _getColor(ticket['status'] ?? 'UNKNOWN').withAlpha(51),
-                          ),
-                        ],
-                      ),
-                    ),
+                      }
+                    },
                   );
                 },
               );
@@ -134,33 +112,5 @@ class _MyTicketsScreenState extends State<MyTicketsScreen> {
         ),
       ),
     );
-  }
-
-  Color _getColor(String status) {
-    switch (status) {
-      case 'PAID': return const Color(0xFF66BB6A);
-      case 'BOOKED': return Colors.orange;
-      case 'CANCELLED': return Colors.red;
-      default: return Colors.grey;
-    }
-  }
-
-  String _getStatusText(String status) {
-    switch (status) {
-      case 'PAID': return 'Đã thanh toán';
-      case 'BOOKED': return 'Đang chờ';
-      case 'CANCELLED': return 'Đã hủy';
-      default: return status;
-    }
-  }
-
-  String _formatDate(String iso) {
-    if (iso.isEmpty) return 'Không rõ';
-    try {
-      final date = DateTime.parse(iso).toLocal();
-      return '${date.day}/${date.month} ${date.hour}h${date.minute.toString().padLeft(2, '0')}';
-    } catch (e) {
-      return 'Không rõ';
-    }
   }
 }

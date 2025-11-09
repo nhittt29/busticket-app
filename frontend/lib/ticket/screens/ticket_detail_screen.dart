@@ -71,7 +71,7 @@ class TicketDetailScreen extends StatelessWidget {
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   children: [
-                    _info('Tuyến', '$startPoint to $endPoint'),
+                    _info('Tuyến', '$startPoint đến $endPoint'),
                     _info('Giờ đi', _formatDate(departureAt)),
                     _info('Ghế', seatCode),
                     _info('Giá', '$priceđ'),
