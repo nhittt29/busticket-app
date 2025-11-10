@@ -90,7 +90,6 @@ class _MyTicketsScreenState extends State<MyTicketsScreen> {
                 itemBuilder: (context, index) {
                   final ticket = tickets[index] as Map<String, dynamic>;
                   final ticketId = ticket['id'] as int?;
-
                   return TicketCard(
                     ticket: ticket,
                     onTap: () {

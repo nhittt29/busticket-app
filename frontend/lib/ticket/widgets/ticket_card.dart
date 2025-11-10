@@ -25,10 +25,10 @@ class TicketCard extends StatelessWidget {
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       elevation: 4,
-      color: Colors.white, // Nền trắng nổi bật trên nền xanh nhạt
+      color: Colors.white,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(14),
-        side: const BorderSide(color: Color(0xFFE0E0E0), width: 1), // Viền nhẹ
+        side: const BorderSide(color: Color(0xFFE0E0E0), width: 1),
       ),
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -50,7 +50,7 @@ class TicketCard extends StatelessWidget {
           style: const TextStyle(
             fontWeight: FontWeight.bold,
             fontSize: 15,
-            color: Color(0xFF023E8A), // Xanh đậm – hợp với logo
+            color: Color(0xFF023E8A),
           ),
         ),
         subtitle: Text(
@@ -96,11 +96,11 @@ class TicketCard extends StatelessWidget {
   Color _getStatusColor(String status) {
     switch (status) {
       case 'PAID':
-        return const Color(0xFF66BB6A); // Xanh lá
+        return const Color(0xFF66BB6A);
       case 'BOOKED':
-        return const Color(0xFFFFA726); // Cam sáng
+        return const Color(0xFFFFA726);
       case 'CANCELLED':
-        return const Color(0xFFEF5350); // Đỏ tươi
+        return const Color(0xFFEF5350);
       default:
         return Colors.grey;
     }

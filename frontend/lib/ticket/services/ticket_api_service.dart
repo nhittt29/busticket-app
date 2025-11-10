@@ -22,6 +22,19 @@ class TicketApiService {
     throw Exception('Không tải được chi tiết vé');
   }
 
+  // MỚI: LẤY CHI TIẾT THANH TOÁN (có qrCode)
+  static Future<Map<String, dynamic>?> getPaymentDetail(int ticketId) async {
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/tickets/$ticketId/payment'));
+      if (response.statusCode == 200) {
+        return json.decode(response.body) as Map<String, dynamic>;
+      }
+    } catch (e) {
+      print('Lỗi lấy payment detail: $e');
+    }
+    return null;
+  }
+
   static Future<void> cancelTicket(int ticketId) async {
     final response = await http.delete(Uri.parse('$baseUrl/tickets/$ticketId'));
     if (response.statusCode != 200) {

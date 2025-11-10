@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../services/ticket_api_service.dart';
 import 'cancel_ticket_dialog.dart';
 
-class TicketDetailScreen extends StatelessWidget {
+class TicketDetailScreen extends StatefulWidget {
   final int ticketId;
 
   const TicketDetailScreen({
@@ -12,9 +12,24 @@ class TicketDetailScreen extends StatelessWidget {
   });
 
   @override
+  State<TicketDetailScreen> createState() => _TicketDetailScreenState();
+}
+
+class _TicketDetailScreenState extends State<TicketDetailScreen> {
+  late Future<Map<String, dynamic>> _ticketFuture;
+  late Future<Map<String, dynamic>?> _paymentFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _ticketFuture = TicketApiService.getTicketDetail(widget.ticketId);
+    _paymentFuture = TicketApiService.getPaymentDetail(widget.ticketId);
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return FutureBuilder<Map<String, dynamic>>(
-      future: TicketApiService.getTicketDetail(ticketId), // ĐÃ SỬA: Trả về Map
+    return FutureBuilder<List<dynamic>>(
+      future: Future.wait([_ticketFuture, _paymentFuture]),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(
@@ -23,18 +38,26 @@ class TicketDetailScreen extends StatelessWidget {
           );
         }
         if (snapshot.hasError || !snapshot.hasData) {
-          return _buildError(context, 'Không tìm thấy vé', id: ticketId);
+          return _buildError(context, 'Không tìm thấy vé', id: widget.ticketId);
         }
-        return _buildFromData(context, snapshot.data!);
+
+        final ticket = snapshot.data![0] as Map<String, dynamic>;
+        final payment = snapshot.data![1] as Map<String, dynamic>?;
+
+        return _buildFromData(context, ticket, payment);
       },
     );
   }
 
-  Widget _buildFromData(BuildContext context, Map<String, dynamic> ticket) {
+  Widget _buildFromData(
+    BuildContext context,
+    Map<String, dynamic> ticket,
+    Map<String, dynamic>? payment,
+  ) {
     final isPaid = ticket['status'] == 'PAID';
-    final qrCode = ticket['payment']?['qrCode'];
-    final userId = ticket['userId'];
+    final qrCode = payment?['qrCode']?.toString(); // LẤY TỪ API /payment
 
+    final userId = ticket['userId'];
     final route = ticket['schedule']?['route'];
     final startPoint = route?['startPoint']?.toString() ?? 'Không rõ';
     final endPoint = route?['endPoint']?.toString() ?? 'Không rõ';
@@ -52,21 +75,35 @@ class TicketDetailScreen extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            if (isPaid && qrCode != null)
-              ElevatedButton.icon(
-                icon: const Icon(Icons.qr_code_2),
-                label: const Text('Xem mã QR'),
-                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF66BB6A)),
-                onPressed: () {
-                  Navigator.pushNamed(
-                    context,
-                    '/ticket-qr',
-                    arguments: {'qrUrl': qrCode, 'ticket': ticket},
-                  );
-                },
+            // NÚT XEM MÃ QR – CHỈ HIỆN KHI CÓ qrCode TỪ PAYMENT
+            if (isPaid && qrCode != null && qrCode.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    icon: const Icon(Icons.qr_code_2, size: 28),
+                    label: const Text('Xem mã QR', style: TextStyle(fontSize: 18)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF66BB6A),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    onPressed: () {
+                      Navigator.pushNamed(
+                        context,
+                        '/ticket-qr',
+                        arguments: {'qrUrl': qrCode, 'ticket': ticket},
+                      );
+                    },
+                  ),
+                ),
               ),
-            const SizedBox(height: 16),
+
+            const SizedBox(height: 8),
             Card(
+              elevation: 3,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(
@@ -76,8 +113,8 @@ class TicketDetailScreen extends StatelessWidget {
                     _info('Ghế', seatCode),
                     _info('Giá', '$priceđ'),
                     _info('Trạng thái', _statusText(ticket['status']), color: _statusColor(ticket['status'])),
-                    if (ticket['payment']?['transactionId'] != null)
-                      _info('Mã giao dịch', ticket['payment']['transactionId']),
+                    if (payment?['transactionId'] != null)
+                      _info('Mã giao dịch', payment!['transactionId']),
                   ],
                 ),
               ),
@@ -130,12 +167,12 @@ class TicketDetailScreen extends StatelessWidget {
   }
 
   Widget _info(String label, String value, {Color? color}) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 6),
+        padding: const EdgeInsets.symmetric(vertical: 8),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(label, style: TextStyle(color: Colors.grey[600])),
-            Text(value, style: TextStyle(fontWeight: FontWeight.bold, color: color)),
+            Text(label, style: TextStyle(color: Colors.grey[600], fontSize: 15)),
+            Text(value, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: color)),
           ],
         ),
       );
