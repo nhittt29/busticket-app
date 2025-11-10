@@ -13,7 +13,6 @@ class TicketApiService {
     throw Exception('Không thể tải danh sách vé');
   }
 
-  // ĐÃ SỬA: Trả về Map<String, dynamic>
   static Future<Map<String, dynamic>> getTicketDetail(int ticketId) async {
     final response = await http.get(Uri.parse('$baseUrl/tickets/$ticketId'));
     if (response.statusCode == 200) {
@@ -22,12 +21,14 @@ class TicketApiService {
     throw Exception('Không tải được chi tiết vé');
   }
 
-  // MỚI: LẤY CHI TIẾT THANH TOÁN (có qrCode)
+  // ĐÃ SỬA: BẮT LỖI JSON RỖNG + TRIM + TRY-CATCH
   static Future<Map<String, dynamic>?> getPaymentDetail(int ticketId) async {
     try {
       final response = await http.get(Uri.parse('$baseUrl/tickets/$ticketId/payment'));
       if (response.statusCode == 200) {
-        return json.decode(response.body) as Map<String, dynamic>;
+        final body = response.body.trim();
+        if (body.isEmpty) return null;
+        return json.decode(body) as Map<String, dynamic>;
       }
     } catch (e) {
       print('Lỗi lấy payment detail: $e');
@@ -38,7 +39,9 @@ class TicketApiService {
   static Future<void> cancelTicket(int ticketId) async {
     final response = await http.delete(Uri.parse('$baseUrl/tickets/$ticketId'));
     if (response.statusCode != 200) {
-      throw Exception('Hủy vé thất bại');
+      final errorBody = response.body.isNotEmpty ? json.decode(response.body) : {};
+      final message = errorBody['message'] ?? 'Hủy vé thất bại';
+      throw Exception(message);
     }
   }
 }

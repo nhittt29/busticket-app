@@ -28,23 +28,28 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<List<dynamic>>(
-      future: Future.wait([_ticketFuture, _paymentFuture]),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
+    return FutureBuilder<Map<String, dynamic>>(
+      future: _ticketFuture,
+      builder: (context, ticketSnapshot) {
+        if (ticketSnapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(
             backgroundColor: Color(0xFFEAF6FF),
             body: Center(child: CircularProgressIndicator()),
           );
         }
-        if (snapshot.hasError || !snapshot.hasData) {
+        if (ticketSnapshot.hasError || !ticketSnapshot.hasData) {
           return _buildError(context, 'Không tìm thấy vé', id: widget.ticketId);
         }
 
-        final ticket = snapshot.data![0] as Map<String, dynamic>;
-        final payment = snapshot.data![1] as Map<String, dynamic>?;
+        final ticket = ticketSnapshot.data!;
 
-        return _buildFromData(context, ticket, payment);
+        return FutureBuilder<Map<String, dynamic>?>(
+          future: _paymentFuture,
+          builder: (context, paymentSnapshot) {
+            final payment = paymentSnapshot.data;
+            return _buildFromData(context, ticket, payment);
+          },
+        );
       },
     );
   }
@@ -55,7 +60,7 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
     Map<String, dynamic>? payment,
   ) {
     final isPaid = ticket['status'] == 'PAID';
-    final qrCode = payment?['qrCode']?.toString(); // LẤY TỪ API /payment
+    final qrCode = payment?['qrCode']?.toString();
 
     final userId = ticket['userId'];
     final route = ticket['schedule']?['route'];
@@ -65,17 +70,19 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
     final seatCode = ticket['seat']?['code']?.toString() ?? 'N/A';
     final price = (ticket['price'] as num?)?.toStringAsFixed(0) ?? '0';
 
+    final canCancel = _canCancelTicket(departureAt);
+
     return Scaffold(
       backgroundColor: const Color(0xFFEAF6FF),
       appBar: AppBar(
         title: Text('Vé #${ticket['id']}'),
         backgroundColor: const Color(0xFFEAF6FF),
+        elevation: 0,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            // NÚT XEM MÃ QR – CHỈ HIỆN KHI CÓ qrCode TỪ PAYMENT
             if (isPaid && qrCode != null && qrCode.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.only(bottom: 16),
@@ -88,6 +95,7 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
                       backgroundColor: const Color(0xFF66BB6A),
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      elevation: 3,
                     ),
                     onPressed: () {
                       Navigator.pushNamed(
@@ -120,7 +128,8 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
               ),
             ),
             const SizedBox(height: 24),
-            if (ticket['status'] == 'BOOKED')
+
+            if (ticket['status'] == 'BOOKED' && canCancel)
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
@@ -131,8 +140,39 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
                       userId: userId,
                     ),
                   ),
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                  child: const Text('Hủy vé', style: TextStyle(fontSize: 18)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    elevation: 3,
+                  ),
+                  child: const Text('Hủy vé', style: TextStyle(fontSize: 18, color: Colors.white)),
+                ),
+              ),
+
+            if (ticket['status'] == 'BOOKED' && !canCancel)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.shade50,
+                    border: Border.all(color: Colors.orange.shade300),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.access_time, color: Colors.orange.shade700, size: 20),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Không thể hủy vé: Chỉ được hủy trước 2 giờ khởi hành.',
+                          style: TextStyle(color: Colors.orange.shade800, fontSize: 14, fontWeight: FontWeight.w500),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
           ],
@@ -141,10 +181,22 @@ class _TicketDetailScreenState extends State<TicketDetailScreen> {
     );
   }
 
+  bool _canCancelTicket(String departureAtIso) {
+    if (departureAtIso.isEmpty) return false;
+    try {
+      final departure = DateTime.parse(departureAtIso).toLocal();
+      final now = DateTime.now();
+      final diffHours = departure.difference(now).inMinutes / 60.0;
+      return diffHours >= 2.0;
+    } catch (e) {
+      return false;
+    }
+  }
+
   Widget _buildError(BuildContext context, String message, {int? id}) {
     return Scaffold(
       backgroundColor: const Color(0xFFEAF6FF),
-      appBar: AppBar(title: const Text('Chi tiết vé'), backgroundColor: const Color(0xFFEAF6FF)),
+      appBar: AppBar(title: const Text('Chi tiết vé'), backgroundColor: const Color(0xFFEAF6FF), elevation: 0),
       body: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
