@@ -152,7 +152,7 @@ export class TicketService {
       include: {
         schedule: {
           include: {
-            route: true, // ĐÃ THÊM: LẤY startPoint, endPoint
+            route: true,
             bus: {
               include: {
                 brand: true,
@@ -217,6 +217,11 @@ export class TicketService {
     });
     if (!ticket) throw new NotFoundException('Vé không tồn tại');
 
+    // ĐÃ THÊM: KIỂM TRA TRẠNG THÁI BOOKED
+    if (ticket.status !== TicketStatus.BOOKED) {
+      throw new BadRequestException('Chỉ được hủy vé đang chờ thanh toán');
+    }
+
     const diffHours = (new Date(ticket.schedule.departureAt).getTime() - Date.now()) / 3600000;
     if (diffHours < 2) throw new BadRequestException('Chỉ được hủy trước 2 giờ');
 
@@ -255,7 +260,7 @@ export class TicketService {
       include: {
         schedule: {
           include: {
-            route: true, // LẤY startPoint, endPoint
+            route: true,
             bus: {
               include: { brand: true },
             },
