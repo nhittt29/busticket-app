@@ -1,3 +1,4 @@
+// lib/cubit/booking_cubit.dart
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../services/booking_api_service.dart';
 import 'booking_state.dart';
@@ -21,12 +22,12 @@ class BookingCubit extends Cubit<BookingState> {
         state.to,
         state.date,
       );
-
-      // ẨN CHUYẾN < 60 PHÚT (NEAR_DEPARTURE) + FULL
+      // ẨN CHUYẾN ĐÃ CHẠY HOẶC ĐÃ ĐẾN NƠI + FULL
       final filteredTrips = trips.where((t) {
-        return t.status != 'FULL' && t.status != 'NEAR_DEPARTURE';
+        return t.status != 'FULL' && 
+               t.status != 'ONGOING' && 
+               t.status != 'COMPLETED';
       }).toList();
-
       emit(state.copyWith(trips: filteredTrips, loading: false));
     } catch (e) {
       emit(state.copyWith(error: e.toString(), loading: false));

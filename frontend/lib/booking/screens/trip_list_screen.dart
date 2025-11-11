@@ -1,3 +1,4 @@
+// lib/screens/trip_list_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../cubit/booking_cubit.dart';
@@ -14,8 +15,13 @@ class TripListScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final trips = ModalRoute.of(context)!.settings.arguments as List<Trip>;
-    // LỌC CHỈ HIỂN THỊ CHUYẾN CÒN ĐẶT ĐƯỢC
-    final bookableTrips = trips.where((t) => !t.isNearDeparture).toList();
+    // CHỈ HIỂN THỊ CHUYẾN CÒN ĐẶT ĐƯỢC
+    final bookableTrips = trips.where((t) {
+      return t.status == 'UPCOMING' || 
+             t.status == 'FULL' || 
+             t.status == 'FEW_SEATS';
+    }).toList();
+
     return Scaffold(
       backgroundColor: backgroundLight,
       appBar: AppBar(
@@ -51,7 +57,7 @@ class TripListScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   const Text(
-                    'Các chuyến gần giờ khởi hành đã bị ẩn.',
+                    'Các chuyến đã chạy hoặc gần giờ khởi hành đã bị ẩn.',
                     style: TextStyle(fontSize: 14, color: Colors.grey),
                   ),
                 ],

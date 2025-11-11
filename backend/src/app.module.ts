@@ -1,6 +1,7 @@
 // src/app.module.ts
 import { Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bull';
+import { ScheduleModule as NestScheduleModule } from '@nestjs/schedule';
 
 import { AuthController } from './controllers/auth.controller';
 import { AuthService } from './services/auth.service';
@@ -23,6 +24,9 @@ import { SeatModule } from './modules/seat.module';
         port: 6379,
       },
     }),
+
+    // MỚI: KÍCH HOẠT CRONJOB CHO SCHEDULE
+    NestScheduleModule.forRoot(),
 
     // Các module nghiệp vụ
     BusModule,
