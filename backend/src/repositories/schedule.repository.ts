@@ -1,4 +1,3 @@
-// src/schedules/repositories/schedule.repository.ts
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../services/prisma.service';
 import { ScheduleStatus } from '@prisma/client';
@@ -19,13 +18,15 @@ export class ScheduleRepository {
     });
   }
 
-  // LỌC CHÍNH XÁC: NƠI ĐI, NƠI ĐẾN, NGÀY
+  // LỌC CHÍNH XÁC: NƠI ĐI, NƠI ĐẾN, NGÀY (DD/MM/YYYY) + CHỈ HIỆN CHUYẾN CHƯA CHẠY
+  // + XỬ LÝ MÚI GIỜ +07:00 & CHUYẾN ĐÊM (23:30 hôm nay → hiện ngày mai)
   async getAllSchedules(query?: {
     startPoint?: string;
     endPoint?: string;
     date?: string;
   }) {
     const where: any = { AND: [] };
+    const now = new Date(); // LẤY THỜI GIAN HIỆN TẠI (UTC)
 
     if (query?.startPoint) {
       where.AND.push({
@@ -50,9 +51,16 @@ export class ScheduleRepository {
     }
 
     if (query?.date) {
-      const startOfDay = new Date(query.date);
-      const endOfDay = new Date(startOfDay);
-      endOfDay.setHours(23, 59, 59, 999);
+      // CHUẨN HÓA DD/MM/YYYY → YYYY-MM-DD + MÚI GIỜ +07:00
+      const [day, month, year] = query.date.split('/');
+      const localDate = new Date(`${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T00:00:00+07:00`);
+
+      const startOfDay = new Date(localDate);
+      startOfDay.setHours(0, 0, 0, 0);
+
+      // CHO PHÉP CHUYẾN ĐÊM: +48 GIỜ ĐỂ BAO QUÁT 23:30 HÔM QUA
+      const endOfDay = new Date(localDate);
+      endOfDay.setHours(47, 59, 59, 999); // 00:00 ngày search → 23:59 ngày kế tiếp
 
       where.AND.push({
         departureAt: {
@@ -61,6 +69,13 @@ export class ScheduleRepository {
         },
       });
     }
+
+    // MỚI: CHỈ HIỆN CHUYẾN CHƯA CHẠY (departureAt > now)
+    where.AND.push({
+      departureAt: {
+        gt: now, // ẨN TẤT CẢ CHUYẾN ĐÃ CHẠY
+      },
+    });
 
     return this.prisma.schedule.findMany({
       where,

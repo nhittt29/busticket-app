@@ -1,4 +1,3 @@
-// src/schedules/services/schedule.service.ts
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { ScheduleRepository } from '../repositories/schedule.repository';
 import { CreateScheduleDto } from '../dtos/schedule.dto';

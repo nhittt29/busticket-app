@@ -1,4 +1,3 @@
-// lib/booking/cubit/booking_state.dart
 import 'package:equatable/equatable.dart';
 
 class BookingState extends Equatable {
@@ -8,7 +7,6 @@ class BookingState extends Equatable {
   final bool loading;
   final List<Trip> trips;
   final String? error;
-
   final List<Seat> seats;
   final List<Seat> selectedSeats;
   final double totalPrice;
@@ -91,12 +89,12 @@ class BookingState extends Equatable {
 class Trip {
   final int id;
   final String busName;
-  final String departure;
+  final String departure; // ISO string: "2025-11-11T20:00:00Z"
   final String arrival;
   final double price;
   final String category;
   final String seatType;
-  final String status; // THÊM: UPCOMING, FULL, FEW_SEATS
+  final String status; // UPCOMING, FULL, FEW_SEATS, NEAR_DEPARTURE
 
   const Trip({
     required this.id,
@@ -128,6 +126,14 @@ class Trip {
     if (value is String) return double.tryParse(value) ?? 0.0;
     return 0.0;
   }
+
+  // ĐÃ THÊM: Tính thời gian còn lại (giờ)
+  Duration get timeUntilDeparture {
+    final departureTime = DateTime.parse(departure).toLocal();
+    return departureTime.difference(DateTime.now());
+  }
+
+  bool get isNearDeparture => timeUntilDeparture.inMinutes < 60 && timeUntilDeparture.isNegative == false;
 }
 
 // MODEL: Ghế (seat)
@@ -155,7 +161,7 @@ class Seat {
   factory Seat.fromJson(Map<String, dynamic> json) {
     return Seat(
       id: json['id'] as int,
-      seatNumber: (json['seatNumber'] ?? json['code'] ?? '').toString(), // HỖ TRỢ CẢ seatNumber VÀ code
+      seatNumber: (json['seatNumber'] ?? json['code'] ?? '').toString(),
       type: (json['seatType'] as String?) ?? 'SEAT',
       status: (json['isAvailable'] == true) ? 'AVAILABLE' : 'BOOKED',
       price: _safeToDouble(json['price'] ?? 0),

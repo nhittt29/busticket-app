@@ -1,4 +1,3 @@
-// lib/booking/screens/trip_list_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../cubit/booking_cubit.dart';
@@ -15,7 +14,8 @@ class TripListScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final trips = ModalRoute.of(context)!.settings.arguments as List<Trip>;
-
+    // LỌC CHỈ HIỂN THỊ CHUYẾN CÒN ĐẶT ĐƯỢC
+    final bookableTrips = trips.where((t) => !t.isNearDeparture).toList();
     return Scaffold(
       backgroundColor: backgroundLight,
       appBar: AppBar(
@@ -27,18 +27,41 @@ class TripListScreen extends StatelessWidget {
           children: [
             Image.asset('assets/images/bus_logo.png', height: 30),
             const SizedBox(width: 8),
-            const Text("Chọn chuyến xe", style: TextStyle(color: Color(0xFF023E8A), fontWeight: FontWeight.bold, fontSize: 24)),
+            const Text(
+              "Chọn chuyến xe",
+              style: TextStyle(color: Color(0xFF023E8A), fontWeight: FontWeight.bold, fontSize: 24),
+            ),
           ],
         ),
-        leading: IconButton(icon: const Icon(Icons.arrow_back, color: iconBlue), onPressed: () => Navigator.pop(context)),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: iconBlue),
+          onPressed: () => Navigator.pop(context),
+        ),
       ),
-      body: trips.isEmpty
-          ? const Center(child: Text('Không tìm thấy chuyến xe', style: TextStyle(fontSize: 16)))
+      body: bookableTrips.isEmpty
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.event_busy, size: 64, color: Colors.grey.shade400),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Không có chuyến xe nào có thể đặt',
+                    style: TextStyle(fontSize: 16, color: Colors.grey),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Các chuyến gần giờ khởi hành đã bị ẩn.',
+                    style: TextStyle(fontSize: 14, color: Colors.grey),
+                  ),
+                ],
+              ),
+            )
           : ListView.builder(
               padding: const EdgeInsets.all(16),
-              itemCount: trips.length,
+              itemCount: bookableTrips.length,
               itemBuilder: (context, index) {
-                final trip = trips[index];
+                final trip = bookableTrips[index];
                 return Column(
                   children: [
                     TripCard(

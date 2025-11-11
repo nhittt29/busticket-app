@@ -1,4 +1,3 @@
-// lib/booking/screens/search_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../cubit/booking_cubit.dart';
@@ -10,6 +9,7 @@ const Color backgroundLight = Color(0xFFEAF6FF);
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
+
   @override
   State<SearchScreen> createState() => _SearchScreenState();
 }

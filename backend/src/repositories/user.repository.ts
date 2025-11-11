@@ -5,7 +5,7 @@ import { PrismaService } from '../services/prisma.service';
 export class UserRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  // 🔹 Tạo mới người dùng
+  //Tạo mới người dùng
   async createUser(data: {
     uid: string;
     name: string;
@@ -36,7 +36,7 @@ export class UserRepository {
     });
   }
 
-  // 🔹 Lấy người dùng theo ID
+  //Lấy người dùng theo ID
   async findById(id: number) {
     return this.prisma.user.findUnique({
       where: { id },
@@ -47,7 +47,7 @@ export class UserRepository {
     });
   }
 
-  // 🔹 Lấy người dùng theo Email
+  //Lấy người dùng theo Email
   async findByEmail(email: string) {
     return this.prisma.user.findUnique({
       where: { email },
@@ -58,7 +58,7 @@ export class UserRepository {
     });
   }
 
-  // 🔹 Lấy người dùng theo UID Firebase
+  //Lấy người dùng theo UID Firebase
   async findByUid(uid: string) {
     return this.prisma.user.findUnique({
       where: { uid },
@@ -69,7 +69,7 @@ export class UserRepository {
     });
   }
 
-  // 🔹 Cập nhật thông tin người dùng
+  //Cập nhật thông tin người dùng
   async updateUser(
     id: number,
     data: Partial<{
@@ -92,14 +92,14 @@ export class UserRepository {
     });
   }
 
-  // 🔹 Xóa người dùng
+  //Xóa người dùng
   async deleteUser(id: number) {
     return this.prisma.user.delete({
       where: { id },
     });
   }
 
-  // 🔹 Lấy tất cả người dùng (phân biệt theo role nếu muốn)
+  //Lấy tất cả người dùng (phân biệt theo role nếu muốn)
   async findAll() {
     return this.prisma.user.findMany({
       include: {

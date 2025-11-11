@@ -1,4 +1,3 @@
-// lib/booking/screens/select_bus_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../cubit/booking_cubit.dart';
@@ -21,7 +20,6 @@ class _SelectBusScreenState extends State<SelectBusScreen> {
   @override
   void initState() {
     super.initState();
-    // SỬA: GỌI loadSeats với đúng scheduleId
     context.read<BookingCubit>().loadSeats(widget.scheduleId);
   }
 
@@ -73,23 +71,19 @@ class _SelectBusScreenState extends State<SelectBusScreen> {
               if (state.loadingSeats) {
                 return const Center(child: CircularProgressIndicator());
               }
-
               final ticketPrice = state.seats.isNotEmpty ? state.seats.first.price : 0.0;
               final seatCount = state.seats.length;
-
               final schedule = state.selectedTrip;
               final category = schedule?.category.toUpperCase();
               final seatType = schedule?.seatType.toUpperCase();
-
               final isBerth34 = seatCount == 34 && state.seats.any((s) => s.floor != null);
               final isBerth41 = seatCount == 41 && state.seats.any((s) => s.floor != null);
               final isSeat45 = seatCount == 45 && category == "COACH" && seatType == "SEAT";
               final isBerth45 = seatCount == 45 && !isSeat45;
               final isSeat28 = seatCount == 28;
-
               return Column(
                 children: [
-                  LegendForm(
+                  _legendForm(  // SỬA: Đổi tên thành lowerCamelCase
                     ticketPrice: ticketPrice,
                     hasSelected: state.selectedSeats.isNotEmpty,
                   ),
@@ -122,7 +116,8 @@ class _SelectBusScreenState extends State<SelectBusScreen> {
     );
   }
 
-  Widget LegendForm({required double ticketPrice, required bool hasSelected}) {
+  // SỬA: Đổi tên từ LegendForm → _legendForm (private + lowerCamelCase)
+  Widget _legendForm({required double ticketPrice, required bool hasSelected}) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.all(12),
@@ -159,7 +154,6 @@ class _SelectBusScreenState extends State<SelectBusScreen> {
 
   Widget _buildBottomBar(BookingState state) {
     final availableSeats = state.seats.where((s) => s.isAvailable).length;
-
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -241,7 +235,6 @@ class _SeatLayout41FormState extends State<SeatLayout41Form> {
     final movedSeats = lowerSeats.skip(6 * 3).take(3).toList();
     lowerSeats.removeWhere((s) => movedSeats.contains(s));
     lastRowUpperSeats.addAll(movedSeats);
-
     return Column(
       children: [
         Expanded(
@@ -403,7 +396,6 @@ class _SeatLayout34FormState extends State<SeatLayout34Form> {
   Widget build(BuildContext context) {
     final lowerSeats = widget.seats.where((s) => s.floor == 1).toList();
     final upperSeats = widget.seats.where((s) => s.floor == 2).toList();
-
     return Column(
       children: [
         Expanded(
@@ -474,6 +466,7 @@ class _SeatLayout34FormState extends State<SeatLayout34Form> {
   }
 
   Widget _buildFloorSide(String title, Color color, List<Seat> floorSeats) {
+    // SỬA: Thay f6 → 6 (lỗi copy-paste)
     final List<int> config = [6, 5, 6, 5, 6, 6];
     int index = 0;
     List<List<Seat>> cols = [];
@@ -537,7 +530,6 @@ class _SeatLayout28FormState extends State<SeatLayout28Form> {
   @override
   Widget build(BuildContext context) {
     final sortedSeats = List<Seat>.from(widget.seats)..sort((a, b) => a.id.compareTo(b.id));
-
     return Column(
       children: [
         Expanded(
@@ -560,7 +552,6 @@ class _SeatLayout28FormState extends State<SeatLayout28Form> {
                       style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17),
                     ),
                     const SizedBox(height: 10),
-
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -577,9 +568,7 @@ class _SeatLayout28FormState extends State<SeatLayout28Form> {
                         const Spacer(),
                       ],
                     ),
-
                     const SizedBox(height: 16),
-
                     for (int row = 0; row < 6; row++)
                       Padding(
                         padding: const EdgeInsets.symmetric(vertical: 10),
@@ -604,9 +593,7 @@ class _SeatLayout28FormState extends State<SeatLayout28Form> {
                                 ],
                               ),
                             ),
-
                             const SizedBox(width: 70),
-
                             Padding(
                               padding: const EdgeInsets.only(right: 35),
                               child: Row(
@@ -628,7 +615,6 @@ class _SeatLayout28FormState extends State<SeatLayout28Form> {
                           ],
                         ),
                       ),
-
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 10),
                       child: Row(
@@ -653,7 +639,6 @@ class _SeatLayout28FormState extends State<SeatLayout28Form> {
             ),
           ),
         ),
-
         Container(
           padding: const EdgeInsets.symmetric(vertical: 8),
           child: Row(
@@ -698,11 +683,9 @@ class _SeatLayout45FormState extends State<SeatLayout45Form> {
   @override
   Widget build(BuildContext context) {
     final sortedSeats = List<Seat>.from(widget.seats)..sort((a, b) => a.id.compareTo(b.id));
-
     final first24Seats = sortedSeats.take(24).toList();
     final next16Seats = sortedSeats.skip(24).take(16).toList();
     final last5Seats = sortedSeats.skip(40).take(5).toList();
-
     return Column(
       children: [
         Expanded(
@@ -725,7 +708,6 @@ class _SeatLayout45FormState extends State<SeatLayout45Form> {
                       style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17),
                     ),
                     const SizedBox(height: 10),
-
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -742,9 +724,7 @@ class _SeatLayout45FormState extends State<SeatLayout45Form> {
                         const Spacer(),
                       ],
                     ),
-
                     const SizedBox(height: 16),
-
                     for (int row = 0; row < 6; row++)
                       Padding(
                         padding: const EdgeInsets.symmetric(vertical: 10),
@@ -791,7 +771,6 @@ class _SeatLayout45FormState extends State<SeatLayout45Form> {
                           ],
                         ),
                       ),
-
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -870,7 +849,6 @@ class _SeatLayout45FormState extends State<SeatLayout45Form> {
                         ),
                       ],
                     ),
-
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 10),
                       child: Row(
@@ -895,7 +873,6 @@ class _SeatLayout45FormState extends State<SeatLayout45Form> {
             ),
           ),
         ),
-
         Container(
           padding: const EdgeInsets.symmetric(vertical: 8),
           child: Row(

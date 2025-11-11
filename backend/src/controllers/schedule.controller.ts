@@ -1,4 +1,3 @@
-// src/schedules/controllers/schedule.controller.ts
 import {
   Body,
   Controller,

@@ -1,4 +1,3 @@
-// lib/booking/widgets/seat_widget.dart
 import 'package:flutter/material.dart';
 import '../cubit/booking_state.dart';
 
@@ -8,7 +7,6 @@ class SeatWidget extends StatelessWidget {
   final VoidCallback onTap;
   final bool isVip;
   final double scale;
-
   const SeatWidget({
     super.key,
     required this.seat,
@@ -29,7 +27,6 @@ class SeatWidget extends StatelessWidget {
       baseColor = Colors.red;
     }
     final bool canTap = seat.status == 'AVAILABLE';
-
     return Material(
       color: Colors.transparent,
       child: InkWell(

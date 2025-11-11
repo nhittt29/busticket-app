@@ -38,6 +38,10 @@ export class TicketService {
     });
     if (!schedule) throw new NotFoundException('Lịch trình không tồn tại');
 
+    // ĐÃ THÊM: KIỂM TRA THỜI GIAN ĐẶT VÉ ≥ 1 GIỜ TRƯỚC KHI XE CHẠY
+    const diffHours = (new Date(schedule.departureAt).getTime() - Date.now()) / 3600000;
+    if (diffHours < 1) throw new BadRequestException('Chỉ được đặt vé trước 1 giờ khởi hành');
+
     const seat = await this.prism.seat.findUnique({ where: { id: seatId } });
     if (!seat || seat.busId !== schedule.busId)
       throw new BadRequestException('Ghế không thuộc xe của lịch trình này');
@@ -217,7 +221,6 @@ export class TicketService {
     });
     if (!ticket) throw new NotFoundException('Vé không tồn tại');
 
-    // ĐÃ THÊM: KIỂM TRA TRẠNG THÁI BOOKED
     if (ticket.status !== TicketStatus.BOOKED) {
       throw new BadRequestException('Chỉ được hủy vé đang chờ thanh toán');
     }
@@ -253,7 +256,6 @@ export class TicketService {
     });
   }
 
-  // ĐÃ THÊM HÀM NÀY → SỬA LỖI 2339
   async getTicketById(id: number) {
     const ticket = await this.prism.ticket.findUnique({
       where: { id },
