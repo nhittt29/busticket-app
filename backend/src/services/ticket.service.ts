@@ -10,7 +10,7 @@ import type { Queue } from 'bull';
 import { TicketRepository } from '../repositories/ticket.repository';
 import { CreateTicketDto } from '../dtos/ticket.dto';
 import { PrismaService } from '../services/prisma.service';
-import { TicketStatus, PaymentMethod } from '../models/Ticket';
+import { TicketStatus, PaymentMethod as AppPaymentMethod } from '../models/Ticket';
 import { MomoService } from './momo.service';
 import { EmailService } from './email.service';
 import { QrService } from './qr.service';
@@ -38,7 +38,6 @@ export class TicketService {
     });
     if (!schedule) throw new NotFoundException('Lịch trình không tồn tại');
 
-    // ĐÃ THÊM: KIỂM TRA THỜI GIAN ĐẶT VÉ ≥ 1 GIỜ TRƯỚC KHI XE CHẠY
     const diffHours = (new Date(schedule.departureAt).getTime() - Date.now()) / 3600000;
     if (diffHours < 1) throw new BadRequestException('Chỉ được đặt vé trước 1 giờ khởi hành');
 
@@ -106,7 +105,7 @@ export class TicketService {
 
     const ticketId = Number(match[1]);
     try {
-      await this.payTicket(ticketId, PaymentMethod.MOMO, transId);
+      await this.payTicket(ticketId, AppPaymentMethod.MOMO, transId);
       return { success: true, ticketId };
     } catch (error) {
       this.logger.error(`payTicket failed for ticket #${ticketId}:`, error);
@@ -140,7 +139,7 @@ export class TicketService {
     }
 
     try {
-      await this.payTicket(ticketId, PaymentMethod.MOMO, data.transId);
+      await this.payTicket(ticketId, AppPaymentMethod.MOMO, data.transId);
       return { success: true, ticketId };
     } catch (error) {
       this.logger.error(`payTicket failed in callback for ticket #${ticketId}:`, error);
@@ -148,7 +147,7 @@ export class TicketService {
     }
   }
 
-  async payTicket(id: number, method: PaymentMethod, transId?: string) {
+  async payTicket(id: number, method: AppPaymentMethod, transId?: string) {
     this.logger.log(`Bắt đầu thanh toán vé #${id} - method: ${method}, transId: ${transId}`);
 
     const ticket = await this.prism.ticket.findUnique({
@@ -249,11 +248,62 @@ export class TicketService {
     return ticket;
   }
 
+  // LỊCH SỬ THANH TOÁN CHI TIẾT – ĐÃ TỐI ƯU: thêm "đ" + dấu phẩy
   async getPaymentHistory(ticketId: number) {
-    return this.prism.paymentHistory.findUnique({
+    const payment = await this.prism.paymentHistory.findUnique({
       where: { ticketId },
-      include: { ticket: { include: { user: true, schedule: true } } },
+      include: {
+        ticket: {
+          include: {
+            user: { select: { name: true, phone: true } },
+            seat: { select: { seatNumber: true } },
+            schedule: {
+              include: {
+                route: { select: { startPoint: true, endPoint: true } },
+                bus: { select: { name: true } },
+              },
+            },
+          },
+        },
+      },
     });
+
+    if (!payment) throw new NotFoundException('Không tìm thấy lịch sử thanh toán');
+
+    const ticket = payment.ticket;
+    const departure = new Date(ticket.schedule.departureAt);
+    const paidAt = payment.createdAt;
+
+    return {
+      ticketCode: `V${String(ticket.id).padStart(6, '0')}`,
+      route: `${ticket.schedule.route.startPoint} → ${ticket.schedule.route.endPoint}`,
+      departureTime: `${String(departure.getHours()).padStart(2, '0')}:${String(departure.getMinutes()).padStart(2, '0')}, ${departure.toLocaleDateString('vi-VN')}`,
+      seatNumber: ticket.seat.seatNumber,
+      price: `${ticket.price.toLocaleString('vi-VN')}đ`, // THÊM "đ"
+      paymentMethod: this.formatPaymentMethod(payment.method),
+      status: payment.status === 'SUCCESS' ? 'Đã thanh toán' : 'Thất bại',
+      paidAt: `${paidAt.toLocaleString('vi-VN', {
+        hour: '2-digit',
+        minute: '2-digit',
+      })}, ${paidAt.toLocaleDateString('vi-VN', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+      })}`, // DẤU PHẨY: "04:46, 12/11/2025"
+      transactionId: payment.transactionId || '—',
+      qrCode: payment.qrCode,
+    };
+  }
+
+  // Helper: Định dạng phương thức thanh toán
+  private formatPaymentMethod(method: any): string {
+    const map: Record<string, string> = {
+      CASH: 'Tiền mặt',
+      CREDIT_CARD: 'Thẻ tín dụng',
+      MOMO: 'MoMo',
+      ZALOPAY: 'ZaloPay',
+    };
+    return map[method] || method;
   }
 
   async getTicketById(id: number) {

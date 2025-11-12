@@ -1,3 +1,4 @@
+// src/models/Ticket.ts
 import { Schedule } from './Schedule';
 import { Seat } from './Seat';
 
@@ -19,10 +20,9 @@ export interface Ticket {
   userId: number;
   scheduleId: number;
   seatId: number;
-  price: number; // Float in prisma = number in TS ✅
+  price: number;
   status: TicketStatus;
   paymentMethod?: PaymentMethod;
   createdAt?: Date;
   updatedAt?: Date;
 }
-

@@ -56,11 +56,12 @@ export class TicketRepository {
       include: {
         schedule: {
           include: {
-            route: true, // ĐÃ THÊM: LẤY startPoint, endPoint
+            route: true,
           },
         },
         seat: true,
       },
+      orderBy: { createdAt: 'desc' },
     });
   }
 

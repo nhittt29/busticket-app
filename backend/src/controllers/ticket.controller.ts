@@ -58,8 +58,9 @@ export class TicketController {
     return this.ticketService.getStatus(Number(id));
   }
 
+  // MỚI: LẤY LỊCH SỬ THANH TOÁN CHI TIẾT
   @Get(':id/payment')
-  getPaymentHistory(@Param('id') id: string) {
+  async getPaymentHistory(@Param('id') id: string) {
     return this.ticketService.getPaymentHistory(Number(id));
   }
 }
