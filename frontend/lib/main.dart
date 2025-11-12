@@ -19,6 +19,7 @@ import 'booking/screens/select_bus_screen.dart';
 import 'payment/screens/payment_screen.dart';
 import 'ticket/screens/my_tickets_screen.dart';
 import 'ticket/screens/ticket_qr_screen.dart';
+import 'ticket/screens/ticket_history_screen.dart'; // ĐÃ THÊM
 import 'payment/screens/payment_success_screen.dart';
 import 'payment/services/deep_link_service.dart';
 import 'theme/app_theme.dart';
@@ -90,6 +91,7 @@ class MyApp extends StatelessWidget {
               ticket: args['ticket'] as Map<String, dynamic>,
             );
           },
+          '/ticket-history': (context) => const TicketHistoryScreen(), // ĐÃ THÊM
         },
         onUnknownRoute: (settings) => MaterialPageRoute(
           builder: (context) => Scaffold(
