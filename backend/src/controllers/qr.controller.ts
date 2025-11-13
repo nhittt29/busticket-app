@@ -23,8 +23,17 @@ export class QrController {
       include: {
         user: true,
         seat: true,
-        schedule: { include: { route: true, bus: true } },
-        payment: true,
+        schedule: {
+          include: {
+            route: true,
+            bus: true,
+          },
+        },
+        ticketPayments: {
+          include: {
+            payment: true, // paymentHistory thực ra là payment trong Prisma Client
+          },
+        },
       },
     });
 
@@ -99,7 +108,7 @@ export class QrController {
               </div>
               <div class="info-item">
                 <strong>Số ghế</strong>
-                <span>${ticket.seat.code}</span>
+                <span>${ticket.seat.seatNumber}</span>
               </div>
               <div class="info-item">
                 <strong>Tuyến xe</strong>

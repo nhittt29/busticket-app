@@ -1,6 +1,7 @@
 // src/models/Ticket.ts
 import { Schedule } from './Schedule';
 import { Seat } from './Seat';
+import { User } from './User';
 
 export enum TicketStatus {
   BOOKED = 'BOOKED',
@@ -25,4 +26,19 @@ export interface Ticket {
   paymentMethod?: PaymentMethod;
   createdAt?: Date;
   updatedAt?: Date;
+
+  // Quan hệ
+  user?: User;
+  schedule?: Schedule;
+  seat?: Seat;
+
+  // Bảng trung gian
+  ticketPayments?: TicketPayment[];
+}
+
+export interface TicketPayment {
+  id: number;
+  ticketId: number;
+  paymentId: number;
+  createdAt: Date;
 }

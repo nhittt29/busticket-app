@@ -132,7 +132,6 @@ CREATE TABLE "Ticket" (
     "price" DOUBLE PRECISION NOT NULL,
     "status" "TicketStatus" NOT NULL DEFAULT 'BOOKED',
     "paymentMethod" "PaymentMethod",
-    "paymentId" INTEGER,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -142,7 +141,7 @@ CREATE TABLE "Ticket" (
 -- CreateTable
 CREATE TABLE "PaymentHistory" (
     "id" SERIAL NOT NULL,
-    "ticketId" INTEGER NOT NULL,
+    "ticketId" INTEGER,
     "method" "PaymentMethod" NOT NULL,
     "amount" DOUBLE PRECISION NOT NULL,
     "transactionId" TEXT,
@@ -153,6 +152,16 @@ CREATE TABLE "PaymentHistory" (
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "PaymentHistory_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "TicketPayment" (
+    "id" SERIAL NOT NULL,
+    "ticketId" INTEGER NOT NULL,
+    "paymentId" INTEGER NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "TicketPayment_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateIndex
@@ -210,9 +219,6 @@ CREATE INDEX "Schedule_routeId_idx" ON "Schedule"("routeId");
 CREATE INDEX "Schedule_status_idx" ON "Schedule"("status");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Ticket_paymentId_key" ON "Ticket"("paymentId");
-
--- CreateIndex
 CREATE INDEX "Ticket_userId_idx" ON "Ticket"("userId");
 
 -- CreateIndex
@@ -222,7 +228,16 @@ CREATE INDEX "Ticket_scheduleId_idx" ON "Ticket"("scheduleId");
 CREATE INDEX "Ticket_status_idx" ON "Ticket"("status");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "PaymentHistory_ticketId_key" ON "PaymentHistory"("ticketId");
+CREATE INDEX "PaymentHistory_ticketId_idx" ON "PaymentHistory"("ticketId");
+
+-- CreateIndex
+CREATE INDEX "TicketPayment_ticketId_idx" ON "TicketPayment"("ticketId");
+
+-- CreateIndex
+CREATE INDEX "TicketPayment_paymentId_idx" ON "TicketPayment"("paymentId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "TicketPayment_ticketId_paymentId_key" ON "TicketPayment"("ticketId", "paymentId");
 
 -- AddForeignKey
 ALTER TABLE "User" ADD CONSTRAINT "User_roleId_fkey" FOREIGN KEY ("roleId") REFERENCES "Role"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -252,4 +267,7 @@ ALTER TABLE "Ticket" ADD CONSTRAINT "Ticket_scheduleId_fkey" FOREIGN KEY ("sched
 ALTER TABLE "Ticket" ADD CONSTRAINT "Ticket_seatId_fkey" FOREIGN KEY ("seatId") REFERENCES "Seat"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "PaymentHistory" ADD CONSTRAINT "PaymentHistory_ticketId_fkey" FOREIGN KEY ("ticketId") REFERENCES "Ticket"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "TicketPayment" ADD CONSTRAINT "TicketPayment_ticketId_fkey" FOREIGN KEY ("ticketId") REFERENCES "Ticket"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "TicketPayment" ADD CONSTRAINT "TicketPayment_paymentId_fkey" FOREIGN KEY ("paymentId") REFERENCES "PaymentHistory"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
