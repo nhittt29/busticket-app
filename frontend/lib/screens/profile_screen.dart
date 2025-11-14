@@ -27,11 +27,19 @@ class ProfileScreen extends StatelessWidget {
         child: Scaffold(
           backgroundColor: const Color(0xFFEAF6FF),
           appBar: AppBar(
-            backgroundColor: const Color(0xFF4CAF50),
+            flexibleSpace: Container(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Color(0xFF6AB7F5), Color(0xFF4A9EFF)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+              ),
+            ),
             elevation: 0,
             centerTitle: true,
             leading: IconButton(
-              icon: const Icon(Icons.arrow_back, color: Colors.white),
+              icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
               onPressed: () {
                 Navigator.pop(context, 0);
               },
@@ -40,11 +48,15 @@ class ProfileScreen extends StatelessWidget {
               "Tài khoản",
               style: TextStyle(
                 color: Colors.white,
-                fontWeight: FontWeight.bold,
                 fontSize: 22,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.5,
               ),
             ),
-            foregroundColor: Colors.white,
+            actions: const [
+              // Có thể thêm Settings sau
+              // IconButton(icon: Icon(Icons.settings_outlined), onPressed: () {}),
+            ],
           ),
           body: BlocConsumer<HomeBloc, HomeState>(
             listener: (context, state) {
@@ -82,16 +94,18 @@ class ProfileScreen extends StatelessWidget {
                   children: [
                     const SizedBox(height: 20),
 
+                    // CARD THÔNG TIN USER – NÂNG CẤP ĐẸP HƠN
                     Container(
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
                         color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: const Color(0xFFA0D8F1).withOpacity(0.5), width: 1.5),
                         boxShadow: [
                           BoxShadow(
                             color: Colors.grey.withAlpha(38),
-                            blurRadius: 10,
-                            offset: const Offset(0, 5),
+                            blurRadius: 12,
+                            offset: const Offset(0, 6),
                           ),
                         ],
                       ),
@@ -101,12 +115,12 @@ class ProfileScreen extends StatelessWidget {
                           Container(
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              border: Border.all(color: Colors.grey.withAlpha(77), width: 2),
+                              border: Border.all(color: const Color(0xFFA0D8F1), width: 3),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.grey.withAlpha(26),
-                                  blurRadius: 5,
-                                  offset: const Offset(0, 2),
+                                  color: Colors.grey.withAlpha(50),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 4),
                                 ),
                               ],
                             ),
@@ -114,22 +128,22 @@ class ProfileScreen extends StatelessWidget {
                               child: FadeInImage.assetNetwork(
                                 placeholder: 'assets/images/default.png',
                                 image: avatarUrl,
-                                width: 80,
-                                height: 80,
+                                width: 84,
+                                height: 84,
                                 fit: BoxFit.cover,
                                 imageErrorBuilder: (context, error, stackTrace) {
                                   if (kDebugMode) debugPrint('Avatar load error: $error');
                                   return Image.asset(
                                     'assets/images/default.png',
-                                    width: 80,
-                                    height: 80,
+                                    width: 84,
+                                    height: 84,
                                     fit: BoxFit.cover,
                                   );
                                 },
                               ),
                             ),
                           ),
-                          const SizedBox(width: 16),
+                          const SizedBox(width: 18),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -141,7 +155,6 @@ class ProfileScreen extends StatelessWidget {
                                     fontWeight: FontWeight.bold,
                                     color: Color(0xFF023E8A),
                                   ),
-                                  textAlign: TextAlign.left,
                                 ),
                                 if (email.isNotEmpty)
                                   Padding(
@@ -150,9 +163,9 @@ class ProfileScreen extends StatelessWidget {
                                       email,
                                       style: TextStyle(
                                         fontSize: 16,
-                                        color: Colors.grey.shade600,
+                                        color: Colors.grey.shade700,
+                                        fontWeight: FontWeight.w500,
                                       ),
-                                      textAlign: TextAlign.left,
                                     ),
                                   ),
                               ],
@@ -206,7 +219,7 @@ class ProfileScreen extends StatelessWidget {
                       onTap: () => Navigator.pushNamed(context, '/ticket-management'),
                     ),
                     _buildMenuItem(
-                      icon: Icons.notifications,
+                      icon: Icons.notifications_outlined,
                       label: "Thông báo",
                       onTap: () => Navigator.pushNamed(context, '/notifications'),
                     ),
@@ -219,6 +232,7 @@ class ProfileScreen extends StatelessWidget {
                       label: "Đăng xuất",
                       iconColor: Colors.redAccent,
                       textColor: Colors.redAccent,
+                      trailingColor: Colors.redAccent.withOpacity(0.6),
                       onTap: () {
                         _showLogoutDialog(context, homeBloc);
                       },
@@ -235,15 +249,16 @@ class ProfileScreen extends StatelessWidget {
 
   Widget _buildSectionHeader(String title) {
     return Padding(
-      padding: const EdgeInsets.only(top: 8, bottom: 8, left: 4),
+      padding: const EdgeInsets.only(top: 12, bottom: 8, left: 4),
       child: Align(
         alignment: Alignment.centerLeft,
         child: Text(
           title,
           style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
+            fontSize: 17,
+            fontWeight: FontWeight.w700,
             color: Color(0xFF023E8A),
+            letterSpacing: 0.3,
           ),
         ),
       ),
@@ -254,35 +269,37 @@ class ProfileScreen extends StatelessWidget {
     required IconData icon,
     required String label,
     required VoidCallback onTap,
-    Color iconColor = const Color(0xFF0077B6),
+    Color iconColor = const Color(0xFF1976D2),
     Color textColor = const Color(0xFF023E8A),
+    Color? trailingColor,
   }) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 2),
+      margin: const EdgeInsets.only(bottom: 3),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withAlpha(26),
-            blurRadius: 5,
-            offset: const Offset(0, 2),
+            color: Colors.grey.withAlpha(30),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
           ),
         ],
       ),
       child: ListTile(
-        leading: Icon(icon, color: iconColor, size: 24),
+        leading: Icon(icon, color: iconColor, size: 26),
         title: Text(
           label,
           style: TextStyle(
             fontSize: 16,
             color: textColor,
-            fontWeight: FontWeight.w500,
+            fontWeight: FontWeight.w600,
           ),
         ),
-        trailing: const Icon(Icons.chevron_right, color: Color(0xFF0077B6), size: 24),
+        trailing: Icon(Icons.chevron_right, color: trailingColor ?? const Color(0xFF1976D2).withOpacity(0.7), size: 26),
         onTap: onTap,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
     );
   }
@@ -292,22 +309,22 @@ class ProfileScreen extends StatelessWidget {
       context: context,
       builder: (BuildContext context) {
         return Dialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          elevation: 8,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          elevation: 12,
           backgroundColor: Colors.white,
           child: Container(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(24),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.logout, size: 48, color: Colors.redAccent),
-                const SizedBox(height: 16),
+                const Icon(Icons.logout, size: 56, color: Colors.redAccent),
+                const SizedBox(height: 20),
                 const Text(
                   "Bạn có chắc chắn muốn đăng xuất?",
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF023E8A)),
+                  style: TextStyle(fontSize: 19, fontWeight: FontWeight.bold, color: Color(0xFF023E8A)),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 24),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
@@ -315,10 +332,10 @@ class ProfileScreen extends StatelessWidget {
                       onPressed: () => Navigator.of(context).pop(),
                       style: TextButton.styleFrom(
                         backgroundColor: Colors.grey[300],
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                       ),
-                      child: const Text("Hủy", style: TextStyle(color: Colors.black87)),
+                      child: const Text("Hủy", style: TextStyle(fontSize: 15, color: Colors.black87, fontWeight: FontWeight.w600)),
                     ),
                     ElevatedButton(
                       onPressed: () {
@@ -327,10 +344,11 @@ class ProfileScreen extends StatelessWidget {
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.redAccent,
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 12),
+                        elevation: 4,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                       ),
-                      child: const Text("Xác nhận", style: TextStyle(color: Colors.white)),
+                      child: const Text("Xác nhận", style: TextStyle(fontSize: 15, color: Colors.white, fontWeight: FontWeight.bold)),
                     ),
                   ],
                 ),

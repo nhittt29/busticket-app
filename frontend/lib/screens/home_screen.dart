@@ -120,8 +120,11 @@ class _HomeScreenState extends State<HomeScreen> {
       {"icon": Icons.payment, "label": "Thanh toán", "route": "/payment"},
     ];
 
-    const Color greenSoft = Color(0xFF66BB6A);
-    const Color iconBlue = Color(0xFF1976D2);
+    const Color primaryBlue = Color(0xFF6AB7F5);     // Banner, nút
+    const Color accentBlue = Color(0xFF4A9EFF);       // Gradient end
+    const Color deepBlue = Color(0xFF1976D2);        // Icon, chữ nhấn
+    const Color pastelBlue = Color(0xFFA0D8F1);      // Icon nhỏ
+    const Color bgLight = Color(0xFFEAF6FF);         // Nền
 
     return PopScope(
       canPop: _selectedIndex == 0,
@@ -131,9 +134,9 @@ class _HomeScreenState extends State<HomeScreen> {
         }
       },
       child: Scaffold(
-        backgroundColor: const Color(0xFFEAF6FF),
+        backgroundColor: bgLight,
         appBar: AppBar(
-          backgroundColor: const Color(0xFFEAF6FF),
+          backgroundColor: bgLight,
           elevation: 0,
           centerTitle: true,
           title: Row(
@@ -157,43 +160,61 @@ class _HomeScreenState extends State<HomeScreen> {
 
             return Column(
               children: [
+                // BANNER MỚI – Gradient + Nút nổi bật
                 Container(
                   width: double.infinity,
                   height: 180,
                   margin: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: greenSoft,
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [BoxShadow(color: greenSoft.withAlpha(51), blurRadius: 15, offset: const Offset(0, 8))],
+                    gradient: const LinearGradient(
+                      colors: [primaryBlue, accentBlue],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(24),
+                    boxShadow: [
+                      BoxShadow(
+                        color: primaryBlue.withOpacity(0.4),
+                        blurRadius: 20,
+                        offset: const Offset(0, 10),
+                      ),
+                    ],
                   ),
                   child: Stack(
                     children: [
-                      Positioned(top: 20, right: 20, child: Image.asset('assets/images/bus_logo.png', height: 60)),
+                      // Logo nhỏ
                       Positioned(
-                        left: 20,
-                        top: 30,
+                        top: 16,
+                        right: 16,
+                        child: Image.asset('assets/images/bus_logo.png', height: 50),
+                      ),
+                      // Nội dung
+                      Padding(
+                        padding: const EdgeInsets.all(20),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text('ĐẶT VÉ XE NHANH CHÓNG', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                            const SizedBox(height: 8),
-                            const Text('Hà Nội - TP.HCM chỉ từ 300k', style: TextStyle(color: Colors.white, fontSize: 14)),
-                            const SizedBox(height: 12),
-                            SizedBox(
-                              width: 140,
-                              child: ElevatedButton.icon(
-                                onPressed: () => Navigator.push(
-                                  context,
-                                  MaterialPageRoute(builder: (_) => const SearchScreen()),
-                                ),
-                                icon: const Icon(Icons.search, size: 18, color: Colors.white),
-                                label: const Text('Tìm vé', style: TextStyle(fontSize: 12, color: Colors.white)),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.white.withAlpha(51),
-                                  padding: const EdgeInsets.symmetric(vertical: 8),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                                  side: const BorderSide(color: Colors.white, width: 1.5),
-                                ),
+                            const Text(
+                              'ĐẶT VÉ NHANH – GIÁ TỐT',
+                              style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(height: 6),
+                            const Text(
+                              'Hà Nội → TP.HCM từ 300k',
+                              style: TextStyle(color: Colors.white, fontSize: 14),
+                            ),
+                            const SizedBox(height: 16),
+                            ElevatedButton.icon(
+                              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SearchScreen())),
+                              icon: const Icon(Icons.search, size: 18),
+                              label: const Text('Tìm ngay', style: TextStyle(fontWeight: FontWeight.bold)),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.white,
+                                foregroundColor: deepBlue,
+                                elevation: 4,
+                                shadowColor: Colors.black26,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                               ),
                             ),
                           ],
@@ -203,61 +224,59 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
 
+                // THANH TÌM KIẾM MỚI – Card trắng, icon + nút xanh
                 Container(
                   margin: const EdgeInsets.symmetric(horizontal: 16),
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: iconBlue.withAlpha(77), width: 1.2),
+                    borderRadius: BorderRadius.circular(20),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.grey.withAlpha(38),
-                        blurRadius: 12,
-                        offset: const Offset(0, 4),
+                        color: Colors.grey.withOpacity(0.15),
+                        blurRadius: 15,
+                        offset: const Offset(0, 6),
                       ),
                     ],
                   ),
-                  child: Row(
+                  child: Column(
                     children: [
-                      const Expanded(
-                        child: Text(
-                          'Từ: Hà Nội, Đến: TP.HCM, Ngày: Hôm nay',
-                          style: TextStyle(
-                            color: Colors.black87,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
+                      Row(
+                        children: [
+                          const Icon(Icons.location_on, color: deepBlue),
+                          const SizedBox(width: 12),
+                          const Expanded(
+                            child: Text(
+                              'Hà Nội → TP.HCM',
+                              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.black87),
+                            ),
                           ),
-                        ),
+                          const Icon(Icons.swap_horiz, color: deepBlue),
+                        ],
                       ),
-                      const SizedBox(width: 12),
-                      SizedBox(
-                        height: 42,
-                        child: ElevatedButton.icon(
-                          onPressed: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (_) => const SearchScreen()),
-                          ),
-                          icon: const Icon(Icons.search, size: 18, color: iconBlue),
-                          label: Text(
-                            'Tìm',
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: iconBlue,
-                              fontWeight: FontWeight.bold,
+                      const Divider(height: 24, thickness: 0.8, color: Color(0xFFE0E0E0)),
+                      Row(
+                        children: [
+                          const Icon(Icons.calendar_today, color: deepBlue),
+                          const SizedBox(width: 12),
+                          const Expanded(
+                            child: Text(
+                              'Hôm nay, 15/11/2025',
+                              style: TextStyle(fontSize: 14, color: Colors.black54),
                             ),
                           ),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: greenSoft.withAlpha(38),
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(20),
-                              side: BorderSide(color: greenSoft, width: 1.5),
+                          ElevatedButton(
+                            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SearchScreen())),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: primaryBlue,
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                              elevation: 3,
                             ),
-                            elevation: 0,
-                            shadowColor: Colors.transparent,
+                            child: const Text('Tìm vé', style: TextStyle(fontWeight: FontWeight.bold)),
                           ),
-                        ),
+                        ],
                       ),
                     ],
                   ),
@@ -293,9 +312,16 @@ class _HomeScreenState extends State<HomeScreen> {
                                       child: Container(
                                         margin: const EdgeInsets.symmetric(horizontal: 6),
                                         decoration: BoxDecoration(
-                                          color: greenSoft,
+                                          color: pastelBlue,
                                           borderRadius: BorderRadius.circular(16),
-                                          boxShadow: [BoxShadow(color: greenSoft.withAlpha(51), blurRadius: 8, offset: const Offset(0, 4))],
+                                          border: Border.all(color: Colors.grey.shade300, width: 0.8),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: pastelBlue.withAlpha(80),
+                                              blurRadius: 8,
+                                              offset: const Offset(0, 4),
+                                            )
+                                          ],
                                         ),
                                         child: Column(
                                           mainAxisAlignment: MainAxisAlignment.center,
@@ -306,13 +332,13 @@ class _HomeScreenState extends State<HomeScreen> {
                                                 color: Colors.white.withAlpha(77),
                                                 shape: BoxShape.circle,
                                               ),
-                                              child: Icon(item['icon'], color: iconBlue, size: 22),
+                                              child: Icon(item['icon'], color: deepBlue, size: 22),
                                             ),
                                             const SizedBox(height: 6),
                                             Text(
                                               item['label'],
                                               textAlign: TextAlign.center,
-                                              style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w600),
+                                              style: const TextStyle(color: Colors.black87, fontSize: 10, fontWeight: FontWeight.w600),
                                             ),
                                           ],
                                         ),
@@ -335,7 +361,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               width: _currentPage == index ? 8 : 6,
                               height: 6,
                               decoration: BoxDecoration(
-                                color: _currentPage == index ? greenSoft : Colors.grey,
+                                color: _currentPage == index ? pastelBlue : Colors.grey.shade400,
                                 borderRadius: BorderRadius.circular(3),
                               ),
                             )),
@@ -362,9 +388,16 @@ class _HomeScreenState extends State<HomeScreen> {
                                     child: Container(
                                       height: 70,
                                       decoration: BoxDecoration(
-                                        color: greenSoft,
+                                        color: pastelBlue,
                                         borderRadius: BorderRadius.circular(16),
-                                        boxShadow: [BoxShadow(color: greenSoft.withAlpha(51), blurRadius: 10, offset: const Offset(0, 5))],
+                                        border: Border.all(color: Colors.grey.shade300, width: 0.8),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: pastelBlue.withAlpha(80),
+                                            blurRadius: 10,
+                                            offset: const Offset(0, 5),
+                                          )
+                                        ],
                                       ),
                                       child: Column(
                                         mainAxisAlignment: MainAxisAlignment.center,
@@ -372,13 +405,13 @@ class _HomeScreenState extends State<HomeScreen> {
                                           Container(
                                             padding: const EdgeInsets.all(8),
                                             decoration: BoxDecoration(color: Colors.white.withAlpha(77), shape: BoxShape.circle),
-                                            child: Icon(item['icon'], color: iconBlue, size: 20),
+                                            child: Icon(item['icon'], color: deepBlue, size: 20),
                                           ),
                                           const SizedBox(height: 8),
                                           Text(
                                             item['label'],
                                             textAlign: TextAlign.center,
-                                            style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w600),
+                                            style: const TextStyle(color: Colors.black87, fontSize: 10, fontWeight: FontWeight.w600),
                                           ),
                                         ],
                                       ),

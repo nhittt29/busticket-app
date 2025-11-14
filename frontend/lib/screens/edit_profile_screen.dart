@@ -31,8 +31,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     'Khác': 'OTHER',
   };
 
-  // MÀU XANH NHẠT ĐẸP CHO THÔNG BÁO THÀNH CÔNG
-  static const Color _successColor = Color(0xFF66BB6A);
+  // MÀU CHÍNH – ĐỒNG BỘ TOÀN BỘ APP
+  static const Color primaryBlue = Color(0xFF6AB7F5);
+  static const Color deepBlue = Color(0xFF1976D2);
+  static const Color pastelBlue = Color(0xFFA0D8F1);
+  static const Color successBlue = Color(0xFF4A9EFF);
 
   @override
   void initState() {
@@ -43,10 +46,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     if (dobValue != null) {
       if (dobValue is DateTime) {
         initialDob = dobValue.toIso8601String().split('T')[0];
-      } else if (dobValue is String) {
+      } else if (dobValue is String && dobValue.isNotEmpty) {
         initialDob = dobValue.split('T')[0];
       }
     }
+
     nameController = TextEditingController(text: user['name'] ?? '');
     phoneController = TextEditingController(text: user['phone'] ?? '');
     dobController = TextEditingController(text: initialDob);
@@ -72,12 +76,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   Future<void> _pickAvatar() async {
     try {
-      final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
+      final pickedFile = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
       if (!mounted) return;
       if (pickedFile != null) {
         setState(() => _newAvatarFile = File(pickedFile.path));
       } else {
-        _showSnackBar('Không chọn được ảnh, vui lòng thử lại.', isError: true);
+        _showSnackBar('Không chọn được ảnh', isError: true);
       }
     } catch (e) {
       if (!mounted) return;
@@ -94,16 +98,18 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     if (_formKey.currentState!.validate()) {
       final authBloc = context.read<AuthBloc>();
       DateTime? dob;
-      try {
-        dob = DateTime.parse(dobController.text);
-      } catch (e) {
-        _showSnackBar('Ngày sinh không hợp lệ', isError: true);
-        return;
+      if (dobController.text.isNotEmpty) {
+        try {
+          dob = DateTime.parse(dobController.text);
+        } catch (e) {
+          _showSnackBar('Ngày sinh không hợp lệ', isError: true);
+          return;
+        }
       }
       final backendGender = genderMap[genderController.text] ?? 'OTHER';
       authBloc.add(UpdateUserEvent(
-        name: nameController.text,
-        phone: phoneController.text.isEmpty ? null : phoneController.text,
+        name: nameController.text.trim(),
+        phone: phoneController.text.isEmpty ? null : phoneController.text.trim(),
         dob: dob,
         gender: backendGender,
         avatarPath: _newAvatarFile?.path,
@@ -113,19 +119,22 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   void _showSnackBar(String message, {bool isError = false}) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          message,
-          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(
+            message,
+            style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.white),
+          ),
+          backgroundColor: isError ? Colors.redAccent : successBlue,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          margin: const EdgeInsets.all(20),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          duration: const Duration(seconds: 3),
         ),
-        backgroundColor: isError ? Colors.red : _successColor, // XANH NHẠT ĐẸP
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        margin: const EdgeInsets.all(16),
-        duration: const Duration(seconds: 2),
-      ),
-    );
+      );
   }
 
   @override
@@ -133,20 +142,42 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFEAF6FF),
       appBar: AppBar(
-        title: const Text('Chỉnh sửa thông tin'),
-        backgroundColor: const Color(0xFF4CAF50),
-        elevation: 2,
-        foregroundColor: Colors.white,
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFF6AB7F5), Color(0xFF4A9EFF)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
+        elevation: 0,
+        centerTitle: true,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: const Text(
+          'Chỉnh sửa thông tin',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 22,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 0.5,
+          ),
+        ),
       ),
       body: BlocConsumer<AuthBloc, AuthState>(
         listener: (context, state) {
           if (state.success && state.message != null) {
-            _showSnackBar(state.message!); // XANH NHẠT
+            _showSnackBar(state.message!);
             Future.delayed(const Duration(seconds: 2), () {
-              if (mounted) Navigator.pop(context);
+              if (mounted) {
+                Navigator.pop(context);
+              }
             });
           } else if (state.error != null) {
-            _showSnackBar(state.error!, isError: true); // ĐỎ
+            _showSnackBar(state.error!, isError: true);
           }
         },
         builder: (context, state) {
@@ -155,43 +186,63 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             child: Form(
               key: _formKey,
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
+                  // AVATAR SIÊU ĐẸP
                   Center(
                     child: GestureDetector(
                       onTap: _pickAvatar,
-                      child: CircleAvatar(
-                        radius: 70,
-                        backgroundColor: const Color(0xFFBFD7ED),
-                        backgroundImage: _newAvatarFile != null
-                            ? FileImage(_newAvatarFile!)
-                            : widget.user != null && widget.user!['avatar'] != null
-                                ? NetworkImage(widget.user!['avatar'].toString())
-                                : null,
-                        child: _newAvatarFile == null && (widget.user == null || widget.user!['avatar'] == null)
-                            ? const Icon(Icons.camera_alt, size: 40, color: Colors.white)
-                            : null,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(color: primaryBlue, width: 5),
+                          boxShadow: [
+                            BoxShadow(
+                              color: primaryBlue.withAlpha(102), // 0.4 * 255
+                              blurRadius: 20,
+                              offset: const Offset(0, 10),
+                            ),
+                          ],
+                        ),
+                        child: CircleAvatar(
+                          radius: 74,
+                          backgroundColor: pastelBlue.withAlpha(51), // ~0.2
+                          backgroundImage: _newAvatarFile != null
+                              ? FileImage(_newAvatarFile!)
+                              : widget.user?['avatar'] != null
+                                  ? NetworkImage(
+                                      widget.user!['avatar'].toString().startsWith('http')
+                                          ? widget.user!['avatar'].toString()
+                                          : 'http://10.0.2.2:3000/${widget.user!['avatar']}',
+                                    )
+                                  : null,
+                          child: _newAvatarFile == null && (widget.user == null || widget.user!['avatar'] == null)
+                              ? const Icon(Icons.camera_alt, size: 50, color: Colors.white70)
+                              : null,
+                        ),
                       ),
                     ),
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 14),
                   const Center(
                     child: Text(
-                      'Nhấn để chọn ảnh đại diện',
-                      style: TextStyle(color: Colors.black54, fontSize: 14),
+                      'Nhấn để thay đổi ảnh đại diện',
+                      style: TextStyle(color: Colors.black54, fontSize: 14.5, fontWeight: FontWeight.w500),
                     ),
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 32),
+
+                  // FORM SIÊU HIỆN ĐẠI
                   Container(
-                    padding: const EdgeInsets.all(20),
+                    padding: const EdgeInsets.all(28),
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.circular(18),
+                      borderRadius: BorderRadius.circular(28),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.grey.withAlpha(38),
-                          blurRadius: 10,
-                          offset: const Offset(0, 5),
+                          color: Colors.grey.withAlpha(40),
+                          blurRadius: 20,
+                          offset: const Offset(0, 10),
                         ),
                       ],
                     ),
@@ -201,136 +252,116 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           controller: nameController,
                           decoration: InputDecoration(
                             labelText: 'Họ và tên',
-                            prefixIcon: const Icon(Icons.person_outline, color: Color(0xFF0077B6)),
+                            prefixIcon: Icon(Icons.person_outline, color: deepBlue),
                             filled: true,
-                            fillColor: const Color(0xFFF7F9FB),
+                            fillColor: pastelBlue.withAlpha(38), // ~0.15
                             border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(18),
                               borderSide: BorderSide.none,
                             ),
-                            errorStyle: const TextStyle(color: Colors.redAccent),
                           ),
-                          style: const TextStyle(color: Colors.black),
                           validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Bắt buộc nhập họ tên';
-                            }
-                            if (value.length < 2 || value.length > 50) {
-                              return 'Họ tên phải từ 2 đến 50 ký tự';
-                            }
+                            if (value == null || value.trim().isEmpty) return 'Vui lòng nhập họ tên';
+                            if (value.trim().length < 2) return 'Họ tên quá ngắn';
                             return null;
                           },
                         ),
-                        const SizedBox(height: 20),
+                        const SizedBox(height: 24),
                         TextFormField(
                           controller: phoneController,
                           keyboardType: TextInputType.phone,
                           decoration: InputDecoration(
                             labelText: 'Số điện thoại',
-                            prefixIcon: const Icon(Icons.phone, color: Color(0xFF0077B6)),
+                            prefixIcon: Icon(Icons.phone_android_outlined, color: deepBlue),
                             filled: true,
-                            fillColor: const Color(0xFFF7F9FB),
+                            fillColor: pastelBlue.withAlpha(38),
                             border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(18),
                               borderSide: BorderSide.none,
                             ),
-                            errorStyle: const TextStyle(color: Colors.redAccent),
                           ),
-                          style: const TextStyle(color: Colors.black),
                           validator: (value) {
-                            if (value != null && value.isNotEmpty) {
-                              if (!RegExp(r'^\d{10}$').hasMatch(value)) {
-                                return 'Số điện thoại phải là 10 chữ số';
-                              }
+                            if (value != null && value.isNotEmpty && !RegExp(r'^\d{10}$').hasMatch(value)) {
+                              return 'Số điện thoại phải có 10 chữ số';
                             }
                             return null;
                           },
                         ),
-                        const SizedBox(height: 20),
+                        const SizedBox(height: 24),
                         TextFormField(
                           controller: dobController,
                           decoration: InputDecoration(
                             labelText: 'Ngày sinh (YYYY-MM-DD)',
-                            prefixIcon: const Icon(Icons.calendar_today, color: Color(0xFF0077B6)),
+                            hintText: 'Ví dụ: 1995-06-15',
+                            prefixIcon: Icon(Icons.calendar_today_outlined, color: deepBlue),
                             filled: true,
-                            fillColor: const Color(0xFFF7F9FB),
+                            fillColor: pastelBlue.withAlpha(38),
                             border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(18),
                               borderSide: BorderSide.none,
                             ),
-                            errorText: _isValidDateFormat(dobController.text) ? null : 'Vui lòng nhập đúng định dạng YYYY-MM-DD',
                           ),
-                          style: const TextStyle(color: Colors.black),
                           keyboardType: TextInputType.datetime,
-                          onChanged: (value) => setState(() {}),
+                          onChanged: (_) => setState(() {}),
                           validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Bắt buộc nhập ngày sinh';
-                            }
-                            if (!_isValidDateFormat(value)) {
-                              return 'Định dạng ngày phải là YYYY-MM-DD';
-                            }
+                            if (value == null || value.isEmpty) return 'Vui lòng nhập ngày sinh';
+                            if (!_isValidDateFormat(value)) return 'Định dạng: YYYY-MM-DD';
                             try {
                               DateTime.parse(value);
-                            } catch (e) {
-                              return 'Ngày sinh không hợp lệ';
+                            } catch (_) {
+                              return 'Ngày không hợp lệ';
                             }
                             return null;
                           },
                         ),
-                        const SizedBox(height: 20),
+                        const SizedBox(height: 24),
                         DropdownButtonFormField<String>(
-                          initialValue: genderController.text.isNotEmpty ? genderController.text : 'Khác',
+                          value: genderController.text.isNotEmpty ? genderController.text : 'Khác',
                           decoration: InputDecoration(
                             labelText: 'Giới tính',
-                            prefixIcon: const Icon(Icons.wc, color: Color(0xFF0077B6)),
+                            prefixIcon: Icon(Icons.wc_outlined, color: deepBlue),
                             filled: true,
-                            fillColor: const Color(0xFFF7F9FB),
+                            fillColor: pastelBlue.withAlpha(38),
                             border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(18),
                               borderSide: BorderSide.none,
                             ),
-                            errorStyle: const TextStyle(color: Colors.redAccent),
                           ),
-                          items: genderMap.keys.map((String displayValue) {
-                            return DropdownMenuItem<String>(
-                              value: displayValue,
-                              child: Text(displayValue),
-                            );
-                          }).toList(),
-                          onChanged: (String? newDisplayValue) {
-                            if (newDisplayValue != null) {
-                              setState(() {
-                                genderController.text = newDisplayValue;
-                              });
-                            }
-                          },
-                          validator: (value) => value == null ? 'Bắt buộc chọn giới tính' : null,
+                          items: genderMap.keys
+                              .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                              .toList(),
+                          onChanged: (val) => setState(() => genderController.text = val!),
+                          validator: (val) => val == null ? 'Vui lòng chọn giới tính' : null,
                         ),
-                        const SizedBox(height: 30),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 30),
+
+                  const SizedBox(height: 40),
+
+                  // NÚT LƯU – ĐỒNG BỘ MÀU CHÍNH
                   SizedBox(
                     width: double.infinity,
+                    height: 60,
                     child: ElevatedButton(
-                      onPressed: _saveProfile,
+                      onPressed: state.isLoading ? null : _saveProfile,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF4CAF50),
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
+                        backgroundColor: primaryBlue,
+                        foregroundColor: Colors.white,
+                        elevation: 10,
+                        shadowColor: primaryBlue.withAlpha(128), // ~0.5
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                       ),
-                      child: const Text(
-                        'Lưu thay đổi',
-                        style: TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
+                      child: state.isLoading
+                          ? const SizedBox(
+                              height: 26,
+                              width: 26,
+                              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3),
+                            )
+                          : const Text(
+                              'Lưu thay đổi',
+                              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: 0.6),
+                            ),
                     ),
                   ),
                 ],

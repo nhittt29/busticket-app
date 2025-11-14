@@ -18,18 +18,30 @@ class ProfileDetailScreen extends StatelessWidget {
       child: Scaffold(
         backgroundColor: const Color(0xFFEAF6FF),
         appBar: AppBar(
-          backgroundColor: const Color(0xFF4CAF50),
+          flexibleSpace: Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Color(0xFF6AB7F5), Color(0xFF4A9EFF)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+            ),
+          ),
           elevation: 0,
           centerTitle: true,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
+            onPressed: () => Navigator.pop(context),
+          ),
           title: const Text(
             "Hồ sơ tài khoản",
             style: TextStyle(
               color: Colors.white,
-              fontWeight: FontWeight.bold,
               fontSize: 22,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.5,
             ),
           ),
-          foregroundColor: Colors.white,
         ),
         body: BlocBuilder<AuthBloc, AuthState>(
           builder: (context, state) {
@@ -42,18 +54,22 @@ class ProfileDetailScreen extends StatelessWidget {
             final email = userData['email'] ?? 'Không có email';
             final phone = userData['phone'] ?? 'Chưa cập nhật số điện thoại';
 
-            // SỬA NGÀY SINH: Chỉ lấy YYYY-MM-DD
+            // Xử lý ngày sinh – chỉ lấy YYYY-MM-DD
             String dob = 'Chưa cập nhật ngày sinh';
             final dobValue = userData['dob'];
             if (dobValue != null) {
               if (dobValue is DateTime) {
                 dob = '${dobValue.year.toString().padLeft(4, '0')}-${dobValue.month.toString().padLeft(2, '0')}-${dobValue.day.toString().padLeft(2, '0')}';
-              } else if (dobValue is String) {
+              } else if (dobValue is String && dobValue.isNotEmpty) {
                 try {
                   final parsed = DateTime.parse(dobValue);
                   dob = '${parsed.year.toString().padLeft(4, '0')}-${parsed.month.toString().padLeft(2, '0')}-${parsed.day.toString().padLeft(2, '0')}';
                 } catch (e) {
-                  dob = dobValue.split('T')[0];
+                  if (dobValue.contains('T')) {
+                    dob = dobValue.split('T')[0];
+                  } else {
+                    dob = dobValue;
+                  }
                 }
               }
             }
@@ -68,69 +84,83 @@ class ProfileDetailScreen extends StatelessWidget {
                 children: [
                   const SizedBox(height: 20),
 
-                  // Avatar Card
-                  Card(
-                    elevation: 4,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    child: Padding(
-                      padding: const EdgeInsets.all(20),
-                      child: Column(
-                        children: [
-                          Container(
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: Colors.grey.withAlpha(77), // SỬA: withOpacity → withAlpha
-                                width: 2,
+                  // AVATAR CARD – HIỆN ĐẠI & ĐỒNG BỘ
+                  Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(color: const Color(0xFFA0D8F1).withOpacity(0.6), width: 2),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.grey.withAlpha(40),
+                          blurRadius: 15,
+                          offset: const Offset(0, 8),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      children: [
+                        Container(
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(color: const Color(0xFF6AB7F5), width: 4),
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFF6AB7F5).withAlpha(102), // 0.4
+                                blurRadius: 12,
+                                offset: const Offset(0, 6),
                               ),
-                            ),
-                            child: ClipOval(
-                              child: Image.network(
-                                avatarUrl,
-                                width: 100,
-                                height: 100,
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) {
-                                  return Image.asset(
-                                    'assets/images/default.png',
-                                    width: 100,
-                                    height: 100,
-                                    fit: BoxFit.cover,
-                                  );
-                                },
-                              ),
+                            ],
+                          ),
+                          child: ClipOval(
+                            child: Image.network(
+                              avatarUrl,
+                              width: 110,
+                              height: 110,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Image.asset(
+                                  'assets/images/default.png',
+                                  width: 110,
+                                  height: 110,
+                                  fit: BoxFit.cover,
+                                );
+                              },
                             ),
                           ),
-                          const SizedBox(height: 16),
-                          Text(
-                            name,
-                            style: const TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF023E8A),
-                            ),
+                        ),
+                        const SizedBox(height: 20),
+                        Text(
+                          name,
+                          style: const TextStyle(
+                            fontSize: 26,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF023E8A),
                           ),
-                        ],
-                      ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
                     ),
                   ),
 
-                  const SizedBox(height: 30),
-
-                  // Info Cards
-                  _buildInfoCard(Icons.email_outlined, 'Email', email),
-                  const SizedBox(height: 12),
-                  _buildInfoCard(Icons.phone, 'Số điện thoại', phone),
-                  const SizedBox(height: 12),
-                  _buildInfoCard(Icons.calendar_today, 'Ngày sinh', dob),
-                  const SizedBox(height: 12),
-                  _buildInfoCard(Icons.wc, 'Giới tính', genderDisplay),
-
                   const SizedBox(height: 40),
 
-                  // Edit Button
+                  // 4 CARD THÔNG TIN – ĐÃ ĐƯỢC THU NHỎ, GỌN ĐẸP, THANH THOÁT
+                  _buildInfoCard(Icons.email_outlined, 'Email', email),
+                  const SizedBox(height: 10),
+                  _buildInfoCard(Icons.phone_android_outlined, 'Số điện thoại', phone),
+                  const SizedBox(height: 10),
+                  _buildInfoCard(Icons.calendar_today_outlined, 'Ngày sinh', dob),
+                  const SizedBox(height: 10),
+                  _buildInfoCard(Icons.wc_outlined, 'Giới tính', genderDisplay),
+
+                  const SizedBox(height: 50),
+
+                  // NÚT CẬP NHẬT
                   SizedBox(
                     width: double.infinity,
+                    height: 56,
                     child: ElevatedButton(
                       onPressed: () {
                         Navigator.push(
@@ -141,19 +171,20 @@ class ProfileDetailScreen extends StatelessWidget {
                         );
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF4CAF50),
-                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        backgroundColor: const Color(0xFF6AB7F5),
+                        foregroundColor: Colors.white,
+                        elevation: 6,
+                        shadowColor: const Color(0xFF6AB7F5).withAlpha(128), // 0.5
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(16),
                         ),
-                        elevation: 2,
                       ),
                       child: const Text(
                         'Cập nhật thông tin',
                         style: TextStyle(
                           fontSize: 17,
                           fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                          letterSpacing: 0.5,
                         ),
                       ),
                     ),
@@ -167,7 +198,6 @@ class ProfileDetailScreen extends StatelessWidget {
     );
   }
 
-  // Helper method để hiển thị giới tính tiếng Việt
   String _getGenderDisplay(String backendGender) {
     switch (backendGender) {
       case 'MALE':
@@ -175,36 +205,65 @@ class ProfileDetailScreen extends StatelessWidget {
       case 'FEMALE':
         return 'Nữ';
       case 'OTHER':
-        return 'Khác';
       default:
         return 'Khác';
     }
   }
 
-  // Helper method để tạo Info Card đồng bộ
+  // CARD THÔNG TIN ĐÃ ĐƯỢC TỐI ƯU – GỌN, ĐẸP, TINH TẾ
   Widget _buildInfoCard(IconData icon, String title, String value) {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: ListTile(
-        leading: Icon(icon, color: const Color(0xFF0077B6)),
-        title: Text(
-          title,
-          style: const TextStyle(
-            fontWeight: FontWeight.w500,
-            color: Colors.black54,
-            fontSize: 14,
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 5),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFA0D8F1).withOpacity(0.4), width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withAlpha(25),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
           ),
-        ),
-        subtitle: Text(
-          value,
-          style: const TextStyle(
-            fontSize: 16,
-            color: Colors.black87,
-            fontWeight: FontWeight.w500,
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(9),
+            decoration: BoxDecoration(
+              color: const Color(0xFFA0D8F1).withOpacity(0.25),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, color: const Color(0xFF1976D2), size: 22),
           ),
-        ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 13.5,
+                    color: Colors.black54,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  value,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    color: Colors.black87,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
