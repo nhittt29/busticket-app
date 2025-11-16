@@ -21,4 +21,9 @@ export class CreateTicketDto {
   @IsOptional()
   @IsEnum(PaymentMethod)
   paymentMethod?: PaymentMethod;
+
+  // THÊM: DÙNG ĐỂ GỘP NHÓM VÉ
+  @IsOptional()
+  @IsInt()
+  bulkTicketId?: number;
 }

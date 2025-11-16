@@ -11,8 +11,13 @@ export class TicketRepository {
   create(data: CreateTicketDto) {
     return this.prisma.ticket.create({
       data: {
-        ...data,
+        userId: data.userId,
+        scheduleId: data.scheduleId,
+        seatId: data.seatId,
+        price: data.price,
         status: TicketStatus.BOOKED,
+        paymentMethod: data.paymentMethod,
+        bulkTicketId: data.bulkTicketId ?? null, // Dùng ?? null để tránh lỗi type
       },
     });
   }

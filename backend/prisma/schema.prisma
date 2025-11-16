@@ -22,46 +22,43 @@ model User {
   tickets   Ticket[]
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
-
   @@index([roleId])
 }
 
 model Role {
-  id    Int     @id @default(autoincrement())
-  name  RoleName @unique
+  id    Int        @id @default(autoincrement())
+  name  RoleName   @unique
   users User[]
 }
 
 model Brand {
-  id               Int     @id @default(autoincrement())
-  name             String  @unique
+  id               Int       @id @default(autoincrement())
+  name             String    @unique
   phoneNumber      String?
   image            String?
   address          String?
-  dailyTicketLimit Int     @default(100)
+  dailyTicketLimit Int       @default(100)
   buses            Bus[]
   routes           Route[]
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
   @@index([name])
 }
 
 model Bus {
-  id           Int       @id @default(autoincrement())
+  id           Int         @id @default(autoincrement())
   name         String
-  licensePlate String    @unique
+  licensePlate String      @unique
   seatCount    Int
   category     BusCategory
   seatType     SeatType
-  berthType    BerthType? // SINGLE / DOUBLE (chỉ dùng cho BERTH)
-  brand        Brand     @relation(fields: [brandId], references: [id])
+  berthType    BerthType?  // SINGLE / DOUBLE (chỉ dùng cho BERTH)
+  brand        Brand       @relation(fields: [brandId], references: [id])
   brandId      Int
   seats        Seat[]
   schedules    Schedule[]
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
   @@index([category])
   @@index([seatType])
   @@index([berthType])
@@ -81,91 +78,89 @@ model Seat {
   tickets     Ticket[]
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
-
   @@index([busId])
 }
 
 model Route {
-  id                 Int       @id @default(autoincrement())
-  startPoint         String
-  endPoint           String
+  id                Int        @id @default(autoincrement())
+  startPoint        String
+  endPoint          String
   averageDurationMin Int
-  lowestPrice        Float
-  distanceKm         Float?
-  brand              Brand?    @relation(fields: [brandId], references: [id])
-  brandId            Int?
-  schedules          Schedule[]
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
-
+  lowestPrice       Float
+  distanceKm        Float?
+  brand             Brand?     @relation(fields: [brandId], references: [id])
+  brandId           Int?
+  schedules         Schedule[]
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
   @@index([startPoint])
   @@index([endPoint])
 }
 
 model Schedule {
-  id          Int            @id @default(autoincrement())
-  bus         Bus            @relation(fields: [busId], references: [id])
-  busId       Int
-  route       Route          @relation(fields: [routeId], references: [id])
-  routeId     Int
+  id         Int             @id @default(autoincrement())
+  bus        Bus             @relation(fields: [busId], references: [id])
+  busId      Int
+  route      Route           @relation(fields: [routeId], references: [id])
+  routeId    Int
   departureAt DateTime
   arrivalAt   DateTime
-  status      ScheduleStatus @default(UPCOMING)
+  status      ScheduleStatus  @default(UPCOMING)
   tickets     Ticket[]
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
-
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
   @@index([busId])
   @@index([routeId])
   @@index([status])
 }
 
 model Ticket {
-  id            Int           @id @default(autoincrement())
-  user          User          @relation(fields: [userId], references: [id])
+  id            Int              @id @default(autoincrement())
+  user          User             @relation(fields: [userId], references: [id])
   userId        Int
-  schedule      Schedule      @relation(fields: [scheduleId], references: [id])
+  schedule      Schedule         @relation(fields: [scheduleId], references: [id])
   scheduleId    Int
-  seat          Seat          @relation(fields: [seatId], references: [id])
+  seat          Seat             @relation(fields: [seatId], references: [id])
   seatId        Int
   price         Float
-  status        TicketStatus  @default(BOOKED)
+  status        TicketStatus     @default(BOOKED)
   paymentMethod PaymentMethod?
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  // THÊM DÒNG NÀY – PHÂN BIỆT VÉ ĐƠN / NHÓM
+  bulkTicketId  Int?             // NULL = vé đơn, có giá trị = thuộc nhóm (id vé đầu)
+
   // Bảng trung gian
   ticketPayments TicketPayment[]
-
   @@index([userId])
   @@index([scheduleId])
   @@index([status])
 }
 
 model PaymentHistory {
-  id            Int       @id @default(autoincrement())
-  ticketId      Int?      // Vé đầu tiên (dễ query) – KHÔNG @unique
+  id            Int              @id @default(autoincrement())
+  ticketId      Int?             // Vé đầu tiên (dễ query) – KHÔNG @unique
   method        PaymentMethod
   amount        Float
   transactionId String?
   status        String
   qrCode        String?
-  paidAt        DateTime  @default(now())
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  paidAt        DateTime         @default(now())
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
   // Nhiều vé
   ticketPayments TicketPayment[]
-
   @@index([ticketId])
 }
 
 model TicketPayment {
-  id        Int       @id @default(autoincrement())
-  ticketId  Int
-  paymentId Int
-  createdAt DateTime  @default(now())
-  ticket    Ticket    @relation(fields: [ticketId], references: [id])
-  payment   PaymentHistory @relation(fields: [paymentId], references: [id])
-
+  id         Int           @id @default(autoincrement())
+  ticketId   Int
+  paymentId  Int
+  createdAt  DateTime      @default(now())
+  ticket     Ticket        @relation(fields: [ticketId], references: [id])
+  payment    PaymentHistory @relation(fields: [paymentId], references: [id])
   @@unique([ticketId, paymentId])
   @@index([ticketId])
   @@index([paymentId])

@@ -20,6 +20,7 @@ import { QrService } from './qr.service';
 import {
   CreateResponse,
   BulkCreateResponse,
+  PaymentHistoryResponse,
 } from '../dtos/ticket.response.dto';
 
 @Injectable()
@@ -59,6 +60,7 @@ export class TicketService {
     );
     if (brandTickets >= schedule.bus.brand.dailyTicketLimit)
       throw new BadRequestException('Hãng xe đã đạt giới hạn vé trong ngày');
+
     const ticket = await this.ticketRepo.create(dto);
     await this.ticketQueue.add(
       'hold-expire',
@@ -77,19 +79,26 @@ export class TicketService {
     dtos: CreateTicketDto[],
     totalAmount: number,
   ): Promise<BulkCreateResponse> {
-    const results: CreateResponse[] = [];
-    for (const dto of dtos) {
+    if (dtos.length === 0) throw new BadRequestException('Danh sách vé trống');
+
+    const firstDto = { ...dtos[0] };
+    const firstResult = await this.create(firstDto);
+    const bulkTicketId = firstResult.ticket.id;
+
+    const results = [firstResult];
+
+    for (let i = 1; i < dtos.length; i++) {
+      const dto = { ...dtos[i], bulkTicketId };
       const result = await this.create(dto);
       results.push(result);
     }
-    const firstTicketId = results[0].ticket.id;
+
     const momoResponse = await this.momoService.createPayment(
-      firstTicketId,
+      bulkTicketId,
       totalAmount,
-      `Thanh toán ${results.length} vé xe - ${totalAmount.toLocaleString(
-        'vi-VN',
-      )}đ`,
+      `Thanh toán ${dtos.length} vé xe - ${totalAmount.toLocaleString('vi-VN')}đ`,
     );
+
     return {
       tickets: results.map((r) => r.ticket),
       payment: momoResponse,
@@ -151,13 +160,11 @@ export class TicketService {
     }
   }
 
-  // ĐÃ SỬA HOÀN CHỈNH: GỘP NHÓM VÉ → 1 THANH TOÁN → 1 QR → EMAIL NHÓM
   async payTicket(id: number, method: AppPaymentMethod, transId?: string) {
     this.logger.log(
       `Bắt đầu thanh toán nhóm vé từ vé đầu #${id} - method: ${method}, transId: ${transId}`,
     );
 
-    // 1. Lấy vé đầu tiên (firstTicket)
     const firstTicket = await this.prism.ticket.findUnique({
       where: { id },
       include: {
@@ -181,16 +188,14 @@ export class TicketService {
     if (diffHours < 1)
       throw new BadRequestException('Chỉ được thanh toán trước 1 giờ');
 
-    // 2. Tìm TẤT CẢ vé cùng nhóm: cùng user + schedule + createdAt ±5 phút
+    // SỬA: DÙNG bulkTicketId HOẶC id
     const groupTickets = await this.prism.ticket.findMany({
       where: {
-        userId: firstTicket.userId,
-        scheduleId: firstTicket.scheduleId,
+        OR: [
+          { id: firstTicket.id },
+          { bulkTicketId: firstTicket.id },
+        ],
         status: TicketStatus.BOOKED,
-        createdAt: {
-          gte: new Date(firstTicket.createdAt.getTime() - 5 * 60 * 1000),
-          lte: new Date(firstTicket.createdAt.getTime() + 5 * 60 * 1000),
-        },
       },
       include: {
         seat: true,
@@ -208,10 +213,7 @@ export class TicketService {
     if (groupTickets.length === 0)
       throw new NotFoundException('Không tìm thấy vé để thanh toán');
 
-    // 3. Tạo 1 QR cho cả nhóm (dùng firstTicketId)
     const qrCodeUrl = await this.qrService.generateSecureTicketQR(firstTicket.id);
-
-    // 4. Tạo 1 bản ghi thanh toán cho cả nhóm
     const totalAmount = groupTickets.reduce((sum, t) => sum + t.price, 0);
     const payment = await this.prism.paymentHistory.create({
       data: {
@@ -224,14 +226,12 @@ export class TicketService {
       },
     });
 
-    // 5. Liên kết tất cả vé với payment
     const ticketPaymentData = groupTickets.map((t) => ({
       ticketId: t.id,
       paymentId: payment.id,
     }));
     await this.prism.ticketPayment.createMany({ data: ticketPaymentData });
 
-    // 6. Cập nhật trạng thái: TẤT CẢ vé → PAID + ghế → không còn trống
     const ticketIds = groupTickets.map(t => t.id);
     await this.prism.$transaction([
       ...ticketIds.map((tid) =>
@@ -248,13 +248,11 @@ export class TicketService {
       ),
     ]);
 
-    // 7. Hủy job hold-expire cho tất cả vé trong nhóm
     const jobs = await this.ticketQueue.getDelayed();
     for (const job of jobs) {
       if (ticketIds.includes(job.data.ticketId)) await job.remove();
     }
 
-    // 8. Gửi email nhóm
     if (firstTicket.user?.email) {
       try {
         if (groupTickets.length === 1) {
@@ -320,7 +318,7 @@ export class TicketService {
     return ticket;
   }
 
-  async getPaymentHistory(ticketId: number) {
+  async getPaymentHistory(ticketId: number): Promise<PaymentHistoryResponse> {
     const payment = await this.prism.paymentHistory.findFirst({
       where: {
         ticketPayments: { some: { ticketId } },
@@ -344,18 +342,22 @@ export class TicketService {
         },
       },
     });
+
     if (
       !payment ||
       !payment.ticketPayments ||
       payment.ticketPayments.length === 0
     )
       throw new NotFoundException('Không tìm thấy lịch sử thanh toán');
-    const ticket = payment.ticketPayments[0].ticket;
-    const departure = new Date(ticket.schedule.departureAt);
+
+    const ticketsInGroup = payment.ticketPayments.map(tp => tp.ticket);
+    const firstTicket = ticketsInGroup[0];
+    const departure = new Date(firstTicket.schedule.departureAt);
     const paidAt = payment.paidAt;
+
     return {
-      ticketCode: `V${String(ticket.id).padStart(6, '0')}`,
-      route: `${ticket.schedule.route.startPoint} → ${ticket.schedule.route.endPoint}`,
+      ticketCode: `V${String(firstTicket.id).padStart(6, '0')}`,
+      route: `${firstTicket.schedule.route.startPoint} to ${firstTicket.schedule.route.endPoint}`,
       departureTime: `${String(departure.getHours()).padStart(
         2,
         '0',
@@ -363,8 +365,8 @@ export class TicketService {
         2,
         '0',
       )}, ${departure.toLocaleDateString('vi-VN')}`,
-      seatNumber: ticket.seat.seatNumber,
-      price: `${ticket.price.toLocaleString('vi-VN')}đ`,
+      seatNumber: String(firstTicket.seat.seatNumber), // SỬA: ép kiểu string
+      price: `${firstTicket.price.toLocaleString('vi-VN')}đ`,
       paymentMethod: this.formatPaymentMethod(payment.method),
       status: payment.status === 'SUCCESS' ? 'Đã thanh toán' : 'Thất bại',
       paidAt: `${paidAt.toLocaleString('vi-VN', {
@@ -376,7 +378,8 @@ export class TicketService {
         year: 'numeric',
       })}`,
       transactionId: payment.transactionId || '—',
-      qrCode: payment.qrCode,
+      qrCode: payment.qrCode ?? null, // SỬA: ?? null
+      bulkTicketIds: ticketsInGroup.map(t => t.id),
     };
   }
 

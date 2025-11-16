@@ -27,6 +27,9 @@ export interface Ticket {
   createdAt?: Date;
   updatedAt?: Date;
 
+  // THÊM DÒNG NÀY – ĐỒNG BỘ VỚI PRISMA
+  bulkTicketId?: number | null; // null = vé đơn, có giá trị = thuộc nhóm vé
+
   // Quan hệ
   user?: User;
   schedule?: Schedule;
