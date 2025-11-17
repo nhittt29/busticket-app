@@ -128,30 +128,36 @@ model Ticket {
   createdAt     DateTime         @default(now())
   updatedAt     DateTime         @updatedAt
 
-  // THÊM DÒNG NÀY – PHÂN BIỆT VÉ ĐƠN / NHÓM
-  bulkTicketId  Int?             // NULL = vé đơn, có giá trị = thuộc nhóm (id vé đầu)
+  // ĐÃ XÓA HOÀN TOÀN bulkTicketId → không dùng nữa
+  // ĐÃ THÊM: Mỗi vé thuộc về một lần thanh toán (1 lần đặt)
+  paymentHistoryId Int?
+  paymentHistory   PaymentHistory?  @relation(fields: [paymentHistoryId], references: [id])
 
   // Bảng trung gian
-  ticketPayments TicketPayment[]
+  ticketPayments   TicketPayment[]
+
   @@index([userId])
   @@index([scheduleId])
   @@index([status])
+  @@index([paymentHistoryId])
 }
 
 model PaymentHistory {
   id            Int              @id @default(autoincrement())
-  ticketId      Int?             // Vé đầu tiên (dễ query) – KHÔNG @unique
   method        PaymentMethod
   amount        Float
   transactionId String?
-  status        String
+  status        String           @default("PENDING") // PENDING, SUCCESS, FAILED
   qrCode        String?
-  paidAt        DateTime         @default(now())
+  paidAt        DateTime?
   createdAt     DateTime         @default(now())
   updatedAt     DateTime         @updatedAt
-  // Nhiều vé
+
+  // Một lần thanh toán → nhiều vé (1 lần đặt)
+  tickets       Ticket[]
   ticketPayments TicketPayment[]
-  @@index([ticketId])
+
+  @@map("payment_history")
 }
 
 model TicketPayment {
@@ -159,8 +165,10 @@ model TicketPayment {
   ticketId   Int
   paymentId  Int
   createdAt  DateTime      @default(now())
+
   ticket     Ticket        @relation(fields: [ticketId], references: [id])
   payment    PaymentHistory @relation(fields: [paymentId], references: [id])
+
   @@unique([ticketId, paymentId])
   @@index([ticketId])
   @@index([paymentId])

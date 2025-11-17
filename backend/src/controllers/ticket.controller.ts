@@ -4,10 +4,14 @@ import { TicketService } from '../services/ticket.service';
 import { CreateTicketDto } from '../dtos/ticket.dto';
 import { PaymentMethod } from '../models/Ticket';
 import { BulkCreateResponse } from '../dtos/ticket.response.dto';
+import { PrismaService } from '../services/prisma.service';
 
 @Controller('tickets')
 export class TicketController {
-  constructor(private readonly ticketService: TicketService) {}
+  constructor(
+    private readonly ticketService: TicketService,
+    private readonly prism: PrismaService,
+  ) {}
 
   @Post()
   create(@Body() dto: CreateTicketDto) {
@@ -24,13 +28,16 @@ export class TicketController {
     return this.ticketService.getTicketById(Number(id));
   }
 
+  // ĐÃ SỬA: Dùng paymentHistoryId thay vì bulkTicketId
   @Get('momo/redirect')
   @Redirect()
   async momoRedirect(@Query() query: any) {
     const result = await this.ticketService.handleMomoRedirect(query);
-    return result.success
-      ? { url: `${process.env.FRONTEND_URL}/payment-success?ticketId=${result.ticketId}` }
-      : { url: `${process.env.FRONTEND_URL}/payment-failed` };
+    if (!result.success) {
+      return { url: `${process.env.FRONTEND_URL}/payment-failed` };
+    }
+    // Trả về paymentHistoryId để frontend biết nhóm thanh toán
+    return { url: `${process.env.FRONTEND_URL}/payment-success?paymentId=${result.paymentHistoryId}` };
   }
 
   @Post('momo/callback')
@@ -58,7 +65,6 @@ export class TicketController {
     return this.ticketService.getStatus(Number(id));
   }
 
-  // MỚI: LẤY LỊCH SỬ THANH TOÁN CHI TIẾT + DANH SÁCH VÉ NHÓM
   @Get(':id/payment')
   async getPaymentHistory(@Param('id') id: string) {
     return this.ticketService.getPaymentHistory(Number(id));

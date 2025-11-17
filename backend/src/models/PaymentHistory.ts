@@ -1,35 +1,26 @@
 // src/models/PaymentHistory.ts
-export enum PaymentMethod {
-  CASH = 'CASH',
-  CREDIT_CARD = 'CREDIT_CARD',
-  MOMO = 'MOMO',
-  ZALOPAY = 'ZALOPAY',
+import { PaymentMethod } from './Ticket';
+
+export enum PaymentStatus {
+  PENDING = 'PENDING',
+  SUCCESS = 'SUCCESS',
+  FAILED = 'FAILED',
+  REFUNDED = 'REFUNDED',
 }
 
 export interface PaymentHistory {
   id: number;
-  ticketId?: number; // Vé đầu tiên (dễ query)
   method: PaymentMethod;
   amount: number;
-  transactionId?: string;
-  status: 'SUCCESS' | 'FAILED' | 'REFUNDED';
-  qrCode?: string;
-  paidAt: Date;
+  transactionId?: string | null;
+  status: PaymentStatus;
+  qrCode?: string | null;
+  paidAt?: Date | null;
   createdAt: Date;
   updatedAt: Date;
 
-  // Quan hệ
-  ticket?: {
-    id: number;
-    userId: number;
-    scheduleId: number;
-    seatId: number;
-    price: number;
-    status: string;
-    paymentMethod?: PaymentMethod;
-  };
-
-  // THÊM: Nhiều vé liên kết qua bảng trung gian
+  // Quan hệ: 1 lần thanh toán → nhiều vé
+  tickets?: Ticket[];
   ticketPayments?: TicketPayment[];
 }
 
@@ -39,9 +30,13 @@ export interface TicketPayment {
   paymentId: number;
   createdAt: Date;
 
-  // Quan hệ (tùy chọn)
-  ticket?: {
-    id: number;
-    seat?: { code: string };
-  };
+  // Quan hệ tùy chọn
+  ticket?: Ticket;
+}
+
+import type { Ticket } from './Ticket';
+declare module './PaymentHistory' {
+  interface PaymentHistory {
+    tickets?: Ticket[];
+  }
 }

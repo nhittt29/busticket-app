@@ -1,3 +1,4 @@
+// src/dtos/ticket.dto.ts
 import { IsEnum, IsInt, IsNotEmpty, Min, IsOptional } from 'class-validator';
 import { PaymentMethod } from '../models/Ticket';
 
@@ -21,9 +22,4 @@ export class CreateTicketDto {
   @IsOptional()
   @IsEnum(PaymentMethod)
   paymentMethod?: PaymentMethod;
-
-  // THÊM: DÙNG ĐỂ GỘP NHÓM VÉ
-  @IsOptional()
-  @IsInt()
-  bulkTicketId?: number;
 }

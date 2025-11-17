@@ -134,24 +134,24 @@ CREATE TABLE "Ticket" (
     "paymentMethod" "PaymentMethod",
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
+    "paymentHistoryId" INTEGER,
 
     CONSTRAINT "Ticket_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
-CREATE TABLE "PaymentHistory" (
+CREATE TABLE "payment_history" (
     "id" SERIAL NOT NULL,
-    "ticketId" INTEGER,
     "method" "PaymentMethod" NOT NULL,
     "amount" DOUBLE PRECISION NOT NULL,
     "transactionId" TEXT,
-    "status" TEXT NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'PENDING',
     "qrCode" TEXT,
-    "paidAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "paidAt" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
-    CONSTRAINT "PaymentHistory_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "payment_history_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -228,7 +228,7 @@ CREATE INDEX "Ticket_scheduleId_idx" ON "Ticket"("scheduleId");
 CREATE INDEX "Ticket_status_idx" ON "Ticket"("status");
 
 -- CreateIndex
-CREATE INDEX "PaymentHistory_ticketId_idx" ON "PaymentHistory"("ticketId");
+CREATE INDEX "Ticket_paymentHistoryId_idx" ON "Ticket"("paymentHistoryId");
 
 -- CreateIndex
 CREATE INDEX "TicketPayment_ticketId_idx" ON "TicketPayment"("ticketId");
@@ -267,7 +267,10 @@ ALTER TABLE "Ticket" ADD CONSTRAINT "Ticket_scheduleId_fkey" FOREIGN KEY ("sched
 ALTER TABLE "Ticket" ADD CONSTRAINT "Ticket_seatId_fkey" FOREIGN KEY ("seatId") REFERENCES "Seat"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "Ticket" ADD CONSTRAINT "Ticket_paymentHistoryId_fkey" FOREIGN KEY ("paymentHistoryId") REFERENCES "payment_history"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "TicketPayment" ADD CONSTRAINT "TicketPayment_ticketId_fkey" FOREIGN KEY ("ticketId") REFERENCES "Ticket"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "TicketPayment" ADD CONSTRAINT "TicketPayment_paymentId_fkey" FOREIGN KEY ("paymentId") REFERENCES "PaymentHistory"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "TicketPayment" ADD CONSTRAINT "TicketPayment_paymentId_fkey" FOREIGN KEY ("paymentId") REFERENCES "payment_history"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

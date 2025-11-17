@@ -15,21 +15,21 @@ export class MomoService {
   private readonly logger = new Logger(MomoService.name);
 
   private readonly endpoint = 'https://test-payment.momo.vn/v2/gateway/api/create';
-
   private readonly partnerCode = process.env.MOMO_PARTNER_CODE!;
   private readonly accessKey = process.env.MOMO_ACCESS_KEY!;
   private readonly secretKey = process.env.MOMO_SECRET_KEY!;
 
-  async createPayment(ticketId: number, realPrice: number, orderInfo?: string): Promise<MomoResponse> {
+  // ĐÃ SỬA: Dùng paymentHistoryId thay vì ticketId
+  async createPayment(paymentHistoryId: number, realPrice: number, orderInfo?: string): Promise<MomoResponse> {
     const redirectUrl = process.env.MOMO_REDIRECT_URL!;
     const ipnUrl = process.env.MOMO_IPN_URL!;
 
     const requestId = `${this.partnerCode}${Date.now()}`;
-    const orderId = `TICKET_${ticketId}_${Date.now()}`;
+    const orderId = `TICKET_${paymentHistoryId}_${Date.now()}`;
 
     const amount = realPrice.toString();
     const displayPrice = realPrice.toLocaleString('vi-VN');
-    const defaultOrderInfo = `Thanh toán vé xe #${ticketId} - ${displayPrice}đ`;
+    const defaultOrderInfo = `Thanh toán đơn hàng #${paymentHistoryId} - ${displayPrice}đ`;
     const finalOrderInfo = orderInfo || defaultOrderInfo;
 
     const requestType = 'payWithMethod';

@@ -27,8 +27,9 @@ export interface Ticket {
   createdAt?: Date;
   updatedAt?: Date;
 
-  // THÊM DÒNG NÀY – ĐỒNG BỘ VỚI PRISMA
-  bulkTicketId?: number | null; // null = vé đơn, có giá trị = thuộc nhóm vé
+  // ĐÃ XÓA bulkTicketId → không còn dùng nữa
+  // ĐÃ THÊM: Mỗi vé thuộc về 1 lần thanh toán (1 lần đặt)
+  paymentHistoryId?: number | null;
 
   // Quan hệ
   user?: User;
@@ -44,4 +45,14 @@ export interface TicketPayment {
   ticketId: number;
   paymentId: number;
   createdAt: Date;
+
+  // Quan hệ tùy chọn
+  payment?: PaymentHistory;
+}
+
+import type { PaymentHistory } from './PaymentHistory';
+declare module './Ticket' {
+  interface Ticket {
+    paymentHistory?: PaymentHistory;
+  }
 }

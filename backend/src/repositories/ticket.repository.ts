@@ -17,7 +17,7 @@ export class TicketRepository {
         price: data.price,
         status: TicketStatus.BOOKED,
         paymentMethod: data.paymentMethod,
-        bulkTicketId: data.bulkTicketId ?? null, // Dùng ?? null để tránh lỗi type
+        // ĐÃ XÓA bulkTicketId
       },
     });
   }
@@ -59,12 +59,9 @@ export class TicketRepository {
     return this.prisma.ticket.findMany({
       where: { userId },
       include: {
-        schedule: {
-          include: {
-            route: true,
-          },
-        },
+        schedule: { include: { route: true } },
         seat: true,
+        paymentHistory: true,
       },
       orderBy: { createdAt: 'desc' },
     });
