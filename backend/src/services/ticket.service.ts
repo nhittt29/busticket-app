@@ -367,6 +367,7 @@ export class TicketService {
     return ticket;
   }
 
+  // API cũ: lấy payment từ ticketId (giữ nguyên để tương thích)
   async getPaymentHistory(ticketId: number): Promise<PaymentHistoryResponse> {
     const payment = await this.prism.paymentHistory.findFirst({
       where: {
@@ -396,7 +397,58 @@ export class TicketService {
       throw new NotFoundException('Không tìm thấy lịch sử thanh toán');
 
     const ticketsInGroup = payment.ticketPayments.map(tp => tp.ticket);
-    const firstTicket =ticketsInGroup[0];
+    const firstTicket = ticketsInGroup[0];
+    const departure = new Date(firstTicket.schedule.departureAt);
+
+    return {
+      ticketCode: `V${String(firstTicket.id).padStart(6, '0')}`,
+      route: `${firstTicket.schedule.route.startPoint} → ${firstTicket.schedule.route.endPoint}`,
+      departureTime: `${String(departure.getHours()).padStart(2, '0')}:${String(departure.getMinutes()).padStart(2, '0')}, ${departure.toLocaleDateString('vi-VN')}`,
+      seatNumber: ticketsInGroup.length === 1
+        ? String(firstTicket.seat.seatNumber)
+        : `${ticketsInGroup.length} ghế`,
+      price: `${payment.amount.toLocaleString('vi-VN')}đ`,
+      paymentMethod: this.formatPaymentMethod(payment.method),
+      status: payment.status === 'SUCCESS' ? 'Đã thanh toán' : 'Thất bại',
+      paidAt: payment.paidAt
+        ? `${payment.paidAt.toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit' })}, ${payment.paidAt.toLocaleDateString('vi-VN')}`
+        : '—',
+      transactionId: payment.transactionId || '—',
+      qrCode: payment.qrCode ?? null,
+      paymentHistoryId: payment.id,
+      ticketIds: ticketsInGroup.map(t => t.id),
+    };
+  }
+
+  // API MỚI: lấy trực tiếp theo paymentHistoryId – DÀNH RIÊNG CHO GroupTicketQRScreen
+  async getPaymentDetailByHistoryId(paymentHistoryId: number): Promise<PaymentHistoryResponse> {
+    const payment = await this.prism.paymentHistory.findUnique({
+      where: { id: paymentHistoryId },
+      include: {
+        ticketPayments: {
+          include: {
+            ticket: {
+              include: {
+                user: { select: { name: true, phone: true } },
+                seat: { select: { seatNumber: true } },
+                schedule: {
+                  include: {
+                    route: { select: { startPoint: true, endPoint: true } },
+                    bus: { select: { name: true } },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!payment || payment.ticketPayments.length === 0)
+      throw new NotFoundException('Không tìm thấy thông tin thanh toán theo paymentHistoryId');
+
+    const ticketsInGroup = payment.ticketPayments.map(tp => tp.ticket);
+    const firstTicket = ticketsInGroup[0];
     const departure = new Date(firstTicket.schedule.departureAt);
 
     return {

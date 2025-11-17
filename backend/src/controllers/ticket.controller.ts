@@ -36,7 +36,6 @@ export class TicketController {
     if (!result.success) {
       return { url: `${process.env.FRONTEND_URL}/payment-failed` };
     }
-    // Trả về paymentHistoryId để frontend biết nhóm thanh toán
     return { url: `${process.env.FRONTEND_URL}/payment-success?paymentId=${result.paymentHistoryId}` };
   }
 
@@ -65,8 +64,15 @@ export class TicketController {
     return this.ticketService.getStatus(Number(id));
   }
 
+  // API cũ: lấy payment theo ticketId
   @Get(':id/payment')
   async getPaymentHistory(@Param('id') id: string) {
     return this.ticketService.getPaymentHistory(Number(id));
+  }
+
+  // API MỚI: lấy payment theo paymentHistoryId (frontend GroupTicketQRScreen dùng cái này)
+  @Get('/payments/history/:paymentHistoryId')
+  async getPaymentDetailByHistoryId(@Param('paymentHistoryId') id: string) {
+    return this.ticketService.getPaymentDetailByHistoryId(Number(id));
   }
 }
