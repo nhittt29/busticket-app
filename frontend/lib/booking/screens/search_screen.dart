@@ -70,13 +70,13 @@ class _SearchScreenState extends State<SearchScreen> {
         title: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Image.asset('assets/images/bus_logo.png', height: 36),
-            const SizedBox(width: 12),
+            Image.asset('assets/images/bus_logo.png', height: 32),
+            const SizedBox(width: 10),
             const Text(
               "Tìm chuyến xe",
               style: TextStyle(
                 color: Colors.white,
-                fontSize: 24,
+                fontSize: 22,
                 fontWeight: FontWeight.w800,
                 letterSpacing: 0.5,
               ),
@@ -85,7 +85,7 @@ class _SearchScreenState extends State<SearchScreen> {
         ),
       ),
       body: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(18),
         child: BlocListener<BookingCubit, BookingState>(
           listenWhen: (previous, current) =>
               previous.loading && !current.loading && current.trips.isNotEmpty && current.error == null,
@@ -94,7 +94,6 @@ class _SearchScreenState extends State<SearchScreen> {
           },
           child: BlocBuilder<BookingCubit, BookingState>(
             builder: (context, state) {
-              // Hiển thị lỗi nếu có
               if (state.error != null && !state.loading) {
                 WidgetsBinding.instance.addPostFrameCallback((_) {
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -102,8 +101,8 @@ class _SearchScreenState extends State<SearchScreen> {
                       content: Text(state.error!, style: const TextStyle(fontWeight: FontWeight.w600)),
                       backgroundColor: Colors.redAccent,
                       behavior: SnackBarBehavior.floating,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                      margin: const EdgeInsets.all(16),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      margin: const EdgeInsets.all(12),
                     ),
                   );
                 });
@@ -111,29 +110,25 @@ class _SearchScreenState extends State<SearchScreen> {
 
               return Column(
                 children: [
-                  // Điểm đi
                   _buildTextField(
                     controller: _fromController,
                     label: 'Từ đâu',
                     icon: Icons.location_on,
-                    hint: 'Nhập điểm đi (ví dụ: Hà Nội, Sài Gòn...)',
+                    hint: 'Nhập điểm đi (Hà Nội, TP.HCM...)',
                   ),
-                  const SizedBox(height: 18),
+                  const SizedBox(height: 16),
 
-                  // Điểm đến
                   _buildTextField(
                     controller: _toController,
                     label: 'Đến đâu',
                     icon: Icons.location_on_outlined,
-                    hint: 'Nhập điểm đến (ví dụ: Đà Nẵng, Nha Trang...)',
+                    hint: 'Nhập điểm đến (Đà Nẵng, Nha Trang...)',
                   ),
-                  const SizedBox(height: 18),
+                  const SizedBox(height: 16),
 
-                  // Chọn ngày
                   _buildDatePicker(context, state),
-                  const SizedBox(height: 40),
+                  const SizedBox(height: 36),
 
-                  // Nút tìm chuyến
                   _buildSearchButton(context, state),
                 ],
               );
@@ -153,31 +148,31 @@ class _SearchScreenState extends State<SearchScreen> {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFA0D8F1).withOpacity(0.6), width: 1.5),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFA0D8F1).withOpacity(0.7), width: 1.4),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.18),
-            blurRadius: 16,
-            offset: const Offset(0, 6),
+            color: Colors.grey.withOpacity(0.16),
+            blurRadius: 12,
+            offset: const Offset(0, 5),
           ),
         ],
       ),
       child: TextField(
         controller: controller,
-        style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
+        style: const TextStyle(fontSize: 16.5, fontWeight: FontWeight.w600),
         decoration: InputDecoration(
           labelText: label,
           labelStyle: const TextStyle(
             color: primaryBlue,
             fontWeight: FontWeight.bold,
-            fontSize: 16,
+            fontSize: 15.5,
           ),
           hintText: hint,
-          hintStyle: TextStyle(color: Colors.grey[500], fontSize: 15),
-          prefixIcon: Icon(icon, color: primaryBlue, size: 28),
+          hintStyle: TextStyle(color: Colors.grey[500], fontSize: 14.5),
+          prefixIcon: Icon(icon, color: primaryBlue, size: 26),
           border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
           floatingLabelBehavior: FloatingLabelBehavior.always,
         ),
       ),
@@ -189,7 +184,7 @@ class _SearchScreenState extends State<SearchScreen> {
         '${state.date.day.toString().padLeft(2, '0')}/${state.date.month.toString().padLeft(2, '0')}/${state.date.year}';
 
     return InkWell(
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: BorderRadius.circular(16),
       onTap: () async {
         final date = await showDatePicker(
           context: context,
@@ -217,23 +212,23 @@ class _SearchScreenState extends State<SearchScreen> {
         }
       },
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 22),
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: const Color(0xFFA0D8F1).withOpacity(0.6), width: 1.5),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFA0D8F1).withOpacity(0.7), width: 1.4),
           boxShadow: [
             BoxShadow(
-              color: Colors.grey.withOpacity(0.18),
-              blurRadius: 16,
-              offset: const Offset(0, 6),
+              color: Colors.grey.withOpacity(0.16),
+              blurRadius: 12,
+              offset: const Offset(0, 5),
             ),
           ],
         ),
         child: Row(
           children: [
-            const Icon(Icons.calendar_today_rounded, color: primaryBlue, size: 28),
-            const SizedBox(width: 16),
+            const Icon(Icons.calendar_today_rounded, color: primaryBlue, size: 26),
+            const SizedBox(width: 14),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -242,14 +237,14 @@ class _SearchScreenState extends State<SearchScreen> {
                   style: TextStyle(
                     color: primaryBlue,
                     fontWeight: FontWeight.bold,
-                    fontSize: 15,
+                    fontSize: 14.5,
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 3),
                 Text(
                   formattedDate,
                   style: const TextStyle(
-                    fontSize: 18,
+                    fontSize: 17,
                     fontWeight: FontWeight.bold,
                     color: Color(0xFF023E8A),
                   ),
@@ -257,7 +252,7 @@ class _SearchScreenState extends State<SearchScreen> {
               ],
             ),
             const Spacer(),
-            const Icon(Icons.keyboard_arrow_down_rounded, color: primaryBlue, size: 32),
+            const Icon(Icons.keyboard_arrow_down_rounded, color: primaryBlue, size: 28),
           ],
         ),
       ),
@@ -269,7 +264,7 @@ class _SearchScreenState extends State<SearchScreen> {
 
     return SizedBox(
       width: double.infinity,
-      height: 64,
+      height: 58,
       child: ElevatedButton.icon(
         onPressed: state.loading || !canSearch
             ? null
@@ -278,22 +273,22 @@ class _SearchScreenState extends State<SearchScreen> {
               },
         icon: state.loading
             ? const SizedBox(
-                width: 24,
-                height: 24,
-                child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3),
+                width: 22,
+                height: 22,
+                child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.8),
               )
-            : const Icon(Icons.directions_bus_filled, size: 32),
+            : const Icon(Icons.directions_bus_filled, size: 28),
         label: Text(
-          state.loading ? 'Đang tìm chuyến...' : 'Tìm chuyến xe ngay',
-          style: const TextStyle(fontSize: 19, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+          state.loading ? 'Đang tìm...' : 'Tìm chuyến xe ngay',
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: 0.4),
         ),
         style: ElevatedButton.styleFrom(
           backgroundColor: primaryGradientStart,
           disabledBackgroundColor: Colors.grey[400],
           foregroundColor: Colors.white,
-          elevation: 12,
+          elevation: 10,
           shadowColor: primaryGradientStart.withOpacity(0.5),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         ),
       ),
     );
