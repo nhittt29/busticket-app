@@ -25,33 +25,42 @@ export class ScheduleService {
     return schedule;
   }
 
+  // ĐÃ SỬA HOÀN CHỈNH – TRẢ VỀ ĐẦY ĐỦ THÔNG TIN + SẮP XẾP ỔN ĐỊNH
   async getSeats(scheduleId: number) {
-    const seats = await this.scheduleRepo.getSeatsBySchedule(scheduleId);
-    if (!seats) throw new NotFoundException('Schedule not found');
+    const result = await this.scheduleRepo.getSeatsBySchedule(scheduleId);
+    if (!result) throw new NotFoundException('Schedule not found');
 
-    // TỰ ĐỘNG TÍNH isAvailable
-    const mappedSeats = seats.map(seat => ({
-      seatId: seat.seatId,
-      seatNumber: seat.seatNumber,
-      code: seat.code,
-      isBooked: seat.isBooked,
-      isAvailable: !seat.isBooked, // TỰ ĐỘNG: nếu đã đặt → false
-    }));
+    const { seats, tickets } = result;
 
-    // TỰ ĐỘNG CẬP NHẬT status CHO SCHEDULE
+    const mappedSeats = seats.map(seat => {
+      const isBooked = tickets.some(t => t.seatId === seat.id);
+
+      return {
+        id: seat.id,
+        seatNumber: seat.seatNumber,
+        code: seat.code,
+        floor: seat.floor ?? 1,
+        roomType: seat.roomType ?? 'DOUBLE',
+        price: Number(seat.price) || 0,
+        isBooked,
+        isAvailable: !isBooked,
+      };
+    });
+
+    // Cập nhật trạng thái chuyến
     const availableCount = mappedSeats.filter(s => s.isAvailable).length;
     const totalSeats = mappedSeats.length;
-
     let status: ScheduleStatus = ScheduleStatus.UPCOMING;
+
     if (availableCount === 0) {
       status = ScheduleStatus.FULL;
     } else if (availableCount < totalSeats * 0.3) {
       status = ScheduleStatus.FEW_SEATS;
     }
 
-    // CẬP NHẬT VÀO DB
     await this.scheduleRepo.updateScheduleStatus(scheduleId, status);
 
+    // ĐÃ SẮP XẾP TỪ DATABASE → TRẢ VỀ NGAY, ỔN ĐỊNH 100%
     return mappedSeats;
   }
 

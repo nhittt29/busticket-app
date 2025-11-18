@@ -18,15 +18,13 @@ export class ScheduleRepository {
     });
   }
 
-  // LỌC CHÍNH XÁC: NƠI ĐI, NƠI ĐẾN, NGÀY (DD/MM/YYYY) + CHỈ HIỆN CHUYẾN CHƯA CHẠY
-  // + XỬ LÝ MÚI GIỜ +07:00 & CHUYẾN ĐÊM (23:30 hôm nay → hiện ngày mai)
   async getAllSchedules(query?: {
     startPoint?: string;
     endPoint?: string;
     date?: string;
   }) {
     const where: any = { AND: [] };
-    const now = new Date(); // LẤY THỜI GIAN HIỆN TẠI (UTC)
+    const now = new Date();
 
     if (query?.startPoint) {
       where.AND.push({
@@ -38,7 +36,6 @@ export class ScheduleRepository {
         },
       });
     }
-
     if (query?.endPoint) {
       where.AND.push({
         route: {
@@ -49,18 +46,13 @@ export class ScheduleRepository {
         },
       });
     }
-
     if (query?.date) {
-      // CHUẨN HÓA DD/MM/YYYY → YYYY-MM-DD + MÚI GIỜ +07:00
       const [day, month, year] = query.date.split('/');
       const localDate = new Date(`${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T00:00:00+07:00`);
-
       const startOfDay = new Date(localDate);
       startOfDay.setHours(0, 0, 0, 0);
-
-      // CHO PHÉP CHUYẾN ĐÊM: +48 GIỜ ĐỂ BAO QUÁT 23:30 HÔM QUA
       const endOfDay = new Date(localDate);
-      endOfDay.setHours(47, 59, 59, 999); // 00:00 ngày search → 23:59 ngày kế tiếp
+      endOfDay.setHours(47, 59, 59, 999);
 
       where.AND.push({
         departureAt: {
@@ -70,10 +62,9 @@ export class ScheduleRepository {
       });
     }
 
-    // MỚI: CHỈ HIỆN CHUYẾN CHƯA CHẠY (departureAt > now)
     where.AND.push({
       departureAt: {
-        gt: now, // ẨN TẤT CẢ CHUYẾN ĐÃ CHẠY
+        gt: now,
       },
     });
 
@@ -99,28 +90,43 @@ export class ScheduleRepository {
     });
   }
 
+  // ĐÃ SỬA HOÀN CHỈNH – TRẢ VỀ SEAT ĐẦY ĐỦ + SẮP XẾP TỪ DATABASE
   async getSeatsBySchedule(scheduleId: number) {
     const schedule = await this.prisma.schedule.findUnique({
       where: { id: scheduleId },
       include: {
         bus: {
-          include: { seats: true },
+          include: {
+            seats: {
+              select: {
+                id: true,
+                seatNumber: true,
+                code: true,
+                floor: true,
+                roomType: true,
+                price: true,
+              },
+              orderBy: [
+                { floor: 'asc' },
+                { seatNumber: 'asc' },
+              ],
+            },
+          },
         },
-        tickets: true,
+        tickets: {
+          select: { seatId: true },
+        },
       },
     });
 
     if (!schedule) return null;
 
-    return schedule.bus.seats.map(seat => ({
-      seatId: seat.id,
-      seatNumber: seat.seatNumber,
-      code: seat.code,
-      isBooked: schedule.tickets.some(t => t.seatId === seat.id),
-    }));
+    return {
+      seats: schedule.bus.seats,
+      tickets: schedule.tickets,
+    };
   }
 
-  // MỚI: CẬP NHẬT TRẠNG THÁI SCHEDULE
   async updateScheduleStatus(scheduleId: number, status: ScheduleStatus) {
     return this.prisma.schedule.update({
       where: { id: scheduleId },
