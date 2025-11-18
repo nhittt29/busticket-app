@@ -67,7 +67,10 @@ class _GroupTicketQRScreenState extends State<GroupTicketQRScreen>
           return Scaffold(
             backgroundColor: const Color(0xFFEAF6FF),
             body: Center(
-              child: CircularProgressIndicator(color: const Color(0xFF6AB7F5), strokeWidth: 3.5),
+              child: CircularProgressIndicator(
+                color: const Color(0xFF6AB7F5),
+                strokeWidth: 3.5,
+              ),
             ),
           );
         }
@@ -173,7 +176,6 @@ class _GroupTicketQRScreenState extends State<GroupTicketQRScreen>
                   padding: const EdgeInsets.fromLTRB(18, 20, 18, 40),
                   child: Column(
                     children: [
-                      // Thông báo trạng thái
                       if (!hasQR && isPaid)
                         Container(
                           width: double.infinity,
@@ -222,15 +224,14 @@ class _GroupTicketQRScreenState extends State<GroupTicketQRScreen>
                           ),
                         ),
 
-                      // CARD CHÍNH – ĐÃ THU GỌN ĐẸP
                       Container(
                         padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 22),
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(22),
-                          border: Border.all(color: const Color(0xFFA0D8F1).withOpacity(0.6), width: 1.3),
+                          border: Border.all(color: Color(0xFFA0D8F1).withValues(alpha: 0.6), width: 1.3),
                           boxShadow: [
-                            BoxShadow(color: Colors.grey.withOpacity(0.22), blurRadius: 12, offset: const Offset(0, 6)),
+                            BoxShadow(color: Colors.grey.withValues(alpha: 0.22), blurRadius: 12, offset: const Offset(0, 6)),
                           ],
                         ),
                         child: Column(
@@ -265,9 +266,9 @@ class _GroupTicketQRScreenState extends State<GroupTicketQRScreen>
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(22),
-                        border: Border.all(color: const Color(0xFFA0D8F1).withOpacity(0.6), width: 1.3),
+                        border: Border.all(color: Color(0xFFA0D8F1).withValues(alpha: 0.6), width: 1.3),
                         boxShadow: [
-                          BoxShadow(color: Colors.grey.withOpacity(0.22), blurRadius: 12, offset: const Offset(0, 6)),
+                          BoxShadow(color: Colors.grey.withValues(alpha: 0.22), blurRadius: 12, offset: const Offset(0, 6)),
                         ],
                       ),
                       child: Column(
@@ -290,14 +291,14 @@ class _GroupTicketQRScreenState extends State<GroupTicketQRScreen>
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(26),
                             boxShadow: [
-                              BoxShadow(color: Colors.grey.withOpacity(0.25), blurRadius: 16, offset: const Offset(0, 8)),
+                              BoxShadow(color: Colors.grey.withValues(alpha: 0.25), blurRadius: 16, offset: const Offset(0, 8)),
                             ],
                           ),
                           child: Column(
                             children: [
                               ClipRRect(
                                 borderRadius: BorderRadius.circular(18),
-                                child: Image.network(qrCode!, width: 240, height: 240, fit: BoxFit.contain),
+                                child: Image.network(qrCode, width: 240, height: 240, fit: BoxFit.contain), // ĐÃ XÓA ! – AN TOÀN VÌ hasQR ĐÃ KIỂM TRA
                               ),
                               const SizedBox(height: 18),
                               const Text(

@@ -4,7 +4,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../main.dart';
 import '../../bloc/home/home_bloc.dart';
 import '../../bloc/home/home_event.dart';
-import '../../ticket/screens/group_ticket_qr_screen.dart';
 import '../../ticket/services/ticket_api_service.dart';
 
 class DeepLinkService {
