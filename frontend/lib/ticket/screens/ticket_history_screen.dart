@@ -2,8 +2,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../bloc/auth/auth_bloc.dart';
-import '../../bloc/auth/auth_state.dart';
 import '../services/ticket_api_service.dart';
+import 'group_ticket_qr_screen.dart';
 import 'ticket_detail_screen.dart';
 
 class TicketHistoryScreen extends StatefulWidget {
@@ -27,37 +27,17 @@ class _TicketHistoryScreenState extends State<TicketHistoryScreen>
   }
 
   void _loadTickets() {
-    _ticketsFuture = _fetchTicketsWithPayment();
-  }
+    final userId = context.read<AuthBloc>().state.userId;
+    if (userId == null) return;
 
-  Future<List<Map<String, dynamic>>> _fetchTicketsWithPayment() async {
-    try {
-      final userId = context.read<AuthBloc>().state.userId;
-      if (userId == null) throw Exception('Chưa đăng nhập');
-
-      final tickets = await TicketApiService.getUserTickets(userId);
+    _ticketsFuture = TicketApiService.getUserTickets(userId).then((tickets) async {
       final List<Map<String, dynamic>> enriched = [];
-
       for (final ticket in tickets) {
-        final ticketId = ticket['id'] as int;
-        final payment = await TicketApiService.getPaymentDetail(ticketId);
+        final payment = await TicketApiService.getPaymentDetail(ticket['id'] as int);
         enriched.add({'ticket': ticket, 'payment': payment});
       }
       return enriched;
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Lỗi tải lịch sử vé', style: TextStyle(fontWeight: FontWeight.w600)),
-            backgroundColor: Colors.redAccent,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-            margin: const EdgeInsets.all(16),
-          ),
-        );
-      }
-      return [];
-    }
+    });
   }
 
   @override
@@ -101,7 +81,7 @@ class _TicketHistoryScreenState extends State<TicketHistoryScreen>
           unselectedLabelColor: Colors.white70,
           indicatorColor: Colors.white,
           indicatorWeight: 4,
-          labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+          labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14.5),
           onTap: (index) {
             setState(() {
               _selectedFilter = ['ALL', 'PAID', 'BOOKED', 'CANCELLED'][index];
@@ -115,193 +95,224 @@ class _TicketHistoryScreenState extends State<TicketHistoryScreen>
           ],
         ),
       ),
-      body: BlocBuilder<AuthBloc, AuthState>(
-        builder: (context, authState) {
-          if (authState.userId == null) {
-            return const Center(
-              child: Text(
-                'Vui lòng đăng nhập để xem lịch sử đặt vé',
-                style: TextStyle(fontSize: 16, color: Colors.black54),
-              ),
-            );
-          }
-
-          return FutureBuilder<List<Map<String, dynamic>>>(
-            future: _ticketsFuture,
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator(color: Color(0xFF6AB7F5)));
-              }
-              if (snapshot.hasError || !snapshot.hasData || snapshot.data!.isEmpty) {
-                return _buildEmptyState(_selectedFilter);
-              }
-
-              final filtered = snapshot.data!.where((item) {
-                final status = item['ticket']['status'] as String? ?? '';
-                return _selectedFilter == 'ALL' || status == _selectedFilter;
-              }).toList();
-
-              if (filtered.isEmpty) return _buildEmptyState(_selectedFilter);
-
-              return ListView.builder(
-                padding: const EdgeInsets.all(16),
-                itemCount: filtered.length,
-                itemBuilder: (context, index) {
-                  final item = filtered[index];
-                  final ticket = item['ticket'] as Map<String, dynamic>;
-                  final payment = item['payment'] as Map<String, dynamic>?;
-                  return _buildHistoryCard(context, ticket, payment);
-                },
-              );
-            },
-          );
+      body: RefreshIndicator(
+        onRefresh: () async {
+          setState(() => _loadTickets());
         },
+        color: const Color(0xFF6AB7F5),
+        backgroundColor: Colors.white,
+        strokeWidth: 3,
+        child: FutureBuilder<List<Map<String, dynamic>>>(
+          future: _ticketsFuture,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(
+                child: CircularProgressIndicator(color: Color(0xFF6AB7F5), strokeWidth: 3.5),
+              );
+            }
+
+            if (snapshot.hasError || !snapshot.hasData || snapshot.data!.isEmpty) {
+              return _buildEmptyState(_selectedFilter);
+            }
+
+            // GỘP THEO paymentHistoryId
+            final Map<int?, List<Map<String, dynamic>>> grouped = {};
+            for (final item in snapshot.data!) {
+              final ticket = item['ticket'] as Map<String, dynamic>;
+              final phId = ticket['paymentHistoryId'] as int?;
+              grouped.putIfAbsent(phId, () => []).add(item);
+            }
+
+            final filteredGroups = grouped.values.where((group) {
+              final rawStatus = (group.first['ticket'] as Map<String, dynamic>)['status'] as String? ?? '';
+              final normalized = _normalizeStatus(rawStatus);
+              return _selectedFilter == 'ALL' || normalized == _selectedFilter;
+            }).toList();
+
+            if (filteredGroups.isEmpty) return _buildEmptyState(_selectedFilter);
+
+            return ListView.builder(
+              padding: const EdgeInsets.fromLTRB(18, 20, 18, 100),
+              itemCount: filteredGroups.length,
+              itemBuilder: (context, index) {
+                final group = filteredGroups[index];
+                final firstTicket = group.first['ticket'] as Map<String, dynamic>;
+                final paymentHistoryId = firstTicket['paymentHistoryId'] as int?;
+                final isGroup = group.length > 1;
+
+                final int totalPrice = group.fold<int>(
+                  0,
+                  (sum, item) => sum + ((item['ticket'] as Map<String, dynamic>)['price'] as num? ?? 0).toInt(),
+                );
+
+                final hasQR = group.any((item) =>
+                    item['payment'] != null &&
+                    (item['payment'] as Map<String, dynamic>)['qrCode'] != null);
+
+                final status = _normalizeStatus(firstTicket['status'] as String? ?? '');
+
+                return AnimatedContainer(
+                  duration: const Duration(milliseconds: 600),
+                  curve: Curves.easeOutCubic,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  child: _buildHistoryCard(
+                    context: context,
+                    firstTicket: firstTicket,
+                    groupTickets: isGroup ? group.map((e) => e['ticket'] as Map<String, dynamic>).toList() : null,
+                    paymentHistoryId: paymentHistoryId,
+                    totalPrice: totalPrice,
+                    hasQR: hasQR,
+                    status: status,
+                  ),
+                );
+              },
+            );
+          },
+        ),
       ),
     );
   }
 
-  Widget _buildHistoryCard(
-    BuildContext context,
-    Map<String, dynamic> ticket,
-    Map<String, dynamic>? payment,
-  ) {
-    final route = ticket['schedule']?['route'] as Map<String, dynamic>?;
+  Widget _buildHistoryCard({
+    required BuildContext context,
+    required Map<String, dynamic> firstTicket,
+    required List<Map<String, dynamic>>? groupTickets,
+    required int? paymentHistoryId,
+    required int totalPrice,
+    required bool hasQR,
+    required String status,
+  }) {
+    final route = firstTicket['schedule']?['route'] as Map<String, dynamic>?;
     final startPoint = route?['startPoint'] ?? '—';
     final endPoint = route?['endPoint'] ?? '—';
-    final departureAt = ticket['schedule']?['departureAt'] ?? '';
-    final seatCode = ticket['seat']?['code'] ?? '—';
-    final price = (ticket['price'] as num?)?.toStringAsFixed(0) ?? '0';
-    final status = ticket['status'] ?? 'UNKNOWN';
-    final ticketId = ticket['id'].toString();
-    final paidAt = payment?['paidAt'] ?? '';
-    final method = payment?['paymentMethod'] ?? '';
-    final hasQR = payment?['qrCode'] != null;
+    final departureAt = firstTicket['schedule']?['departureAt']?.toString() ?? '';
+    final seatCount = groupTickets?.length ?? 1;
+
+    final seatDisplay = groupTickets != null
+        ? groupTickets
+            .map((t) => t['seat']?['code']?.toString() ?? '')
+            .where((s) => s.isNotEmpty)
+            .join(', ')
+        : firstTicket['seat']?['code']?.toString() ?? '—';
+
+    final formattedPrice = totalPrice.toString().replaceAllMapped(
+          RegExp(r'(\d)(?=(\d{3})+(?!\d))'),
+          (m) => '${m[1]}.',
+        );
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 14),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFA0D8F1).withOpacity(0.4), width: 1),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: const Color(0xFFA0D8F1).withOpacity(0.6), width: 1.3),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withAlpha(30),
+            color: Colors.grey.withOpacity(0.22),
             blurRadius: 12,
             offset: const Offset(0, 6),
           ),
         ],
       ),
       child: InkWell(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(22),
         onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => TicketDetailScreen(ticketId: ticket['id']),
-            ),
-          );
+          if (paymentHistoryId != null) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => GroupTicketQRScreen(paymentHistoryId: paymentHistoryId)),
+            );
+          } else {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => TicketDetailScreen(ticketId: firstTicket['id'] as int)),
+            );
+          }
         },
         child: Padding(
-          padding: const EdgeInsets.all(18),
+          padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(8),
+                    padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
                     decoration: BoxDecoration(
                       color: _getStatusColor(status),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
-                      '#$ticketId',
-                      style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                      '#${paymentHistoryId ?? firstTicket['id']}',
+                      style: const TextStyle(color: Colors.white, fontSize: 11.5, fontWeight: FontWeight.bold),
                     ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
                       '$startPoint → $endPoint',
-                      style: const TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF023E8A),
-                      ),
+                      style: const TextStyle(fontSize: 17.5, fontWeight: FontWeight.bold, color: Color(0xFF023E8A)),
                     ),
                   ),
-                  if (hasQR)
+                  if (hasQR && status == 'PAID')
                     Container(
-                      padding: const EdgeInsets.all(6),
+                      padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF66BB6A).withOpacity(0.15),
-                        borderRadius: BorderRadius.circular(10),
+                        color: const Color(0xFF4CAF50).withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(14),
                       ),
-                      child: const Icon(Icons.qr_code_scanner, color: Color(0xFF66BB6A), size: 22),
+                      child: Icon(
+                        groupTickets != null ? Icons.group : Icons.qr_code_scanner,
+                        color: const Color(0xFF4CAF50),
+                        size: 24,
+                      ),
                     ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  const Icon(Icons.event_seat, size: 18, color: Colors.black54),
-                  const SizedBox(width: 6),
-                  Text(
-                    'Ghế: $seatCode',
-                    style: const TextStyle(fontSize: 14.5, color: Colors.black87, fontWeight: FontWeight.w600),
-                  ),
-                  const SizedBox(width: 16),
-                  const Icon(Icons.access_time, size: 18, color: Colors.black54),
-                  const SizedBox(width: 6),
-                  Text(
-                    _formatDate(departureAt),
-                    style: const TextStyle(fontSize: 14.5, color: Colors.black87, fontWeight: FontWeight.w600),
-                  ),
                 ],
               ),
               const SizedBox(height: 14),
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    '${price.replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.')}đ',
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF1976D2),
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: _getStatusColor(status).withAlpha(38),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
+                  const Icon(Icons.event_seat, size: 19, color: Colors.black54),
+                  const SizedBox(width: 8),
+                  Expanded(
                     child: Text(
-                      _getStatusText(status),
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: _getStatusColor(status),
-                      ),
+                      seatCount > 1 ? '$seatCount ghế: $seatDisplay' : 'Ghế: $seatDisplay',
+                      style: const TextStyle(fontSize: 15, color: Colors.black87, fontWeight: FontWeight.w600),
                     ),
                   ),
                 ],
               ),
-              if (status == 'PAID' && paidAt.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(top: 10),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.payment, size: 16, color: Colors.black54),
-                      const SizedBox(width: 6),
-                      Text(
-                        'Thanh toán bằng $method • ${_formatPaidDate(paidAt)}',
-                        style: TextStyle(fontSize: 13, color: Colors.grey[700]),
-                      ),
-                    ],
+              const SizedBox(height: 7),
+              Row(
+                children: [
+                  const Icon(Icons.access_time_filled, size: 19, color: Colors.black54),
+                  const SizedBox(width: 8),
+                  Text(
+                    _formatDate(departureAt),
+                    style: const TextStyle(fontSize: 15, color: Colors.black87, fontWeight: FontWeight.w600),
                   ),
-                ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    '$formattedPriceđ',
+                    style: const TextStyle(fontSize: 19, fontWeight: FontWeight.bold, color: Color(0xFF1976D2)),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: _getStatusColor(status).withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(30),
+                    ),
+                    child: Text(
+                      _getStatusText(status),
+                      style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold, color: _getStatusColor(status)),
+                    ),
+                  ),
+                ],
+              ),
             ],
           ),
         ),
@@ -321,37 +332,44 @@ class _TicketHistoryScreenState extends State<TicketHistoryScreen>
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.confirmation_number_outlined, size: 80, color: Colors.grey[400]),
-          const SizedBox(height: 20),
+          Icon(Icons.confirmation_number_outlined, size: 90, color: Colors.grey[400]),
+          const SizedBox(height: 24),
           Text(
-            messages[filter]!,
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.black54),
+            messages[filter] ?? 'Không có dữ liệu',
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF023E8A)),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
           const Text(
             'Đặt vé ngay để theo dõi hành trình!',
-            style: TextStyle(fontSize: 15, color: Colors.black45),
+            style: TextStyle(fontSize: 16, color: Colors.black54),
           ),
         ],
       ),
     );
   }
 
+  String _normalizeStatus(String status) {
+    if (status.toUpperCase().contains('PAID') || status.contains('thanh toán')) return 'PAID';
+    if (status.toUpperCase().contains('BOOKED') || status.contains('chờ')) return 'BOOKED';
+    if (status.toUpperCase().contains('CANCELLED') || status.contains('hủy')) return 'CANCELLED';
+    return 'ALL';
+  }
+
   Color _getStatusColor(String status) {
     switch (status) {
-      case 'PAID':      return const Color(0xFF4CAF50);
-      case 'BOOKED':    return const Color(0xFFFFA726);
+      case 'PAID': return const Color(0xFF4CAF50);
+      case 'BOOKED': return const Color(0xFFFFA726);
       case 'CANCELLED': return const Color(0xFFEF5350);
-      default:          return Colors.grey;
+      default: return Colors.grey;
     }
   }
 
   String _getStatusText(String status) {
     switch (status) {
-      case 'PAID':      return 'Đã thanh toán';
-      case 'BOOKED':    return 'Đang chờ';
+      case 'PAID': return 'Đã thanh toán';
+      case 'BOOKED': return 'Đang chờ';
       case 'CANCELLED': return 'Đã hủy';
-      default:          return status;
+      default: return status;
     }
   }
 
@@ -362,16 +380,6 @@ class _TicketHistoryScreenState extends State<TicketHistoryScreen>
       return '${date.day}/${date.month} • ${date.hour}h${date.minute.toString().padLeft(2, '0')}';
     } catch (_) {
       return '—';
-    }
-  }
-
-  String _formatPaidDate(String iso) {
-    if (iso.isEmpty) return '';
-    try {
-      final date = DateTime.parse(iso).toLocal();
-      return '${date.day}/${date.month} ${date.hour}h${date.minute.toString().padLeft(2, '0')}';
-    } catch (_) {
-      return iso;
     }
   }
 }

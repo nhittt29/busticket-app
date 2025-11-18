@@ -1,4 +1,3 @@
-// lib/payment/screens/payment_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -119,7 +118,12 @@ class PaymentScreen extends StatelessWidget {
                         mode: LaunchMode.externalApplication,
                       );
                     } else {
-                      Navigator.pushNamed(context, '/ticket-qr', arguments: state.ticketId);
+                      // CASH hoặc MoMo đã thành công → mở QR nhóm bằng paymentHistoryId
+                      Navigator.pushNamed(
+                        context,
+                        '/group-qr',
+                        arguments: state.paymentHistoryId,
+                      );
                     }
                   } else if (state is PaymentFailure) {
                     ScaffoldMessenger.of(context).showSnackBar(
@@ -141,7 +145,7 @@ class PaymentScreen extends StatelessWidget {
                           ? null
                           : () {
                               context.read<PaymentCubit>().pay(
-                                context: context, // ĐÃ THÊM
+                                context: context,
                                 userId: userId,
                                 scheduleId: scheduleId!,
                                 seatIds: selectedSeats.map((s) => s.id).toList(),

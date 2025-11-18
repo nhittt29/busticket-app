@@ -19,8 +19,9 @@ import 'booking/screens/select_bus_screen.dart';
 import 'payment/screens/payment_screen.dart';
 import 'ticket/screens/my_tickets_screen.dart';
 import 'ticket/screens/ticket_qr_screen.dart';
-import 'ticket/screens/ticket_history_screen.dart'; // ĐÃ THÊM
-import 'payment/screens/payment_success_screen.dart';
+import 'ticket/screens/ticket_history_screen.dart';
+import 'ticket/screens/group_ticket_qr_screen.dart';
+import 'ticket/screens/ticket_detail_screen.dart'; // ← ĐÃ BỔ SUNG (rất quan trọng!)
 import 'payment/services/deep_link_service.dart';
 import 'theme/app_theme.dart';
 
@@ -77,8 +78,19 @@ class MyApp extends StatelessWidget {
             return SelectBusScreen(scheduleId: args);
           },
           '/payment': (context) => const PaymentScreen(),
-          '/payment-success': (context) => const PaymentSuccessScreen(),
           '/my-tickets': (context) => const MyTicketsScreen(),
+          '/ticket-history': (context) => const TicketHistoryScreen(),
+
+          // CHI TIẾT VÉ ĐƠN (bắt buộc phải có route để TicketHistoryScreen push được)
+          '/ticket-detail': (context) {
+            final args = ModalRoute.of(context)!.settings.arguments as int?;
+            if (args == null) {
+              return const Scaffold(body: Center(child: Text('ID vé không hợp lệ')));
+            }
+            return TicketDetailScreen(ticketId: args);
+          },
+
+          // XEM QR VÉ ĐƠN
           '/ticket-qr': (context) {
             final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>?;
             if (args == null || !args.containsKey('qrUrl') || !args.containsKey('ticket')) {
@@ -91,12 +103,22 @@ class MyApp extends StatelessWidget {
               ticket: args['ticket'] as Map<String, dynamic>,
             );
           },
-          '/ticket-history': (context) => const TicketHistoryScreen(), // ĐÃ THÊM
+
+          // XEM QR NHÓM VÉ (dùng paymentHistoryId)
+          '/group-qr': (context) {
+            final args = ModalRoute.of(context)!.settings.arguments as int?;
+            if (args == null) {
+              return const Scaffold(
+                body: Center(child: Text('ID nhóm vé không hợp lệ')),
+              );
+            }
+            return GroupTicketQRScreen(paymentHistoryId: args);
+          },
         },
         onUnknownRoute: (settings) => MaterialPageRoute(
           builder: (context) => Scaffold(
             appBar: AppBar(title: const Text('Lỗi')),
-            body: Center(child: Text('Không tìm thấy: ${settings.name}')),
+            body: Center(child: Text('Không tìm thấy trang: ${settings.name}')),
           ),
         ),
       ),

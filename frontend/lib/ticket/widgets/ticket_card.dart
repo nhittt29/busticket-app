@@ -3,129 +3,110 @@ import 'package:flutter/material.dart';
 
 class TicketCard extends StatelessWidget {
   final Map<String, dynamic> ticket;
+  final List<Map<String, dynamic>>? groupTickets;
   final VoidCallback onTap;
+  final bool isHighlighted;
 
   const TicketCard({
     super.key,
     required this.ticket,
+    this.groupTickets,
     required this.onTap,
+    this.isHighlighted = false,
   });
+
+  String _status(String? s) => s == 'PAID' || s == 'Đã thanh toán'
+      ? 'Đã thanh toán'
+      : s == 'BOOKED'
+          ? 'Đang chờ'
+          : 'Đã hủy';
+
+  Color _color(String? s) => s == 'PAID' || s == 'Đã thanh toán'
+      ? const Color(0xFF66BB6A)
+      : s == 'BOOKED'
+          ? Colors.orange
+          : Colors.red;
 
   @override
   Widget build(BuildContext context) {
-    final route = ticket['schedule']?['route'];
-    final startPoint = route?['startPoint']?.toString() ?? 'Không rõ';
-    final endPoint = route?['endPoint']?.toString() ?? 'Không rõ';
-    final seatCode = ticket['seat']?['code']?.toString() ?? 'N/A';
-    final departureAt = ticket['schedule']?['departureAt']?.toString() ?? '';
-    final ticketId = ticket['id']?.toString() ?? '0';
-    final status = ticket['status']?.toString() ?? 'UNKNOWN';
-    final isPaid = status == 'PAID';
+    final route = ticket['schedule']?['route'] ?? {};
+    final start = route['startPoint'] ?? '—';
+    final end = route['endPoint'] ?? '—';
+    final isGroup = groupTickets != null && groupTickets!.length > 1;
 
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      elevation: 4,
-      color: Colors.white,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(14),
-        side: const BorderSide(color: Color(0xFFE0E0E0), width: 1),
+    // HIỂN THỊ RÕ MÃ GHẾ CHO CẢ VÉ ĐƠN LẪN NHÓM
+    late final String seatDisplay;
+    if (isGroup) {
+      final seats = groupTickets!
+          .map((t) => t['seat']?['code']?.toString() ?? '')
+          .where((s) => s.isNotEmpty)
+          .toList();
+
+      if (seats.isEmpty) {
+        seatDisplay = '—';
+      } else if (seats.length <= 3) {
+        seatDisplay = seats.join(', ');
+      } else {
+        seatDisplay = '${seats.take(3).join(', ')}, ... (+${seats.length - 3})';
+      }
+    } else {
+      seatDisplay = ticket['seat']?['code']?.toString() ?? '—';
+    }
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 500),
+      margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        border: isHighlighted
+            ? Border.all(color: const Color(0xFF66BB6A), width: 3)
+            : null,
+        boxShadow: isHighlighted
+            ? [
+                BoxShadow(
+                    color: const Color(0xFF66BB6A).withOpacity(0.3),
+                    blurRadius: 20)
+              ]
+            : null,
       ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        onTap: onTap,
-        leading: CircleAvatar(
-          radius: 22,
-          backgroundColor: _getStatusColor(status),
-          child: Text(
-            '#$ticketId',
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 11,
-              fontWeight: FontWeight.bold,
-            ),
+      child: Card(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: ListTile(
+          onTap: onTap,
+          leading: CircleAvatar(
+            backgroundColor: _color(ticket['status']),
+            child: Text('#${ticket['id']}',
+                style: const TextStyle(color: Colors.white, fontSize: 11)),
           ),
-        ),
-        title: Text(
-          '$startPoint to $endPoint',
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 15,
-            color: Color(0xFF023E8A),
-          ),
-        ),
-        subtitle: Text(
-          '$seatCode • ${_formatDate(departureAt)}',
-          style: TextStyle(
-            color: Colors.grey[700],
-            fontSize: 13,
-          ),
-        ),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (isPaid)
-              const Padding(
-                padding: EdgeInsets.only(right: 8),
-                child: Icon(
-                  Icons.qr_code,
-                  color: Color(0xFF66BB6A),
-                  size: 22,
+          title: Text('$start → $end',
+              style: const TextStyle(fontWeight: FontWeight.bold)),
+          subtitle: Row(
+            children: [
+              const Icon(Icons.event_seat, size: 16, color: Color(0xFF66BB6A)),
+              const SizedBox(width: 4),
+              Expanded(
+                child: Text(
+                  seatDisplay,
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 2,
+                  style: const TextStyle(fontWeight: FontWeight.w600),
                 ),
               ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: _getStatusColor(status).withOpacity(0.15),
-                borderRadius: BorderRadius.circular(20),
+            ],
+          ),
+          trailing: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              if (ticket['status'] == 'PAID' || ticket['status'] == 'Đã thanh toán')
+                const Icon(Icons.qr_code_scanner, color: Color(0xFF66BB6A)),
+              Text(
+                _status(ticket['status']),
+                style: TextStyle(color: _color(ticket['status']), fontSize: 11),
               ),
-              child: Text(
-                _getStatusText(status),
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
-                  color: _getStatusColor(status),
-                ),
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
-  }
-
-  Color _getStatusColor(String status) {
-    switch (status) {
-      case 'PAID':
-        return const Color(0xFF66BB6A);
-      case 'BOOKED':
-        return const Color(0xFFFFA726);
-      case 'CANCELLED':
-        return const Color(0xFFEF5350);
-      default:
-        return Colors.grey;
-    }
-  }
-
-  String _getStatusText(String status) {
-    switch (status) {
-      case 'PAID':
-        return 'Đã thanh toán';
-      case 'BOOKED':
-        return 'Đang chờ';
-      case 'CANCELLED':
-        return 'Đã hủy';
-      default:
-        return status;
-    }
-  }
-
-  String _formatDate(String iso) {
-    if (iso.isEmpty) return 'Không rõ';
-    try {
-      final date = DateTime.parse(iso).toLocal();
-      return '${date.day}/${date.month} ${date.hour}h${date.minute.toString().padLeft(2, '0')}';
-    } catch (e) {
-      return 'Không rõ';
-    }
   }
 }

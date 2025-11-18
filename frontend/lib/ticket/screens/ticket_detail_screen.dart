@@ -1,15 +1,13 @@
 // lib/ticket/screens/ticket_detail_screen.dart
 import 'package:flutter/material.dart';
 import '../services/ticket_api_service.dart';
-import 'cancel_ticket_dialog.dart';
 import 'ticket_qr_screen.dart';
+import 'group_ticket_qr_screen.dart';
 
 class TicketDetailScreen extends StatefulWidget {
   final int ticketId;
-  const TicketDetailScreen({
-    super.key,
-    required this.ticketId,
-  });
+  const TicketDetailScreen({super.key, required this.ticketId});
+
   @override
   State<TicketDetailScreen> createState() => _TicketDetailScreenState();
 }
@@ -17,14 +15,12 @@ class TicketDetailScreen extends StatefulWidget {
 class _TicketDetailScreenState extends State<TicketDetailScreen>
     with TickerProviderStateMixin {
   late Future<Map<String, dynamic>> _ticketFuture;
-  late Future<Map<String, dynamic>?> _paymentFuture;
   late TabController _tabController;
 
   @override
   void initState() {
     super.initState();
     _ticketFuture = TicketApiService.getTicketDetail(widget.ticketId);
-    _paymentFuture = TicketApiService.getPaymentDetail(widget.ticketId);
     _tabController = TabController(length: 2, vsync: this);
   }
 
@@ -38,339 +34,311 @@ class _TicketDetailScreenState extends State<TicketDetailScreen>
   Widget build(BuildContext context) {
     return FutureBuilder<Map<String, dynamic>>(
       future: _ticketFuture,
-      builder: (context, ticketSnapshot) {
-        if (ticketSnapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(
-            backgroundColor: Color(0xFFEAF6FF),
-            body: Center(child: CircularProgressIndicator()),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Scaffold(
+            backgroundColor: const Color(0xFFEAF6FF),
+            body: Center(
+              child: CircularProgressIndicator(
+                color: const Color(0xFF6AB7F5),
+                strokeWidth: 3.5,
+              ),
+            ),
           );
         }
-        if (ticketSnapshot.hasError || !ticketSnapshot.hasData) {
-          return _buildError(context, 'Không tìm thấy vé', id: widget.ticketId);
+
+        if (!snapshot.hasData || snapshot.data == null) {
+          return Scaffold(
+            backgroundColor: const Color(0xFFEAF6FF),
+            appBar: AppBar(
+              flexibleSpace: Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Color(0xFF6AB7F5), Color(0xFF4A9EFF)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                ),
+              ),
+              elevation: 0,
+              centerTitle: true,
+              leading: IconButton(
+                icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
+                onPressed: () => Navigator.pop(context),
+              ),
+              title: const Text(
+                'Chi tiết vé',
+                style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w800),
+              ),
+            ),
+            body: const Center(
+              child: Text('Không tìm thấy thông tin vé', style: TextStyle(fontSize: 17, color: Colors.black54)),
+            ),
+          );
         }
-        final ticket = ticketSnapshot.data!;
-        return FutureBuilder<Map<String, dynamic>?>(
-          future: _paymentFuture,
-          builder: (context, paymentSnapshot) {
-            final payment = paymentSnapshot.data;
-            return _buildWithTabs(context, ticket, payment);
-          },
+
+        final ticket = snapshot.data!;
+        final paymentHistoryId = ticket['paymentHistoryId'] as int?;
+
+        // Nếu là vé nhóm → chuyển thẳng sang màn hình nhóm
+        if (paymentHistoryId != null) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (_) => GroupTicketQRScreen(paymentHistoryId: paymentHistoryId),
+              ),
+            );
+          });
+          return Scaffold(
+            backgroundColor: const Color(0xFFEAF6FF),
+            body: Center(child: CircularProgressIndicator(color: Color(0xFF6AB7F5))),
+          );
+        }
+
+        // Vé lẻ bình thường
+        final status = ticket['status'] as String? ?? '';
+        final isPaid = status == 'PAID' || status == 'Đã thanh toán';
+        final qrCode = ticket['paymentHistory']?['qrCode']?.toString();
+
+        return Scaffold(
+          backgroundColor: const Color(0xFFEAF6FF),
+          appBar: AppBar(
+            flexibleSpace: Container(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Color(0xFF6AB7F5), Color(0xFF4A9EFF)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+              ),
+            ),
+            elevation: 0,
+            centerTitle: true,
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
+              onPressed: () => Navigator.pop(context),
+            ),
+            title: Text(
+              'Vé #${ticket['id']}',
+              style: const TextStyle(color: Colors.white, fontSize: 21, fontWeight: FontWeight.w800, letterSpacing: 0.5),
+            ),
+            bottom: TabBar(
+              controller: _tabController,
+              labelColor: Colors.white,
+              unselectedLabelColor: Colors.white70,
+              indicatorColor: Colors.white,
+              indicatorWeight: 4,
+              labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14.5),
+              tabs: const [
+                Tab(text: 'Thông tin vé'),
+                Tab(text: 'Thanh toán'),
+              ],
+            ),
+          ),
+          body: TabBarView(
+            controller: _tabController,
+            children: [
+              _buildInfoTab(ticket, isPaid, qrCode),
+              _buildPaymentTab(ticket),
+            ],
+          ),
         );
       },
     );
   }
 
-  Widget _buildWithTabs(
-    BuildContext context,
-    Map<String, dynamic> ticket,
-    Map<String, dynamic>? payment,
-  ) {
-    final isPaid = ticket['status'] == 'PAID';
-    final qrCode = payment?['qrCode']?.toString();
-    final userId = ticket['userId'] as int?;
+  Widget _buildInfoTab(Map<String, dynamic> ticket, bool isPaid, String? qrCode) {
     final route = ticket['schedule']?['route'] as Map<String, dynamic>?;
-    final startPoint = route?['startPoint']?.toString() ?? 'Không rõ';
-    final endPoint = route?['endPoint']?.toString() ?? 'Không rõ';
+    final start = route?['startPoint'] ?? '—';
+    final end = route?['endPoint'] ?? '—';
     final departureAt = ticket['schedule']?['departureAt']?.toString() ?? '';
-    final seatCode = ticket['seat']?['code']?.toString() ?? 'N/A';
-    final price = (ticket['price'] as num?)?.toStringAsFixed(0) ?? '0';
-    final canCancel = _canCancelTicket(departureAt);
+    final seatCode = ticket['seat']?['code']?.toString() ?? '—';
+    final priceRaw = (ticket['price'] as num?)?.toInt() ?? 0;
+    final price = priceRaw.toString().replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.');
 
-    return DefaultTabController(
-      length: 2,
-      child: Scaffold(
-        backgroundColor: const Color(0xFFEAF6FF),
-        appBar: AppBar(
-          title: Text('Vé #${ticket['id']}'),
-          backgroundColor: const Color(0xFFEAF6FF),
-          elevation: 0,
-          bottom: TabBar(
-            controller: _tabController,
-            labelColor: const Color(0xFF023E8A),
-            unselectedLabelColor: Colors.grey[600],
-            indicatorColor: const Color(0xFF023E8A),
-            indicatorWeight: 3,
-            labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-            tabs: const [
-              Tab(text: 'Thông tin vé'),
-              Tab(text: 'Lịch sử thanh toán'),
-            ],
-          ),
-        ),
-        body: TabBarView(
-          controller: _tabController,
-          children: [
-            // TAB 1: THÔNG TIN VÉ
-            _buildTicketInfoTab(context, ticket, isPaid, qrCode, canCancel, userId, startPoint, endPoint, departureAt, seatCode, price),
-            // TAB 2: LỊCH SỬ THANH TOÁN
-            _buildPaymentHistoryTab(context, payment, ticket['id'], qrCode),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTicketInfoTab(
-    BuildContext context,
-    Map<String, dynamic> ticket,
-    bool isPaid,
-    String? qrCode,
-    bool canCancel,
-    int? userId,
-    String startPoint,
-    String endPoint,
-    String departureAt,
-    String seatCode,
-    String price,
-  ) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: const EdgeInsets.fromLTRB(18, 20, 18, 40),
       child: Column(
         children: [
+          // Nút Xem mã QR – nhỏ gọn, thanh lịch
           if (isPaid && qrCode != null && qrCode.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 16),
-              child: SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  icon: const Icon(Icons.qr_code_2, size: 28),
-                  label: const Text('Xem mã QR', style: TextStyle(fontSize: 18)),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF66BB6A),
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    elevation: 3,
-                  ),
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => TicketQRScreen(
-                          qrUrl: qrCode,
-                          ticket: ticket,
-                        ),
-                      ),
-                    );
-                  },
+            Container(
+              width: double.infinity,
+              height: 56,
+              margin: const EdgeInsets.only(bottom: 18),
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => TicketQRScreen(qrUrl: qrCode, ticket: ticket)),
+                  );
+                },
+                icon: const Icon(Icons.qr_code_scanner, size: 26),
+                label: const Text('Xem mã QR lên xe', style: TextStyle(fontSize: 16.5, fontWeight: FontWeight.bold)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF4CAF50),
+                  foregroundColor: Colors.white,
+                  elevation: 6,
+                  shadowColor: const Color(0xFF4CAF50).withOpacity(0.4),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
                 ),
               ),
             ),
-          Card(
-            elevation: 3,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                children: [
-                  _info('Tuyến', '$startPoint → $endPoint'),
-                  _info('Giờ đi', _formatDate(departureAt)),
-                  _info('Ghế', seatCode),
-                  _info('Giá', '$priceđ'),
-                  _info('Trạng thái', _statusText(ticket['status']), color: _statusColor(ticket['status'])),
-                ],
-              ),
+
+          // CARD CHÍNH – ĐÃ THU GỌN ĐẸP
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 22),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(22),
+              border: Border.all(color: const Color(0xFFA0D8F1).withOpacity(0.6), width: 1.3),
+              boxShadow: [
+                BoxShadow(color: Colors.grey.withOpacity(0.22), blurRadius: 12, offset: const Offset(0, 6)),
+              ],
+            ),
+            child: Column(
+              children: [
+                _infoRow('Tuyến xe', '$start → $end', icon: Icons.directions_bus_filled),
+                _infoRow('Giờ khởi hành', _formatDateTime(departureAt), icon: Icons.access_time_filled),
+                _infoRow('Số ghế', seatCode, icon: Icons.event_seat, valueSize: 17),
+                _infoRow('Giá vé', '$priceđ', icon: Icons.paid, valueColor: const Color(0xFF1976D2), valueSize: 21, fontWeight: FontWeight.bold),
+                const Divider(height: 28, thickness: 1, color: Color(0xFFE8F0FE)),
+                _infoRow(
+                  'Trạng thái',
+                  _statusText(ticket['status']),
+                  icon: _statusIcon(ticket['status']),
+                  valueColor: _statusColor(ticket['status']),
+                  valueSize: 17,
+                  fontWeight: FontWeight.bold,
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 24),
-          if (ticket['status'] == 'BOOKED' && canCancel && userId != null)
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () => showDialog(
-                  context: context,
-                  builder: (_) => CancelTicketDialog(
-                    ticketId: ticket['id'],
-                    userId: userId,
-                  ),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  elevation: 3,
-                ),
-                child: const Text('Hủy vé', style: TextStyle(fontSize: 18, color: Colors.white)),
-              ),
-            ),
-          if (ticket['status'] == 'BOOKED' && !canCancel)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.orange.shade50,
-                  border: Border.all(color: Colors.orange.shade300),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.access_time, color: Colors.orange.shade700, size: 20),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'Không thể hủy vé: Chỉ được hủy trước 2 giờ khởi hành.',
-                        style: TextStyle(color: Colors.orange.shade800, fontSize: 14, fontWeight: FontWeight.w500),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
         ],
       ),
     );
   }
 
-  Widget _buildPaymentHistoryTab(
-    BuildContext context,
-    Map<String, dynamic>? payment,
-    dynamic ticketId,
-    String? qrCode,
-  ) {
+  Widget _buildPaymentTab(Map<String, dynamic> ticket) {
+    final payment = ticket['paymentHistory'] as Map<String, dynamic>?;
+
     if (payment == null) {
-      return Center(
+      return const Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.receipt_long, size: 64, color: Colors.grey[400]),
-            const SizedBox(height: 16),
-            Text(
-              'Chưa có lịch sử thanh toán',
-              style: TextStyle(fontSize: 16, color: Colors.grey[600]),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Vé đang ở trạng thái chờ thanh toán',
-              style: TextStyle(fontSize: 14, color: Colors.grey[500]),
-            ),
+            Icon(Icons.info_outline, size: 64, color: Colors.grey),
+            SizedBox(height: 16),
+            Text('Chưa có thông tin thanh toán', style: TextStyle(fontSize: 16, color: Colors.black54)),
           ],
         ),
       );
     }
 
+    final amount = (payment['amount'] as num?)?.toInt() ?? 0;
+    final formattedAmount = amount.toString().replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.');
+
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
+      padding: const EdgeInsets.fromLTRB(18, 20, 18, 40),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: const Color(0xFFA0D8F1).withOpacity(0.6), width: 1.3),
+          boxShadow: [
+            BoxShadow(color: Colors.grey.withOpacity(0.22), blurRadius: 12, offset: const Offset(0, 6)),
+          ],
+        ),
+        child: Column(
+          children: [
+            _infoRow('Phương thức', payment['method']?.toString() ?? '—', icon: Icons.payment),
+            _infoRow('Số tiền', '$formattedAmountđ', icon: Icons.attach_money, valueColor: const Color(0xFF1976D2), valueSize: 19),
+            _infoRow('Trạng thái', payment['status']?.toString() ?? '—', icon: Icons.info, valueColor: _statusColor(payment['status']?.toString())),
+            _infoRow('Thời gian thanh toán', _formatDateTime(payment['paidAt']?.toString()), icon: Icons.schedule, valueColor: const Color(0xFF4CAF50)),
+            _infoRow('Mã giao dịch', payment['transactionId']?.toString() ?? '—', icon: Icons.receipt_long),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _infoRow(
+    String label,
+    String value, {
+    IconData? icon,
+    Color? valueColor,
+    double? valueSize,
+    FontWeight? fontWeight,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 11),
+      child: Row(
         children: [
-          Card(
-            elevation: 3,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                children: [
-                  _info('Mã vé', payment['ticketCode'] ?? 'V${ticketId.toString().padLeft(6, '0')}'),
-                  _info('Tuyến xe', payment['route'] ?? 'Không rõ'),
-                  _info('Giờ khởi hành', payment['departureTime'] ?? 'Không rõ'),
-                  _info('Số ghế', payment['seatNumber']?.toString() ?? 'N/A'),
-                  _info('Giá vé', payment['price'] ?? '0đ'),
-                  _info('Phương thức', payment['paymentMethod'] ?? 'Không rõ'),
-                  _info('Trạng thái', payment['status'] ?? 'Không rõ'),
-                  _info('Thời gian thanh toán', payment['paidAt'] ?? 'Không rõ'),
-                  _info('Mã giao dịch', payment['transactionId'] ?? '—'),
-                ],
+          if (icon != null) ...[
+            Icon(icon, size: 24, color: const Color(0xFF1976D2)),
+            const SizedBox(width: 14),
+          ],
+          Expanded(
+            flex: 2,
+            child: Text(
+              label,
+              style: TextStyle(color: Colors.grey[700], fontSize: valueSize ?? 15.5, fontWeight: FontWeight.w500),
+            ),
+          ),
+          Expanded(
+            flex: 3,
+            child: Text(
+              value,
+              textAlign: TextAlign.end,
+              style: TextStyle(
+                fontWeight: fontWeight ?? FontWeight.bold,
+                fontSize: valueSize ?? 15.8,
+                color: valueColor ?? Colors.black87,
               ),
             ),
           ),
-          const SizedBox(height: 24),
-          if (qrCode != null && qrCode.isNotEmpty)
-            Center(
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: Image.network(
-                  qrCode,
-                  width: 220,
-                  height: 220,
-                  fit: BoxFit.contain,
-                  errorBuilder: (_, __, ___) => const Icon(Icons.qr_code, size: 220, color: Colors.grey),
-                ),
-              ),
-            ),
-          const SizedBox(height: 16),
-          if (qrCode != null && qrCode.isNotEmpty)
-            Text(
-              'Quét mã QR để lên xe',
-              style: TextStyle(fontSize: 15, color: Colors.grey[700], fontWeight: FontWeight.w500),
-            ),
         ],
       ),
     );
   }
 
-  bool _canCancelTicket(String departureAtIso) {
-    if (departureAtIso.isEmpty) return false;
-    try {
-      final departure = DateTime.parse(departureAtIso).toLocal();
-      final now = DateTime.now();
-      final diffHours = departure.difference(now).inMinutes / 60.0;
-      return diffHours >= 2.0;
-    } catch (e) {
-      return false;
-    }
-  }
-
-  Widget _buildError(BuildContext context, String message, {int? id}) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFEAF6FF),
-      appBar: AppBar(title: const Text('Chi tiết vé'), backgroundColor: const Color(0xFFEAF6FF), elevation: 0),
-      body: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.error_outline, color: Colors.red, size: 56),
-            const SizedBox(height: 16),
-            Text(message, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-            if (id != null) Text('ID: $id', style: TextStyle(color: Colors.grey[600])),
-            const SizedBox(height: 24),
-            ElevatedButton.icon(
-              onPressed: () => Navigator.pop(context),
-              icon: const Icon(Icons.arrow_back),
-              label: const Text('Quay lại'),
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1976D2)),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _info(String label, String value, {Color? color}) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(label, style: TextStyle(color: Colors.grey[600], fontSize: 15)),
-            Flexible(
-              child: Text(
-                value,
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: color),
-                textAlign: TextAlign.end,
-              ),
-            ),
-          ],
-        ),
-      );
-
-  String _formatDate(String iso) {
-    if (iso.isEmpty) return 'Không rõ';
+  String _formatDateTime(String? iso) {
+    if (iso == null || iso.isEmpty) return '—';
     try {
       final date = DateTime.parse(iso).toLocal();
-      return '${date.day}/${date.month} lúc ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+      return '${date.day}/${date.month}/${date.year} • ${date.hour}h${date.minute.toString().padLeft(2, '0')}';
     } catch (e) {
-      return 'Không rõ';
+      return iso.split('T').first;
     }
   }
 
-  String _statusText(String s) => {
-        'PAID': 'Đã thanh toán',
-        'BOOKED': 'Đang chờ',
-        'CANCELLED': 'Đã hủy'
-      }[s] ?? s;
+  String _statusText(String? s) {
+    switch (s) {
+      case 'PAID': case 'Đã thanh toán': return 'Đã thanh toán';
+      case 'BOOKED': return 'Đang chờ thanh toán';
+      case 'CANCELLED': return 'Đã hủy';
+      default: return s ?? 'Không xác định';
+    }
+  }
 
-  Color _statusColor(String s) => {
-        'PAID': const Color(0xFF66BB6A),
-        'BOOKED': Colors.orange,
-        'CANCELLED': Colors.red,
-      }[s] ?? Colors.grey;
+  Color _statusColor(String? s) {
+    switch (s) {
+      case 'PAID': case 'Đã thanh toán': return const Color(0xFF4CAF50);
+      case 'BOOKED': return const Color(0xFFFFA726);
+      case 'CANCELLED': return const Color(0xFFEF5350);
+      default: return Colors.grey;
+    }
+  }
+
+  IconData _statusIcon(String? s) {
+    switch (s) {
+      case 'PAID': case 'Đã thanh toán': return Icons.check_circle;
+      case 'BOOKED': return Icons.schedule;
+      case 'CANCELLED': return Icons.cancel;
+      default: return Icons.info;
+    }
+  }
 }

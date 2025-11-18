@@ -1,11 +1,10 @@
-// lib/payment/cubit/payment_cubit.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../services/payment_api_service.dart';
 import 'payment_state.dart';
 import '../../bloc/home/home_bloc.dart';
 import '../../bloc/home/home_event.dart';
-import '../../ticket/services/ticket_api_service.dart'; // ĐÃ THÊM
+import '../../ticket/services/ticket_api_service.dart';
 
 class PaymentCubit extends Cubit<PaymentState> {
   PaymentCubit() : super(const PaymentInitial(PaymentMethod.MOMO));
@@ -40,21 +39,28 @@ class PaymentCubit extends Cubit<PaymentState> {
         paymentMethod: currentMethod.name.toUpperCase(),
       );
 
-      final ticketId = data['tickets'][0]['id'];
-      final momoUrl = data['payment']?['payUrl'];
+      // Lấy paymentHistoryId từ bất kỳ vé nào trong nhóm
+      final paymentHistoryId = data['tickets'][0]['paymentHistoryId'] as int;
+      final ticketId = data['tickets'][0]['id'] as int;
+      final momoUrl = data['payment']?['payUrl'] as String?;
 
-      // GỌI LẠI API ĐỂ LẤY DỮ LIỆU ĐẦY ĐỦ (có route)
+      // Lấy thông tin vé đầy đủ để cập nhật Home
       final fullTicket = await TicketApiService.getTicketDetail(ticketId);
-
       if (context.mounted) {
         context.read<HomeBloc>().add(SetNewTicketEvent(fullTicket));
       }
 
       if (currentMethod == PaymentMethod.MOMO && momoUrl != null) {
-        emit(PaymentSuccess(ticketId: ticketId, momoPayUrl: momoUrl));
+        emit(PaymentSuccess(
+          ticketId: ticketId,
+          momoPayUrl: momoUrl,
+          paymentHistoryId: paymentHistoryId,
+        ));
       } else {
-        final qrCodeUrl = await PaymentApiService.generateQRCode(ticketId);
-        emit(PaymentSuccess(ticketId: ticketId, qrCodeUrl: qrCodeUrl));
+        emit(PaymentSuccess(
+          ticketId: ticketId,
+          paymentHistoryId: paymentHistoryId,
+        ));
       }
     } catch (e) {
       emit(PaymentFailure(e.toString()));
