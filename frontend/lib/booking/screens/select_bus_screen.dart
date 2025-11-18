@@ -1,12 +1,18 @@
+// lib/booking/screens/select_bus_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../cubit/booking_cubit.dart';
 import '../cubit/booking_state.dart';
 import '../widgets/seat_widget.dart';
 
-const Color greenSoft = Color(0xFF66BB6A);
-const Color iconBlue = Color(0xFF1976D2);
+const Color primaryBlue = Color(0xFF1976D2);
+const Color primaryGradientStart = Color(0xFF6AB7F5);
+const Color primaryGradientEnd = Color(0xFF4A9EFF);
 const Color backgroundLight = Color(0xFFEAF6FF);
+const Color greenAvailable = Color(0xFF4CAF50);
+const Color orangeSelected = Color(0xFFFF9800);
+const Color redSold = Color(0xFFEF5350);
+const Color greyBlocked = Color(0xFFB0BEC5);
 
 class SelectBusScreen extends StatefulWidget {
   final int scheduleId;
@@ -39,25 +45,45 @@ class _SelectBusScreenState extends State<SelectBusScreen> {
       child: Scaffold(
         backgroundColor: backgroundLight,
         appBar: AppBar(
-          backgroundColor: backgroundLight,
-          elevation: 0,
-          title: const Text(
-            'Chọn giường',
-            style: TextStyle(color: Color(0xFF023E8A), fontWeight: FontWeight.bold),
+          flexibleSpace: Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [primaryGradientStart, primaryGradientEnd],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+            ),
           ),
+          elevation: 0,
+          centerTitle: true,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: iconBlue),
+            icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
             onPressed: () {
               context.read<BookingCubit>().resetSeats();
               Navigator.pop(context);
             },
+          ),
+          title: const Text(
+            'Chọn giường / ghế',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 22,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.5,
+            ),
           ),
         ),
         body: BlocListener<BookingCubit, BookingState>(
           listener: (context, state) {
             if (state.error != null && !state.loadingSeats) {
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(state.error!), backgroundColor: Colors.red),
+                SnackBar(
+                  content: Text(state.error!, style: const TextStyle(fontWeight: FontWeight.w600)),
+                  backgroundColor: Colors.redAccent,
+                  behavior: SnackBarBehavior.floating,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  margin: const EdgeInsets.all(16),
+                ),
               );
             }
           },
@@ -69,8 +95,14 @@ class _SelectBusScreenState extends State<SelectBusScreen> {
                 prev.selectedTrip != curr.selectedTrip,
             builder: (context, state) {
               if (state.loadingSeats) {
-                return const Center(child: CircularProgressIndicator());
+                return const Center(
+                  child: CircularProgressIndicator(
+                    color: primaryGradientStart,
+                    strokeWidth: 3.5,
+                  ),
+                );
               }
+
               final ticketPrice = state.seats.isNotEmpty ? state.seats.first.price : 0.0;
               final seatCount = state.seats.length;
               final schedule = state.selectedTrip;
@@ -81,9 +113,10 @@ class _SelectBusScreenState extends State<SelectBusScreen> {
               final isSeat45 = seatCount == 45 && category == "COACH" && seatType == "SEAT";
               final isBerth45 = seatCount == 45 && !isSeat45;
               final isSeat28 = seatCount == 28;
+
               return Column(
                 children: [
-                  _legendForm(  // SỬA: Đổi tên thành lowerCamelCase
+                  _legendForm(
                     ticketPrice: ticketPrice,
                     hasSelected: state.selectedSeats.isNotEmpty,
                   ),
@@ -116,24 +149,31 @@ class _SelectBusScreenState extends State<SelectBusScreen> {
     );
   }
 
-  // SỬA: Đổi tên từ LegendForm → _legendForm (private + lowerCamelCase)
   Widget _legendForm({required double ticketPrice, required bool hasSelected}) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.all(12),
+      margin: const EdgeInsets.symmetric(horizontal: 20),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.grey.withAlpha(25), blurRadius: 8)],
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFA0D8F1).withOpacity(0.5), width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.2),
+            blurRadius: 16,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
       child: Wrap(
-        spacing: 16,
-        runSpacing: 8,
+        spacing: 20,
+        runSpacing: 12,
+        alignment: WrapAlignment.spaceEvenly,
         children: [
-          _legendItem(Icons.bed, Colors.green, 'Giường trống', '${ticketPrice.toInt()}đ'),
-          _legendItem(Icons.bed, Colors.red, 'Giường đã bán'),
-          if (hasSelected) _legendItem(Icons.check_circle, Colors.orange, 'Đang chọn'),
-          _legendItem(Icons.close, Colors.grey, 'Không bán'),
+          _legendItem(Icons.event_seat, greenAvailable, 'Còn trống', '${ticketPrice.toInt()}đ'),
+          _legendItem(Icons.event_seat, redSold, 'Đã bán'),
+          if (hasSelected) _legendItem(Icons.check_circle, orangeSelected, 'Đang chọn'),
+          _legendItem(Icons.block, greyBlocked, 'Không bán'),
         ],
       ),
     );
@@ -143,37 +183,64 @@ class _SelectBusScreenState extends State<SelectBusScreen> {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 20, color: color),
-        const SizedBox(width: 6),
-        Text(label, style: const TextStyle(fontSize: 12)),
+        Icon(icon, size: 26, color: color),
+        const SizedBox(width: 10),
+        Text(
+          label,
+          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+        ),
         if (price != null)
-          Text(' $price', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+          Text(
+            ' $price',
+            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: primaryBlue),
+          ),
       ],
     );
   }
 
   Widget _buildBottomBar(BookingState state) {
     final availableSeats = state.seats.where((s) => s.isAvailable).length;
+    final totalPriceFormatted = state.totalPrice.toInt().toString().replaceAllMapped(
+          RegExp(r'(\d)(?=(\d{3})+(?!\d))'),
+          (m) => '${m[1]}.',
+        );
+
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
-        boxShadow: [BoxShadow(color: Colors.black.withAlpha(30), blurRadius: 8)],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.12),
+            blurRadius: 20,
+            offset: const Offset(0, -4),
+          ),
+        ],
       ),
       child: Column(
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Còn trống: $availableSeats ghế', style: const TextStyle(fontSize: 14, color: Colors.green)),
-              Text('${state.selectedSeats.length} ghế đã chọn', style: const TextStyle(fontSize: 14)),
               Text(
-                '${state.totalPrice.toInt()}đ',
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.red),
+                'Còn trống: $availableSeats ghế',
+                style: const TextStyle(fontSize: 15, color: greenAvailable, fontWeight: FontWeight.w600),
+              ),
+              Text(
+                '${state.selectedSeats.length} ghế đã chọn',
+                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+              ),
+              Text(
+                '$totalPriceFormattedđ',
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: primaryBlue,
+                ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           Row(
             children: [
               Expanded(
@@ -182,25 +249,29 @@ class _SelectBusScreenState extends State<SelectBusScreen> {
                       ? null
                       : () => context.read<BookingCubit>().clearSelection(),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.red,
-                    side: const BorderSide(color: Colors.red),
-                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    foregroundColor: Colors.redAccent,
+                    side: const BorderSide(color: Colors.redAccent, width: 2),
+                    padding: const EdgeInsets.symmetric(vertical: 18),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
                   ),
-                  child: const Text('Xóa tất cả'),
+                  child: const Text('Xóa tất cả', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 16),
               Expanded(
                 flex: 2,
-                child: ElevatedButton(
+                child: ElevatedButton.icon(
                   onPressed: state.selectedSeats.isEmpty ? null : () => Navigator.pushNamed(context, '/payment'),
+                  icon: const Icon(Icons.arrow_forward_ios, size: 20),
+                  label: const Text('Tiếp theo', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: greenSoft,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    backgroundColor: primaryGradientStart,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 18),
+                    elevation: 10,
+                    shadowColor: primaryGradientStart.withOpacity(0.5),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
                   ),
-                  child: const Text('Tiếp theo', style: TextStyle(fontSize: 16)),
                 ),
               ),
             ],
@@ -246,8 +317,9 @@ class _SeatLayout41FormState extends State<SeatLayout41Form> {
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(18),
-                  boxShadow: [BoxShadow(color: Colors.grey.withAlpha(25), blurRadius: 10)],
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: const Color(0xFFA0D8F1).withOpacity(0.5), width: 1.5),
+                  boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.2), blurRadius: 16, offset: const Offset(0, 8))],
                 ),
                 child: Column(
                   children: [
@@ -407,8 +479,9 @@ class _SeatLayout34FormState extends State<SeatLayout34Form> {
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(18),
-                  boxShadow: [BoxShadow(color: Colors.grey.withAlpha(25), blurRadius: 10)],
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: const Color(0xFFA0D8F1).withOpacity(0.5), width: 1.5),
+                  boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.2), blurRadius: 16, offset: const Offset(0, 8))],
                 ),
                 child: Column(
                   children: [
@@ -466,7 +539,6 @@ class _SeatLayout34FormState extends State<SeatLayout34Form> {
   }
 
   Widget _buildFloorSide(String title, Color color, List<Seat> floorSeats) {
-    // SỬA: Thay f6 → 6 (lỗi copy-paste)
     final List<int> config = [6, 5, 6, 5, 6, 6];
     int index = 0;
     List<List<Seat>> cols = [];
@@ -513,7 +585,7 @@ class _SeatLayout34FormState extends State<SeatLayout34Form> {
 }
 
 // ======================
-// --- Layout 28 ghế – SIZE GHẾ ĐỒNG NHẤT 100% VỚI SƠ ĐỒ 45 ---
+// --- Layout 28 ghế ---
 class SeatLayout28Form extends StatefulWidget {
   final BuildContext blocContext;
   final List<Seat> seats;
@@ -541,8 +613,9 @@ class _SeatLayout28FormState extends State<SeatLayout28Form> {
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [BoxShadow(color: Colors.grey.withAlpha(25), blurRadius: 10)],
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: const Color(0xFFA0D8F1).withOpacity(0.5), width: 1.5),
+                  boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.2), blurRadius: 16, offset: const Offset(0, 8))],
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
@@ -666,7 +739,7 @@ class _SeatLayout28FormState extends State<SeatLayout28Form> {
 }
 
 // ======================
-// --- Layout 45 ghế – SIZE GHẾ CHUẨN (ĐÃ ĐỒNG BỘ VỚI 28) ---
+// --- Layout 45 ghế ---
 class SeatLayout45Form extends StatefulWidget {
   final BuildContext blocContext;
   final List<Seat> seats;
@@ -697,8 +770,9 @@ class _SeatLayout45FormState extends State<SeatLayout45Form> {
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [BoxShadow(color: Colors.grey.withAlpha(25), blurRadius: 10)],
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: const Color(0xFFA0D8F1).withOpacity(0.5), width: 1.5),
+                  boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.2), blurRadius: 16, offset: const Offset(0, 8))],
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
