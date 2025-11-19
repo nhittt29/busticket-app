@@ -53,7 +53,6 @@ export class ScheduleRepository {
       startOfDay.setHours(0, 0, 0, 0);
       const endOfDay = new Date(localDate);
       endOfDay.setHours(47, 59, 59, 999);
-
       where.AND.push({
         departureAt: {
           gte: startOfDay,
@@ -90,13 +89,16 @@ export class ScheduleRepository {
     });
   }
 
-  // ĐÃ SỬA HOÀN CHỈNH – TRẢ VỀ SEAT ĐẦY ĐỦ + SẮP XẾP TỪ DATABASE
+  // TRẢ VỀ busCategory, busSeatType, busBerthType + seats + tickets
   async getSeatsBySchedule(scheduleId: number) {
     const schedule = await this.prisma.schedule.findUnique({
       where: { id: scheduleId },
       include: {
         bus: {
-          include: {
+          select: {
+            category: true,
+            seatType: true,
+            berthType: true,
             seats: {
               select: {
                 id: true,
@@ -119,9 +121,12 @@ export class ScheduleRepository {
       },
     });
 
-    if (!schedule) return null;
+    if (!schedule || !schedule.bus) return null;
 
     return {
+      busCategory: schedule.bus.category,
+      busSeatType: schedule.bus.seatType,
+      busBerthType: schedule.bus.berthType,
       seats: schedule.bus.seats,
       tickets: schedule.tickets,
     };
