@@ -1,5 +1,5 @@
 // src/repositories/seat.repository.ts
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../services/prisma.service';
 
 @Injectable()
@@ -22,18 +22,29 @@ export class SeatRepository {
       },
     });
 
-    if (!schedule) {
-      throw new Error(`Không tìm thấy lịch trình với ID ${scheduleId}`);
+    if (!schedule || !schedule.bus) {
+      throw new NotFoundException(`Schedule with ID ${scheduleId} not found`);
     }
 
     const seats = await this.prisma.seat.findMany({
       where: { busId: schedule.busId },
-      include: {
+      select: {
+        id: true,
+        seatNumber: true,
+        code: true,
+        price: true,
+        floor: true,
+        roomType: true,
         tickets: {
           where: { scheduleId: schedule.id },
           select: { id: true },
         },
       },
+      // FIX VĨNH VIỄN "GHẾ NHẢY CHỖ" – ORDER TỪ DATABASE!
+      orderBy: [
+        { floor: 'asc' },        // Tầng dưới trước (1), tầng trên sau (2)
+        { seatNumber: 'asc' },   // Số ghế tăng dần: 1, 2, 3... hoặc A1, A2...
+      ],
     });
 
     return {
@@ -44,10 +55,10 @@ export class SeatRepository {
       totalSeats: schedule.bus.seatCount,
       seats: seats.map(seat => ({
         id: seat.id,
-        seatNumber: seat.seatNumber,
+        seatNumber: seat.seatNumber.toString(), // ép về string → an toàn tuyệt đối
         code: seat.code,
         isAvailable: seat.tickets.length === 0,
-        price: seat.price,
+        price: Number(seat.price),
         floor: seat.floor ?? undefined,
         roomType: seat.roomType ?? undefined,
       })),

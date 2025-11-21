@@ -1,5 +1,5 @@
 // src/services/seat.service.ts
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { SeatRepository } from '../repositories/seat.repository';
 import { GetSeatsByScheduleResponse } from '../dtos/get-seats-by-schedule.dto';
 
@@ -8,6 +8,14 @@ export class SeatService {
   constructor(private readonly seatRepo: SeatRepository) {}
 
   async getSeatsBySchedule(scheduleId: number): Promise<GetSeatsByScheduleResponse> {
-    return this.seatRepo.findSeatsByScheduleId(scheduleId);
+    const result = await this.seatRepo.findSeatsByScheduleId(scheduleId);
+
+    return {
+      busId: result.busId,
+      busName: result.busName,
+      seatType: result.seatType,
+      totalSeats: result.totalSeats,
+      seats: result.seats,
+    };
   }
 }

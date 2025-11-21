@@ -5,7 +5,6 @@ import {
   Get,
   Param,
   Post,
-  NotFoundException,
   Query,
 } from '@nestjs/common';
 import { ScheduleService } from '../services/schedule.service';
@@ -35,13 +34,9 @@ export class ScheduleController {
     return this.scheduleService.getScheduleById(Number(id));
   }
 
-  // LẤY GHẾ THEO SCHEDULE
-  @Get(':id/seats/by-schedule')
-  getSeatsBySchedule(@Param('id') id: string) {
-    return this.scheduleService.getSeats(Number(id));
-  }
+  // ĐÃ XÓA HOÀN TOÀN ENDPOINT LẤY GHẾ TẠI ĐÂY
+  // → Giờ chỉ dùng: GET /seats/by-schedule/:scheduleId (từ SeatController)
 
-  // XÓA SCHEDULE
   @Delete(':id')
   async delete(@Param('id') id: string) {
     const deleted = await this.scheduleService.deleteSchedule(Number(id));

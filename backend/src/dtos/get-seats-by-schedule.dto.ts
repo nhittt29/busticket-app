@@ -1,7 +1,7 @@
 // src/dtos/get-seats-by-schedule.dto.ts
 export class SeatDto {
   id: number;
-  seatNumber: number;
+  seatNumber: string;     // ĐÃ ĐỔI THÀNH STRING → HỖ TRỢ A1, B12, VIP1, 01A... MÃI MÃI
   code: string;
   isAvailable: boolean;
   price: number;

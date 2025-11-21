@@ -53,6 +53,7 @@ export class ScheduleRepository {
       startOfDay.setHours(0, 0, 0, 0);
       const endOfDay = new Date(localDate);
       endOfDay.setHours(47, 59, 59, 999);
+
       where.AND.push({
         departureAt: {
           gte: startOfDay,
@@ -89,55 +90,8 @@ export class ScheduleRepository {
     });
   }
 
-  // TRẢ VỀ busCategory, busSeatType, busBerthType + seats + tickets
-  async getSeatsBySchedule(scheduleId: number) {
-    const schedule = await this.prisma.schedule.findUnique({
-      where: { id: scheduleId },
-      include: {
-        bus: {
-          select: {
-            category: true,
-            seatType: true,
-            berthType: true,
-            seats: {
-              select: {
-                id: true,
-                seatNumber: true,
-                code: true,
-                floor: true,
-                roomType: true,
-                price: true,
-              },
-              orderBy: [
-                { floor: 'asc' },
-                { seatNumber: 'asc' },
-              ],
-            },
-          },
-        },
-        tickets: {
-          select: { seatId: true },
-        },
-      },
-    });
-
-    if (!schedule || !schedule.bus) return null;
-
-    return {
-      busCategory: schedule.bus.category,
-      busSeatType: schedule.bus.seatType,
-      busBerthType: schedule.bus.berthType,
-      seats: schedule.bus.seats,
-      tickets: schedule.tickets,
-    };
-  }
-
-  async updateScheduleStatus(scheduleId: number, status: ScheduleStatus) {
-    return this.prisma.schedule.update({
-      where: { id: scheduleId },
-      data: { status },
-    });
-  }
+  // ĐÃ XÓA HOÀN TOÀN HÀM getSeatsBySchedule() – KHÔNG DÙNG NỮA!
+  // → Giờ chỉ dùng SeatRepository.findSeatsByScheduleId()
 
   async deleteTicketsByScheduleId(scheduleId: number) {
     return this.prisma.ticket.deleteMany({
