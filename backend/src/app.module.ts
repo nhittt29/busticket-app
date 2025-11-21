@@ -14,6 +14,7 @@ import { RouteModule } from './modules/route.module';
 import { ScheduleModule } from './modules/schedule.module';
 import { TicketModule } from './modules/ticket.module';
 import { SeatModule } from './modules/seat.module';
+import { BookingModule } from './modules/booking.module';
 
 @Module({
   imports: [
@@ -25,7 +26,7 @@ import { SeatModule } from './modules/seat.module';
       },
     }),
 
-    // MỚI: KÍCH HOẠT CRONJOB CHO SCHEDULE
+    // Kích hoạt CronJob của NestJS Schedule
     NestScheduleModule.forRoot(),
 
     // Các module nghiệp vụ
@@ -35,6 +36,7 @@ import { SeatModule } from './modules/seat.module';
     ScheduleModule,
     TicketModule,
     SeatModule,
+    BookingModule,
   ],
   controllers: [AuthController],
   providers: [AuthService, PrismaService, UserRepository],
