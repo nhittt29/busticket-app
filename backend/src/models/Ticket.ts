@@ -2,6 +2,8 @@
 import { Schedule } from './Schedule';
 import { Seat } from './Seat';
 import { User } from './User';
+import { DropoffPoint } from './DropoffPoint';
+import { PaymentHistory } from './PaymentHistory';
 
 export enum TicketStatus {
   BOOKED = 'BOOKED',
@@ -22,19 +24,23 @@ export interface Ticket {
   scheduleId: number;
   seatId: number;
   price: number;
+  surcharge: number;
+  totalPrice: number;
   status: TicketStatus;
-  paymentMethod?: PaymentMethod;
-  createdAt?: Date;
-  updatedAt?: Date;
-
-  // ĐÃ XÓA bulkTicketId → không còn dùng nữa
-  // ĐÃ THÊM: Mỗi vé thuộc về 1 lần thanh toán (1 lần đặt)
+  paymentMethod?: PaymentMethod | null;
+  dropoffPointId?: number | null;
   paymentHistoryId?: number | null;
+  createdAt: Date;
+  updatedAt: Date;
 
   // Quan hệ
   user?: User;
   schedule?: Schedule;
   seat?: Seat;
+  dropoffPoint?: DropoffPoint | null;
+
+  // Thanh toán nhóm – CHỈ KHAI BÁO 1 LẦN DUY NHẤT
+  paymentHistory?: PaymentHistory | null;
 
   // Bảng trung gian
   ticketPayments?: TicketPayment[];
@@ -46,13 +52,6 @@ export interface TicketPayment {
   paymentId: number;
   createdAt: Date;
 
-  // Quan hệ tùy chọn
+  ticket?: Ticket;
   payment?: PaymentHistory;
-}
-
-import type { PaymentHistory } from './PaymentHistory';
-declare module './Ticket' {
-  interface Ticket {
-    paymentHistory?: PaymentHistory;
-  }
 }

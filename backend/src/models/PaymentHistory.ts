@@ -15,11 +15,14 @@ export interface PaymentHistory {
   transactionId?: string | null;
   status: PaymentStatus;
   qrCode?: string | null;
+  ticketCode?: string | null;
+  seatList?: string | null;
+  seatCount: number;
   paidAt?: Date | null;
   createdAt: Date;
   updatedAt: Date;
 
-  // Quan hệ: 1 lần thanh toán → nhiều vé
+  // Quan hệ
   tickets?: Ticket[];
   ticketPayments?: TicketPayment[];
 }
@@ -30,8 +33,7 @@ export interface TicketPayment {
   paymentId: number;
   createdAt: Date;
 
-  // Quan hệ tùy chọn
-  ticket?: Ticket;
+  payment?: PaymentHistory;
 }
 
 import type { Ticket } from './Ticket';

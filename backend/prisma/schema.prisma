@@ -22,6 +22,7 @@ model User {
   tickets   Ticket[]
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
+
   @@index([roleId])
 }
 
@@ -42,23 +43,25 @@ model Brand {
   routes           Route[]
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
+
   @@index([name])
 }
 
 model Bus {
-  id           Int         @id @default(autoincrement())
-  name         String
-  licensePlate String      @unique
-  seatCount    Int
-  category     BusCategory
-  seatType     SeatType
-  berthType    BerthType?  // SINGLE / DOUBLE (chỉ dùng cho BERTH)
-  brand        Brand       @relation(fields: [brandId], references: [id])
-  brandId      Int
-  seats        Seat[]
-  schedules    Schedule[]
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
+  id          Int         @id @default(autoincrement())
+  name        String
+  licensePlate String     @unique
+  seatCount   Int
+  category    BusCategory
+  seatType    SeatType
+  berthType   BerthType?  // Chỉ dùng cho xe giường nằm
+  brand       Brand       @relation(fields: [brandId], references: [id])
+  brandId     Int
+  seats       Seat[]
+  schedules   Schedule[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
   @@index([category])
   @@index([seatType])
   @@index([berthType])
@@ -70,94 +73,121 @@ model Seat {
   seatNumber  Int
   code        String    @unique
   isAvailable Boolean   @default(true)
-  price       Float     // Giá do người dùng tự gán
-  floor       Int?      // 1 hoặc 2
+  price       Float     // Giá ghế
+  floor       Int?      // Tầng 1 hoặc 2
   roomType    RoomType?
   bus         Bus       @relation(fields: [busId], references: [id])
   busId       Int
   tickets     Ticket[]
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+
   @@index([busId])
 }
 
 model Route {
-  id                Int        @id @default(autoincrement())
-  startPoint        String
-  endPoint          String
+  id               Int        @id @default(autoincrement())
+  startPoint       String     // Luôn là "Bến Xe Miền Đông"
+  endPoint         String
   averageDurationMin Int
-  lowestPrice       Float
-  distanceKm        Float?
-  brand             Brand?     @relation(fields: [brandId], references: [id])
-  brandId           Int?
-  schedules         Schedule[]
-  createdAt         DateTime   @default(now())
-  updatedAt         DateTime   @updatedAt
+  lowestPrice      Float
+  distanceKm       Float?
+  brand            Brand?     @relation(fields: [brandId], references: [id])
+  brandId          Int?
+  schedules        Schedule[]
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+
   @@index([startPoint])
   @@index([endPoint])
 }
 
 model Schedule {
-  id         Int             @id @default(autoincrement())
-  bus        Bus             @relation(fields: [busId], references: [id])
-  busId      Int
-  route      Route           @relation(fields: [routeId], references: [id])
-  routeId    Int
-  departureAt DateTime
-  arrivalAt   DateTime
-  status      ScheduleStatus  @default(UPCOMING)
-  tickets     Ticket[]
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
+  id            Int            @id @default(autoincrement())
+  bus           Bus            @relation(fields: [busId], references: [id])
+  busId         Int
+  route         Route          @relation(fields: [routeId], references: [id])
+  routeId       Int
+  departureAt   DateTime
+  arrivalAt     DateTime
+  status        ScheduleStatus @default(UPCOMING)
+  tickets       Ticket[]
+  dropoffPoints DropoffPoint[] // ← MỚI: Danh sách điểm trả khách
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
   @@index([busId])
   @@index([routeId])
   @@index([status])
+  @@index([departureAt])
+}
+
+model DropoffPoint {
+  id         Int       @id @default(autoincrement())
+  schedule   Schedule  @relation(fields: [scheduleId], references: [id])
+  scheduleId Int
+  name       String    // VD: "Bến Xe Miền Tây", "VP Phương Trang Q.10", "Tận nơi Q.1"
+  address    String?   // Địa chỉ chi tiết (nếu có)
+  surcharge  Float     @default(0)     // Phụ thu (0đ nếu miễn phí)
+  isDefault  Boolean   @default(false) // Điểm trả mặc định (thường là bến xe)
+  order      Int       @default(0)     // Thứ tự hiển thị
+  tickets    Ticket[]                 // Những vé chọn điểm trả này
+  createdAt  DateTime  @default(now())
+
+  @@index([scheduleId])
+  @@index([isDefault])
 }
 
 model Ticket {
-  id            Int              @id @default(autoincrement())
-  user          User             @relation(fields: [userId], references: [id])
-  userId        Int
-  schedule      Schedule         @relation(fields: [scheduleId], references: [id])
-  scheduleId    Int
-  seat          Seat             @relation(fields: [seatId], references: [id])
-  seatId        Int
-  price         Float
-  status        TicketStatus     @default(BOOKED)
-  paymentMethod PaymentMethod?
-  createdAt     DateTime         @default(now())
-  updatedAt     DateTime         @updatedAt
+  id               Int           @id @default(autoincrement())
+  user             User          @relation(fields: [userId], references: [id])
+  userId           Int
+  schedule         Schedule      @relation(fields: [scheduleId], references: [id])
+  scheduleId       Int
+  seat             Seat          @relation(fields: [seatId], references: [id])
+  seatId           Int
+  price            Float         // Giá ghế (chưa tính phụ thu)
+  surcharge        Float         @default(0)   // Phụ thu điểm trả (tự động cập nhật)
+  totalPrice       Float         @default(0)   // price + surcharge (dùng để hiển thị)
+  status           TicketStatus  @default(BOOKED)
+  paymentMethod    PaymentMethod?
+  dropoffPoint     DropoffPoint? @relation(fields: [dropoffPointId], references: [id])
+  dropoffPointId   Int?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
 
-  // ĐÃ XÓA HOÀN TOÀN bulkTicketId → không dùng nữa
-  // ĐÃ THÊM: Mỗi vé thuộc về một lần thanh toán (1 lần đặt)
+  // Quan hệ thanh toán nhóm
   paymentHistoryId Int?
-  paymentHistory   PaymentHistory?  @relation(fields: [paymentHistoryId], references: [id])
-
-  // Bảng trung gian
+  paymentHistory   PaymentHistory? @relation(fields: [paymentHistoryId], references: [id])
   ticketPayments   TicketPayment[]
 
   @@index([userId])
   @@index([scheduleId])
   @@index([status])
   @@index([paymentHistoryId])
+  @@index([dropoffPointId])
 }
 
 model PaymentHistory {
-  id            Int              @id @default(autoincrement())
-  method        PaymentMethod
-  amount        Float
-  transactionId String?
-  status        String           @default("PENDING") // PENDING, SUCCESS, FAILED
-  qrCode        String?
-  paidAt        DateTime?
-  createdAt     DateTime         @default(now())
-  updatedAt     DateTime         @updatedAt
+  id             Int              @id @default(autoincrement())
+  method         PaymentMethod
+  amount         Float            // Tổng tiền (bao gồm cả phụ thu)
+  transactionId  String?
+  status         String           @default("PENDING") // PENDING, SUCCESS, FAILED
+  qrCode         String?
+  ticketCode     String?          // Mã đặt vé: VX250421001
+  seatList       String?          // "A01, A02, B05"
+  seatCount      Int              @default(0)
+  paidAt         DateTime?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
 
-  // Một lần thanh toán → nhiều vé (1 lần đặt)
-  tickets       Ticket[]
+  tickets        Ticket[]
   ticketPayments TicketPayment[]
 
   @@map("payment_history")
+  @@index([ticketCode])
+  @@index([createdAt(sort: Desc)])
 }
 
 model TicketPayment {
@@ -173,6 +203,8 @@ model TicketPayment {
   @@index([ticketId])
   @@index([paymentId])
 }
+
+// ==================== ENUMS ====================
 
 enum RoleName {
   ADMIN

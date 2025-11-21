@@ -15,6 +15,7 @@ import { ScheduleModule } from './modules/schedule.module';
 import { TicketModule } from './modules/ticket.module';
 import { SeatModule } from './modules/seat.module';
 import { BookingModule } from './modules/booking.module';
+import { DropoffPointModule } from './modules/dropoff-point.module';
 
 @Module({
   imports: [
@@ -37,6 +38,7 @@ import { BookingModule } from './modules/booking.module';
     TicketModule,
     SeatModule,
     BookingModule,
+    DropoffPointModule,
   ],
   controllers: [AuthController],
   providers: [AuthService, PrismaService, UserRepository],

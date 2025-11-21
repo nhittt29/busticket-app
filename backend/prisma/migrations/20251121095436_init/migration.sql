@@ -124,14 +124,31 @@ CREATE TABLE "Schedule" (
 );
 
 -- CreateTable
+CREATE TABLE "DropoffPoint" (
+    "id" SERIAL NOT NULL,
+    "scheduleId" INTEGER NOT NULL,
+    "name" TEXT NOT NULL,
+    "address" TEXT,
+    "surcharge" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "isDefault" BOOLEAN NOT NULL DEFAULT false,
+    "order" INTEGER NOT NULL DEFAULT 0,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "DropoffPoint_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "Ticket" (
     "id" SERIAL NOT NULL,
     "userId" INTEGER NOT NULL,
     "scheduleId" INTEGER NOT NULL,
     "seatId" INTEGER NOT NULL,
     "price" DOUBLE PRECISION NOT NULL,
+    "surcharge" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "totalPrice" DOUBLE PRECISION NOT NULL DEFAULT 0,
     "status" "TicketStatus" NOT NULL DEFAULT 'BOOKED',
     "paymentMethod" "PaymentMethod",
+    "dropoffPointId" INTEGER,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
     "paymentHistoryId" INTEGER,
@@ -147,6 +164,9 @@ CREATE TABLE "payment_history" (
     "transactionId" TEXT,
     "status" TEXT NOT NULL DEFAULT 'PENDING',
     "qrCode" TEXT,
+    "ticketCode" TEXT,
+    "seatList" TEXT,
+    "seatCount" INTEGER NOT NULL DEFAULT 0,
     "paidAt" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
@@ -219,6 +239,15 @@ CREATE INDEX "Schedule_routeId_idx" ON "Schedule"("routeId");
 CREATE INDEX "Schedule_status_idx" ON "Schedule"("status");
 
 -- CreateIndex
+CREATE INDEX "Schedule_departureAt_idx" ON "Schedule"("departureAt");
+
+-- CreateIndex
+CREATE INDEX "DropoffPoint_scheduleId_idx" ON "DropoffPoint"("scheduleId");
+
+-- CreateIndex
+CREATE INDEX "DropoffPoint_isDefault_idx" ON "DropoffPoint"("isDefault");
+
+-- CreateIndex
 CREATE INDEX "Ticket_userId_idx" ON "Ticket"("userId");
 
 -- CreateIndex
@@ -229,6 +258,15 @@ CREATE INDEX "Ticket_status_idx" ON "Ticket"("status");
 
 -- CreateIndex
 CREATE INDEX "Ticket_paymentHistoryId_idx" ON "Ticket"("paymentHistoryId");
+
+-- CreateIndex
+CREATE INDEX "Ticket_dropoffPointId_idx" ON "Ticket"("dropoffPointId");
+
+-- CreateIndex
+CREATE INDEX "payment_history_ticketCode_idx" ON "payment_history"("ticketCode");
+
+-- CreateIndex
+CREATE INDEX "payment_history_createdAt_idx" ON "payment_history"("createdAt" DESC);
 
 -- CreateIndex
 CREATE INDEX "TicketPayment_ticketId_idx" ON "TicketPayment"("ticketId");
@@ -258,6 +296,9 @@ ALTER TABLE "Schedule" ADD CONSTRAINT "Schedule_busId_fkey" FOREIGN KEY ("busId"
 ALTER TABLE "Schedule" ADD CONSTRAINT "Schedule_routeId_fkey" FOREIGN KEY ("routeId") REFERENCES "Route"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "DropoffPoint" ADD CONSTRAINT "DropoffPoint_scheduleId_fkey" FOREIGN KEY ("scheduleId") REFERENCES "Schedule"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "Ticket" ADD CONSTRAINT "Ticket_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -265,6 +306,9 @@ ALTER TABLE "Ticket" ADD CONSTRAINT "Ticket_scheduleId_fkey" FOREIGN KEY ("sched
 
 -- AddForeignKey
 ALTER TABLE "Ticket" ADD CONSTRAINT "Ticket_seatId_fkey" FOREIGN KEY ("seatId") REFERENCES "Seat"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Ticket" ADD CONSTRAINT "Ticket_dropoffPointId_fkey" FOREIGN KEY ("dropoffPointId") REFERENCES "DropoffPoint"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Ticket" ADD CONSTRAINT "Ticket_paymentHistoryId_fkey" FOREIGN KEY ("paymentHistoryId") REFERENCES "payment_history"("id") ON DELETE SET NULL ON UPDATE CASCADE;
