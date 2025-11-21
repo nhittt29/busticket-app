@@ -1,3 +1,4 @@
+// lib/payment/screens/payment_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -7,9 +8,11 @@ import '../cubit/payment_cubit.dart';
 import '../cubit/payment_state.dart';
 import '../widgets/payment_method_tile.dart';
 
-const Color greenSoft = Color(0xFF66BB6A);
-const Color iconBlue = Color(0xFF1976D2);
+const Color primaryBlue = Color(0xFF1976D2);
+const Color primaryGradientStart = Color(0xFF6AB7F5);
+const Color primaryGradientEnd = Color(0xFF4A9EFF);
 const Color backgroundLight = Color(0xFFEAF6FF);
+const Color greenSuccess = Color(0xFF4CAF50);
 
 class PaymentScreen extends StatelessWidget {
   const PaymentScreen({super.key});
@@ -24,7 +27,11 @@ class PaymentScreen extends StatelessWidget {
     if (userId == null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Vui lòng đăng nhập lại'), backgroundColor: Colors.red),
+          const SnackBar(
+            content: Text('Vui lòng đăng nhập lại'),
+            backgroundColor: Colors.redAccent,
+            behavior: SnackBarBehavior.floating,
+          ),
         );
         Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
       });
@@ -36,57 +43,105 @@ class PaymentScreen extends StatelessWidget {
       child: Scaffold(
         backgroundColor: backgroundLight,
         appBar: AppBar(
-          backgroundColor: backgroundLight,
-          elevation: 0,
-          title: const Text(
-            'Thanh toán',
-            style: TextStyle(color: Color(0xFF023E8A), fontWeight: FontWeight.bold),
+          flexibleSpace: Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [primaryGradientStart, primaryGradientEnd],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+            ),
           ),
+          elevation: 0,
+          centerTitle: true,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: iconBlue),
+            icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
             onPressed: () => Navigator.pop(context),
+          ),
+          title: const Text(
+            'Thanh toán vé xe',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 23,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.5,
+            ),
           ),
         ),
         body: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(20),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Thông tin ghế + tổng tiền
               Container(
-                padding: const EdgeInsets.all(16),
+                width: double.infinity,
+                padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4)],
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: Color(0xFFA0D8F1).withAlpha(153), width: 1.5), // thay withOpacity
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.grey.withAlpha(51), // thay withOpacity
+                      blurRadius: 16,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Ghế đã chọn', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                    const SizedBox(height: 8),
+                    const Text(
+                      'Ghế đã chọn',
+                      style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: Color(0xFF023E8A)),
+                    ),
+                    const SizedBox(height: 12),
                     Wrap(
-                      spacing: 8,
+                      spacing: 10,
+                      runSpacing: 10,
                       children: selectedSeats.map((seat) => Chip(
-                        label: Text(seat.seatNumber, style: const TextStyle(fontSize: 14)),
-                        backgroundColor: greenSoft.withOpacity(0.2),
+                        label: Text(
+                          seat.seatNumber,
+                          style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+                        ),
+                        backgroundColor: primaryGradientStart,
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                       )).toList(),
                     ),
-                    const Divider(height: 24),
+                    const Divider(height: 32, thickness: 1.2, color: Color(0xFFE0E0E0)),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('Tổng tiền', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                        const Text(
+                          'Tổng tiền',
+                          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF023E8A)),
+                        ),
                         Text(
-                          '${totalPrice.toStringAsFixed(0)}đ',
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20, color: greenSoft),
+                          '${totalPrice.toInt().toString().replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.')}đ',
+                          style: TextStyle(
+                            fontSize: 26,
+                            fontWeight: FontWeight.bold,
+                            color: greenSuccess,
+                            letterSpacing: 0.5,
+                          ),
                         ),
                       ],
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 24),
-              const Text('Chọn phương thức thanh toán', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-              const SizedBox(height: 12),
+
+              const SizedBox(height: 32),
+
+              const Text(
+                'Chọn phương thức thanh toán',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF023E8A)),
+              ),
+              const SizedBox(height: 16),
+
+              // Danh sách phương thức thanh toán (đã bỏ subtitle)
               BlocBuilder<PaymentCubit, PaymentState>(
                 builder: (context, state) {
                   final method = state is PaymentInitial ? state.method : PaymentMethod.MOMO;
@@ -98,8 +153,9 @@ class PaymentScreen extends StatelessWidget {
                         isSelected: method == PaymentMethod.MOMO,
                         onTap: () => context.read<PaymentCubit>().selectMethod(PaymentMethod.MOMO),
                       ),
+                      const SizedBox(height: 12),
                       PaymentMethodTile(
-                        icon: Icons.money,
+                        icon: Icons.payments_rounded,
                         title: 'Tiền mặt (Thanh toán tại quầy)',
                         isSelected: method == PaymentMethod.CASH,
                         onTap: () => context.read<PaymentCubit>().selectMethod(PaymentMethod.CASH),
@@ -108,7 +164,10 @@ class PaymentScreen extends StatelessWidget {
                   );
                 },
               ),
+
               const Spacer(),
+
+              // Nút thanh toán
               BlocConsumer<PaymentCubit, PaymentState>(
                 listener: (context, state) {
                   if (state is PaymentSuccess) {
@@ -118,7 +177,6 @@ class PaymentScreen extends StatelessWidget {
                         mode: LaunchMode.externalApplication,
                       );
                     } else {
-                      // CASH hoặc MoMo đã thành công → mở QR nhóm bằng paymentHistoryId
                       Navigator.pushNamed(
                         context,
                         '/group-qr',
@@ -127,7 +185,13 @@ class PaymentScreen extends StatelessWidget {
                     }
                   } else if (state is PaymentFailure) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(state.error), backgroundColor: Colors.red),
+                      SnackBar(
+                        content: Text(state.error),
+                        backgroundColor: Colors.redAccent,
+                        behavior: SnackBarBehavior.floating,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        margin: const EdgeInsets.all(16),
+                      ),
                     );
                   }
                 },
@@ -135,12 +199,8 @@ class PaymentScreen extends StatelessWidget {
                   final isLoading = state is PaymentLoading;
                   return SizedBox(
                     width: double.infinity,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: greenSoft,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
+                    height: 64,
+                    child: ElevatedButton.icon(
                       onPressed: isLoading || selectedSeats.isEmpty
                           ? null
                           : () {
@@ -152,9 +212,25 @@ class PaymentScreen extends StatelessWidget {
                                 totalPrice: totalPrice,
                               );
                             },
-                      child: isLoading
-                          ? const CircularProgressIndicator(color: Colors.white)
-                          : const Text('Thanh toán', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+                      icon: isLoading
+                          ? const SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3),
+                            )
+                          : const Icon(Icons.payment, size: 28),
+                      label: Text(
+                        isLoading ? 'Đang xử lý...' : 'Thanh toán ngay',
+                        style: const TextStyle(fontSize: 19, fontWeight: FontWeight.bold),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: primaryGradientStart,
+                        disabledBackgroundColor: Colors.grey[400],
+                        foregroundColor: Colors.white,
+                        elevation: 12,
+                        shadowColor: primaryGradientStart.withAlpha(128), // thay withOpacity
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                      ),
                     ),
                   );
                 },
