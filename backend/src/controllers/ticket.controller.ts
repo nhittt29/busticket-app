@@ -28,7 +28,6 @@ export class TicketController {
     return this.ticketService.getTicketById(Number(id));
   }
 
-  // ĐÃ SỬA: Dùng paymentHistoryId thay vì bulkTicketId
   @Get('momo/redirect')
   @Redirect()
   async momoRedirect(@Query() query: any) {
@@ -64,13 +63,11 @@ export class TicketController {
     return this.ticketService.getStatus(Number(id));
   }
 
-  // API cũ: lấy payment theo ticketId
   @Get(':id/payment')
   async getPaymentHistory(@Param('id') id: string) {
     return this.ticketService.getPaymentHistory(Number(id));
   }
 
-  // API MỚI: lấy payment theo paymentHistoryId (frontend GroupTicketQRScreen dùng cái này)
   @Get('/payments/history/:paymentHistoryId')
   async getPaymentDetailByHistoryId(@Param('paymentHistoryId') id: string) {
     return this.ticketService.getPaymentDetailByHistoryId(Number(id));

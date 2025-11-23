@@ -134,7 +134,7 @@ export class TicketService {
   // Đặt nhiều vé cùng lúc
   async createBulk(
     dtos: CreateTicketDto[],
-    totalAmountFromClient: number, // Client gửi lên để validate
+    totalAmountFromClient: number,
   ): Promise<BulkCreateResponse> {
     if (dtos.length === 0) throw new BadRequestException('Danh sách vé trống');
 
@@ -148,7 +148,6 @@ export class TicketService {
     });
     if (!schedule) throw new NotFoundException('Lịch trình không tồn tại');
 
-    // Kiểm tra tất cả vé cùng chuyến + cùng điểm trả
     const dropoffPointId = firstDto.dropoffPointId;
     const dropoffAddress = firstDto.dropoffAddress;
 
@@ -241,7 +240,6 @@ export class TicketService {
     };
   }
 
-  // === TẤT CẢ CÁC HÀM KHÁC GIỮ NGUYÊN HOÀN TOÀN ===
   async handleMomoRedirect(query: any) {
     this.logger.log(`MoMo Redirect: ${JSON.stringify(query)}`);
     const { resultCode, orderId, transId } = query;
@@ -314,7 +312,9 @@ export class TicketService {
     const diffHours = (new Date(firstTicket.schedule.departureAt).getTime() - Date.now()) / 3600000;
     if (diffHours < 1)
       throw new BadRequestException('Chỉ được thanh toán trước 1 giờ khởi hành');
+
     const qrCodeUrl = await this.qrService.generateSecureTicketQR(paymentHistoryId);
+
     await this.prism.paymentHistory.update({
       where: { id: paymentHistoryId },
       data: {
@@ -325,6 +325,7 @@ export class TicketService {
         paidAt: new Date(),
       },
     });
+
     const ticketIds = groupTickets.map(t => t.id);
     await this.prism.$transaction([
       ...ticketIds.map(id =>
@@ -340,21 +341,26 @@ export class TicketService {
         })
       ),
     ]);
+
     const jobs = await this.ticketQueue.getDelayed();
     for (const job of jobs) {
       if (ticketIds.includes(job.data.ticketId)) await job.remove();
     }
+
+    // DÙNG 1 HÀM GỬI EMAIL DUY NHẤT – 1 MÃ VÉ CHUNG (V + paymentHistoryId)
     if (firstTicket.user?.email) {
       try {
-        if (groupTickets.length === 1) {
-          await this.emailService.sendTicketEmail(firstTicket.user.email, firstTicket, qrCodeUrl);
-        } else {
-          await this.emailService.sendBulkTicketEmail(firstTicket.user.email, groupTickets, qrCodeUrl);
-        }
+        await this.emailService.sendUnifiedTicketEmail(
+          firstTicket.user.email,
+          groupTickets,
+          paymentHistoryId,
+          qrCodeUrl,
+        );
       } catch (error) {
         this.logger.error('Gửi email thất bại:', error);
       }
     }
+
     return {
       message: `Thanh toán thành công ${groupTickets.length} vé!`,
       paymentHistoryId,
@@ -401,9 +407,7 @@ export class TicketService {
 
   async getPaymentHistory(ticketId: number): Promise<PaymentHistoryResponse> {
     const payment = await this.prism.paymentHistory.findFirst({
-      where: {
-        ticketPayments: { some: { ticketId } },
-      },
+      where: { ticketPayments: { some: { ticketId } } },
       include: {
         ticketPayments: {
           include: {
@@ -425,16 +429,15 @@ export class TicketService {
     });
     if (!payment || payment.ticketPayments.length === 0)
       throw new NotFoundException('Không tìm thấy lịch sử thanh toán');
+
     const ticketsInGroup = payment.ticketPayments.map(tp => tp.ticket);
-    const firstTicket = ticketsInGroup[0];
-    const departure = new Date(firstTicket.schedule.departureAt);
+    const departure = new Date(ticketsInGroup[0].schedule.departureAt);
+
     return {
-      ticketCode: `V${String(firstTicket.id).padStart(6, '0')}`,
-      route: `${firstTicket.schedule.route.startPoint} → ${firstTicket.schedule.route.endPoint}`,
+      ticketCode: `V${String(payment.id).padStart(6, '0')}`,
+      route: `${ticketsInGroup[0].schedule.route.startPoint} → ${ticketsInGroup[0].schedule.route.endPoint}`,
       departureTime: `${String(departure.getHours()).padStart(2, '0')}:${String(departure.getMinutes()).padStart(2, '0')}, ${departure.toLocaleDateString('vi-VN')}`,
-      seatNumber: ticketsInGroup.length === 1
-        ? String(firstTicket.seat.seatNumber)
-        : `${ticketsInGroup.length} ghế`,
+      seatNumber: ticketsInGroup.length === 1 ? String(ticketsInGroup[0].seat.seatNumber) : `${ticketsInGroup.length} ghế`,
       price: `${payment.amount.toLocaleString('vi-VN')}đ`,
       paymentMethod: this.formatPaymentMethod(payment.method),
       status: payment.status === 'SUCCESS' ? 'Đã thanh toán' : 'Thất bại',
@@ -472,16 +475,15 @@ export class TicketService {
     });
     if (!payment || payment.ticketPayments.length === 0)
       throw new NotFoundException('Không tìm thấy thông tin thanh toán theo paymentHistoryId');
+
     const ticketsInGroup = payment.ticketPayments.map(tp => tp.ticket);
-    const firstTicket = ticketsInGroup[0];
-    const departure = new Date(firstTicket.schedule.departureAt);
+    const departure = new Date(ticketsInGroup[0].schedule.departureAt);
+
     return {
-      ticketCode: `V${String(firstTicket.id).padStart(6, '0')}`,
-      route: `${firstTicket.schedule.route.startPoint} → ${firstTicket.schedule.route.endPoint}`,
+      ticketCode: `V${String(payment.id).padStart(6, '0')}`,
+      route: `${ticketsInGroup[0].schedule.route.startPoint} → ${ticketsInGroup[0].schedule.route.endPoint}`,
       departureTime: `${String(departure.getHours()).padStart(2, '0')}:${String(departure.getMinutes()).padStart(2, '0')}, ${departure.toLocaleDateString('vi-VN')}`,
-      seatNumber: ticketsInGroup.length === 1
-        ? String(firstTicket.seat.seatNumber)
-        : `${ticketsInGroup.length} ghế`,
+      seatNumber: ticketsInGroup.length === 1 ? String(ticketsInGroup[0].seat.seatNumber) : `${ticketsInGroup.length} ghế`,
       price: `${payment.amount.toLocaleString('vi-VN')}đ`,
       paymentMethod: this.formatPaymentMethod(payment.method),
       status: payment.status === 'SUCCESS' ? 'Đã thanh toán' : 'Thất bại',
