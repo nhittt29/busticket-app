@@ -14,6 +14,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
     on<ClearTicketIdEvent>(_onClearTicketId);
     on<SetTicketIdEvent>(_onSetTicketId);
     on<SetNewTicketEvent>(_onSetNewTicket);
+    on<RefreshNotificationsEvent>(_onRefreshNotifications); // ĐÃ THÊM DÒNG NÀY
   }
 
   Future<void> _onLoadUser(LoadUserEvent event, Emitter<HomeState> emit) async {
@@ -63,5 +64,11 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
 
   void _onSetNewTicket(SetNewTicketEvent event, Emitter<HomeState> emit) {
     emit(state.copyWith(newTicketData: event.ticketData));
+  }
+
+  // ĐÃ THÊM HÀM XỬ LÝ – KHI NHẬN EVENT THÌ TỰ ĐỘNG RELOAD THÔNG BÁO
+  void _onRefreshNotifications(RefreshNotificationsEvent event, Emitter<HomeState> emit) {
+    // Chỉ cần emit một state mới là đủ → NotificationScreen sẽ tự reload nhờ BlocListener
+    emit(state.copyWith());
   }
 }

@@ -80,10 +80,10 @@ class PaymentScreen extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(24),
-                  border: Border.all(color: Color(0xFFA0D8F1).withAlpha(153), width: 1.5), // thay withOpacity
+                  border: Border.all(color: const Color(0xFFA0D8F1).withAlpha(153), width: 1.5),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.grey.withAlpha(51), // thay withOpacity
+                      color: Colors.grey.withAlpha(51),
                       blurRadius: 16,
                       offset: const Offset(0, 8),
                     ),
@@ -116,7 +116,7 @@ class PaymentScreen extends StatelessWidget {
                       children: [
                         const Text(
                           'Tổng tiền',
-                          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF023E8A)),
+                          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF023E0E8A)),
                         ),
                         Text(
                           '${totalPrice.toInt().toString().replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.')}đ',
@@ -141,24 +141,24 @@ class PaymentScreen extends StatelessWidget {
               ),
               const SizedBox(height: 16),
 
-              // Danh sách phương thức thanh toán (đã bỏ subtitle)
+              // Danh sách phương thức thanh toán
               BlocBuilder<PaymentCubit, PaymentState>(
                 builder: (context, state) {
-                  final method = state is PaymentInitial ? state.method : PaymentMethod.MOMO;
+                  final method = state is PaymentInitial ? state.method : PaymentMethod.momo;
                   return Column(
                     children: [
                       PaymentMethodTile(
                         icon: Icons.account_balance_wallet,
                         title: 'Ví MoMo',
-                        isSelected: method == PaymentMethod.MOMO,
-                        onTap: () => context.read<PaymentCubit>().selectMethod(PaymentMethod.MOMO),
+                        isSelected: method == PaymentMethod.momo,
+                        onTap: () => context.read<PaymentCubit>().selectMethod(PaymentMethod.momo),
                       ),
                       const SizedBox(height: 12),
                       PaymentMethodTile(
                         icon: Icons.payments_rounded,
                         title: 'Tiền mặt (Thanh toán tại quầy)',
-                        isSelected: method == PaymentMethod.CASH,
-                        onTap: () => context.read<PaymentCubit>().selectMethod(PaymentMethod.CASH),
+                        isSelected: method == PaymentMethod.cash,
+                        onTap: () => context.read<PaymentCubit>().selectMethod(PaymentMethod.cash),
                       ),
                     ],
                   );
@@ -228,7 +228,7 @@ class PaymentScreen extends StatelessWidget {
                         disabledBackgroundColor: Colors.grey[400],
                         foregroundColor: Colors.white,
                         elevation: 12,
-                        shadowColor: primaryGradientStart.withAlpha(128), // thay withOpacity
+                        shadowColor: primaryGradientStart.withAlpha(128),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                       ),
                     ),

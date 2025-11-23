@@ -21,18 +21,28 @@ import 'ticket/screens/my_tickets_screen.dart';
 import 'ticket/screens/ticket_qr_screen.dart';
 import 'ticket/screens/ticket_history_screen.dart';
 import 'ticket/screens/group_ticket_qr_screen.dart';
-import 'ticket/screens/ticket_detail_screen.dart'; // ← ĐÃ BỔ SUNG (rất quan trọng!)
+import 'ticket/screens/ticket_detail_screen.dart';
+import 'screens/notification_screen.dart';
 import 'payment/services/deep_link_service.dart';
 import 'theme/app_theme.dart';
+import 'services/reminder_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Khởi tạo Firebase
   try {
     await Firebase.initializeApp();
   } catch (e) {
     debugPrint('Firebase initialization failed: $e');
   }
+
+  // KHỞI TẠO HỆ THỐNG THÔNG BÁO TRƯỚC KHI APP CHẠY – BẮT BUỘC!
+  await ReminderService().initialize();
+
+  // Khởi tạo Deep Link Service
   DeepLinkService.instance.init();
+
   runApp(const MyApp());
 }
 
@@ -45,12 +55,13 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiBlocProvider(
       providers: [
+        // ĐÃ SỬA LẠI ĐỂ KHÔNG BỊ LỖI – KHÔNG GỌI EVENT NÀO Ở ĐÂY
         BlocProvider(create: (context) => AuthBloc()),
         BlocProvider(create: (context) => HomeBloc()),
         BlocProvider(create: (context) => BookingCubit()),
       ],
       child: MaterialApp(
-        title: 'BusTicket App',
+        title: 'Vé Xe Việt',
         theme: AppTheme.lightTheme,
         debugShowCheckedModeBanner: false,
         navigatorKey: navigatorKey,
@@ -80,8 +91,6 @@ class MyApp extends StatelessWidget {
           '/payment': (context) => const PaymentScreen(),
           '/my-tickets': (context) => const MyTicketsScreen(),
           '/ticket-history': (context) => const TicketHistoryScreen(),
-
-          // CHI TIẾT VÉ ĐƠN (bắt buộc phải có route để TicketHistoryScreen push được)
           '/ticket-detail': (context) {
             final args = ModalRoute.of(context)!.settings.arguments as int?;
             if (args == null) {
@@ -89,31 +98,24 @@ class MyApp extends StatelessWidget {
             }
             return TicketDetailScreen(ticketId: args);
           },
-
-          // XEM QR VÉ ĐƠN
           '/ticket-qr': (context) {
             final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>?;
             if (args == null || !args.containsKey('qrUrl') || !args.containsKey('ticket')) {
-              return const Scaffold(
-                body: Center(child: Text('Không tìm thấy mã QR')),
-              );
+              return const Scaffold(body: Center(child: Text('Không tìm thấy mã QR')));
             }
             return TicketQRScreen(
               qrUrl: args['qrUrl'] as String,
               ticket: args['ticket'] as Map<String, dynamic>,
             );
           },
-
-          // XEM QR NHÓM VÉ (dùng paymentHistoryId)
           '/group-qr': (context) {
             final args = ModalRoute.of(context)!.settings.arguments as int?;
             if (args == null) {
-              return const Scaffold(
-                body: Center(child: Text('ID nhóm vé không hợp lệ')),
-              );
+              return const Scaffold(body: Center(child: Text('ID nhóm vé không hợp lệ')));
             }
             return GroupTicketQRScreen(paymentHistoryId: args);
           },
+          '/notifications': (context) => const NotificationScreen(),
         },
         onUnknownRoute: (settings) => MaterialPageRoute(
           builder: (context) => Scaffold(

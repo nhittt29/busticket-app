@@ -2,7 +2,7 @@ plugins {
     id("com.android.application")
     id("kotlin-android")
     id("dev.flutter.flutter-gradle-plugin")
-    id("com.google.gms.google-services") // ✅ thêm dòng này
+    id("com.google.gms.google-services")
 }
 
 android {
@@ -13,6 +13,8 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
+        // ĐÚNG CÚ PHÁP KOTLIN DSL – KHÔNG DÙNG coreLibraryDesugaringEnabled
+        isCoreLibraryDesugaringEnabled = true
     }
 
     kotlinOptions {
@@ -20,8 +22,7 @@ android {
     }
 
     defaultConfig {
-        // TODO: Update applicationId cho đúng với firebase package_name trong google-services.json
-        applicationId = "com.example.busticketapp" //Firebase JSON
+        applicationId = "com.example.busticketapp"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
@@ -37,4 +38,9 @@ android {
 
 flutter {
     source = "../.."
+}
+
+// KHỐI NÀY BẮT BUỘC PHẢI CÓ – ĐÚNG CÚ PHÁP KOTLIN DSL
+dependencies {
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.2")
 }

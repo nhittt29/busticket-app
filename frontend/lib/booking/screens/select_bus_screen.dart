@@ -23,15 +23,19 @@ class SelectBusScreen extends StatefulWidget {
 }
 
 class _SelectBusScreenState extends State<SelectBusScreen> {
+  late final BookingCubit _bookingCubit; // Lưu lại để dùng trong dispose
+
   @override
   void initState() {
     super.initState();
-    context.read<BookingCubit>().loadSeats(widget.scheduleId);
+    _bookingCubit = context.read<BookingCubit>();
+    _bookingCubit.loadSeats(widget.scheduleId);
   }
 
   @override
   void dispose() {
-    context.read<BookingCubit>().resetSeats();
+    // ĐÃ SỬA: Không dùng context.read() nữa → an toàn 100%
+    _bookingCubit.resetSeats();
     super.dispose();
   }
 
@@ -40,7 +44,9 @@ class _SelectBusScreenState extends State<SelectBusScreen> {
     return PopScope(
       canPop: true,
       onPopInvokedWithResult: (didPop, result) {
-        if (!didPop) context.read<BookingCubit>().resetSeats();
+        if (!didPop) {
+          _bookingCubit.resetSeats();
+        }
       },
       child: Scaffold(
         backgroundColor: backgroundLight,
@@ -59,7 +65,7 @@ class _SelectBusScreenState extends State<SelectBusScreen> {
           leading: IconButton(
             icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
             onPressed: () {
-              context.read<BookingCubit>().resetSeats();
+              _bookingCubit.resetSeats();
               Navigator.pop(context);
             },
           ),
@@ -247,7 +253,7 @@ class _SelectBusScreenState extends State<SelectBusScreen> {
                 child: OutlinedButton(
                   onPressed: state.selectedSeats.isEmpty
                       ? null
-                      : () => context.read<BookingCubit>().clearSelection(),
+                      : () => _bookingCubit.clearSelection(),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: Colors.redAccent,
                     side: const BorderSide(color: Colors.redAccent, width: 2),

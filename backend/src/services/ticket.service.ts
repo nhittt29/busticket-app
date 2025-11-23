@@ -36,19 +36,21 @@ export class TicketService {
     @InjectQueue('ticket') private readonly ticketQueue: Queue,
   ) {}
 
-  // Đặt vé lẻ → 1 PaymentHistory riêng
+  // Đặt vé lẻ
   async create(dto: CreateTicketDto): Promise<CreateResponse> {
-    const { userId, scheduleId, seatId, price } = dto;
+    const { userId, scheduleId, seatId, price, paymentMethod, dropoffPointId, dropoffAddress } = dto;
 
     const schedule = await this.prism.schedule.findUnique({
       where: { id: scheduleId },
-      include: { bus: { include: { brand: true } } },
+      include: {
+        bus: { include: { brand: true } },
+        dropoffPoints: { orderBy: { order: 'asc' } },
+      },
     });
     if (!schedule) throw new NotFoundException('Lịch trình không tồn tại');
 
     const diffHours = (new Date(schedule.departureAt).getTime() - Date.now()) / 3600000;
-    if (diffHours < 1)
-      throw new BadRequestException('Chỉ được đặt vé trước 1 giờ khởi hành');
+    if (diffHours < 1) throw new BadRequestException('Chỉ được đặt vé trước 1 giờ khởi hành');
 
     const seat = await this.prism.seat.findUnique({ where: { id: seatId } });
     if (!seat || seat.busId !== schedule.busId)
@@ -58,30 +60,50 @@ export class TicketService {
     if (seatBooked) throw new BadRequestException('Ghế đã được đặt');
 
     const userTickets = await this.ticketRepo.findUserBookedToday(userId);
-    if (userTickets >= 8)
-      throw new BadRequestException('Chỉ được đặt tối đa 8 vé/ngày');
+    if (userTickets >= 8) throw new BadRequestException('Chỉ được đặt tối đa 8 vé/ngày');
 
     const brandTickets = await this.ticketRepo.countBrandSoldToday(schedule.bus.brandId);
     if (brandTickets >= schedule.bus.brand.dailyTicketLimit)
       throw new BadRequestException('Hãng xe đã đạt giới hạn vé trong ngày');
 
-    // Tạo nhóm thanh toán (PaymentHistory)
+    // === XỬ LÝ ĐIỂM TRẢ + PHỤ THU ===
+    let surcharge = 0;
+    let finalDropoffPointId: number | null = null;
+
+    if (dropoffPointId != null) {
+      const point = schedule.dropoffPoints.find(p => p.id === dropoffPointId);
+      if (!point) throw new BadRequestException('Điểm trả không hợp lệ');
+      surcharge = point.surcharge;
+      finalDropoffPointId = point.id;
+    } else if (dropoffAddress) {
+      surcharge = 150000; // Phụ thu tận nơi
+    } else {
+      const defaultPoint = schedule.dropoffPoints.find(p => p.isDefault);
+      finalDropoffPointId = defaultPoint?.id ?? null;
+    }
+
+    const totalAmount = price + surcharge;
+
+    // Tạo nhóm thanh toán
     const paymentGroup = await this.prism.paymentHistory.create({
       data: {
-        method: dto.paymentMethod || AppPaymentMethod.MOMO,
-        amount: price,
+        method: paymentMethod || AppPaymentMethod.MOMO,
+        amount: totalAmount,
         status: 'PENDING',
       },
     });
 
     const ticket = await this.prism.ticket.create({
       data: {
-        userId: dto.userId,
-        scheduleId: dto.scheduleId,
-        seatId: dto.seatId,
-        price: dto.price,
+        userId,
+        scheduleId,
+        seatId,
+        price,
+        surcharge,
+        totalPrice: totalAmount,
         status: TicketStatus.BOOKED,
-        paymentMethod: dto.paymentMethod || AppPaymentMethod.MOMO,
+        paymentMethod: paymentMethod || AppPaymentMethod.MOMO,
+        dropoffPointId: finalDropoffPointId,
         paymentHistoryId: paymentGroup.id,
       },
     });
@@ -98,8 +120,8 @@ export class TicketService {
 
     const momoResponse = await this.momoService.createPayment(
       paymentGroup.id,
-      price,
-      `Thanh toán vé xe #${ticket.id}`,
+      totalAmount,
+      `Thanh toán vé xe #${ticket.id}${surcharge > 0 ? ' + trả khách' : ''}`,
     );
 
     return {
@@ -109,17 +131,50 @@ export class TicketService {
     };
   }
 
-  // Đặt nhiều vé → 1 nhóm thanh toán → 1 QR
+  // Đặt nhiều vé cùng lúc
   async createBulk(
     dtos: CreateTicketDto[],
-    totalAmount: number,
+    totalAmountFromClient: number, // Client gửi lên để validate
   ): Promise<BulkCreateResponse> {
     if (dtos.length === 0) throw new BadRequestException('Danh sách vé trống');
 
+    const firstDto = dtos[0];
+    const schedule = await this.prism.schedule.findUnique({
+      where: { id: firstDto.scheduleId },
+      include: {
+        bus: { include: { brand: true } },
+        dropoffPoints: { orderBy: { order: 'asc' } },
+      },
+    });
+    if (!schedule) throw new NotFoundException('Lịch trình không tồn tại');
+
+    // Kiểm tra tất cả vé cùng chuyến + cùng điểm trả
+    const dropoffPointId = firstDto.dropoffPointId;
+    const dropoffAddress = firstDto.dropoffAddress;
+
+    let surchargePerTicket = 0;
+    let finalDropoffPointId: number | null = null;
+
+    if (dropoffPointId != null) {
+      const point = schedule.dropoffPoints.find(p => p.id === dropoffPointId);
+      if (!point) throw new BadRequestException('Điểm trả không hợp lệ');
+      surchargePerTicket = point.surcharge;
+      finalDropoffPointId = point.id;
+    } else if (dropoffAddress) {
+      surchargePerTicket = 150000;
+    } else {
+      const defaultPoint = schedule.dropoffPoints.find(p => p.isDefault);
+      finalDropoffPointId = defaultPoint?.id ?? null;
+    }
+
+    const calculatedTotal = dtos.reduce((sum, d) => sum + d.price, 0) + (surchargePerTicket * dtos.length);
+    if (calculatedTotal !== totalAmountFromClient)
+      throw new BadRequestException('Tổng tiền không khớp với phụ thu điểm trả');
+
     const paymentGroup = await this.prism.paymentHistory.create({
       data: {
-        method: dtos[0].paymentMethod || AppPaymentMethod.MOMO,
-        amount: totalAmount,
+        method: firstDto.paymentMethod || AppPaymentMethod.MOMO,
+        amount: calculatedTotal,
         status: 'PENDING',
       },
     });
@@ -127,15 +182,8 @@ export class TicketService {
     const createdTickets: any[] = [];
 
     for (const dto of dtos) {
-      const schedule = await this.prism.schedule.findUnique({
-        where: { id: dto.scheduleId },
-        include: { bus: { include: { brand: true } } },
-      });
-      if (!schedule) throw new NotFoundException('Lịch trình không tồn tại');
-
       const diffHours = (new Date(schedule.departureAt).getTime() - Date.now()) / 3600000;
-      if (diffHours < 1)
-        throw new BadRequestException('Chỉ được đặt vé trước 1 giờ khởi hành');
+      if (diffHours < 1) throw new BadRequestException('Chỉ được đặt vé trước 1 giờ khởi hành');
 
       const seat = await this.prism.seat.findUnique({ where: { id: dto.seatId } });
       if (!seat || seat.busId !== schedule.busId)
@@ -145,12 +193,13 @@ export class TicketService {
       if (seatBooked) throw new BadRequestException('Ghế đã được đặt');
 
       const userTickets = await this.ticketRepo.findUserBookedToday(dto.userId);
-      if (userTickets >= 8)
-        throw new BadRequestException('Chỉ được đặt tối đa 8 vé/ngày');
+      if (userTickets >= 8) throw new BadRequestException('Chỉ được đặt tối đa 8 vé/ngày');
 
       const brandTickets = await this.ticketRepo.countBrandSoldToday(schedule.bus.brandId);
       if (brandTickets >= schedule.bus.brand.dailyTicketLimit)
         throw new BadRequestException('Hãng xe đã đạt giới hạn vé trong ngày');
+
+      const ticketTotal = dto.price + surchargePerTicket;
 
       const ticket = await this.prism.ticket.create({
         data: {
@@ -158,8 +207,11 @@ export class TicketService {
           scheduleId: dto.scheduleId,
           seatId: dto.seatId,
           price: dto.price,
+          surcharge: surchargePerTicket,
+          totalPrice: ticketTotal,
           status: TicketStatus.BOOKED,
           paymentMethod: dto.paymentMethod || AppPaymentMethod.MOMO,
+          dropoffPointId: finalDropoffPointId,
           paymentHistoryId: paymentGroup.id,
         },
       });
@@ -179,8 +231,8 @@ export class TicketService {
 
     const momoResponse = await this.momoService.createPayment(
       paymentGroup.id,
-      totalAmount,
-      `Thanh toán ${dtos.length} vé xe - ${totalAmount.toLocaleString('vi-VN')}đ`,
+      calculatedTotal,
+      `Thanh toán ${dtos.length} vé${surchargePerTicket > 0 ? ' + trả khách' : ''} - ${calculatedTotal.toLocaleString('vi-VN')}đ`,
     );
 
     return {
@@ -189,19 +241,16 @@ export class TicketService {
     };
   }
 
+  // === TẤT CẢ CÁC HÀM KHÁC GIỮ NGUYÊN HOÀN TOÀN ===
   async handleMomoRedirect(query: any) {
     this.logger.log(`MoMo Redirect: ${JSON.stringify(query)}`);
     const { resultCode, orderId, transId } = query;
-
     if (resultCode !== '0') {
       return { success: false, message: 'Thanh toán thất bại' };
     }
-
     const match = orderId?.match(/^TICKET_(\d+)_\d+$/);
     if (!match) throw new BadRequestException('orderId không hợp lệ');
-
     const paymentHistoryId = Number(match[1]);
-
     try {
       await this.payTicket(paymentHistoryId, AppPaymentMethod.MOMO, transId);
       return { success: true, paymentHistoryId };
@@ -216,22 +265,18 @@ export class TicketService {
     if (data.resultCode !== 0) {
       return { success: false, message: data.message || 'Thanh toán thất bại' };
     }
-
     const match = data.orderId.match(/^TICKET_(\d+)_\d+$/);
     if (!match) {
       return { success: false, message: 'orderId không hợp lệ' };
     }
-
     const paymentHistoryId = Number(match[1]);
     const payment = await this.prism.paymentHistory.findUnique({
       where: { id: paymentHistoryId },
     });
-
     if (!payment) return { success: false, message: 'Không tìm thấy đơn thanh toán' };
     if (payment.status === 'SUCCESS') {
       return { success: true, paymentHistoryId };
     }
-
     try {
       await this.payTicket(paymentHistoryId, AppPaymentMethod.MOMO, data.transId);
       return { success: true, paymentHistoryId };
@@ -243,7 +288,6 @@ export class TicketService {
 
   async payTicket(paymentHistoryId: number, method: AppPaymentMethod, transId?: string) {
     this.logger.log(`Thanh toán nhóm vé từ paymentHistoryId #${paymentHistoryId}`);
-
     const paymentHistory = await this.prism.paymentHistory.findUnique({
       where: { id: paymentHistoryId },
       include: {
@@ -260,22 +304,17 @@ export class TicketService {
         },
       },
     });
-
     if (!paymentHistory) throw new NotFoundException('Không tìm thấy đơn thanh toán');
     if (paymentHistory.status === 'SUCCESS')
       throw new BadRequestException('Đơn đã được thanh toán');
-
     const groupTickets = paymentHistory.ticketPayments.map(tp => tp.ticket);
     if (groupTickets.length === 0)
       throw new NotFoundException('Không có vé trong nhóm');
-
     const firstTicket = groupTickets[0];
     const diffHours = (new Date(firstTicket.schedule.departureAt).getTime() - Date.now()) / 3600000;
     if (diffHours < 1)
       throw new BadRequestException('Chỉ được thanh toán trước 1 giờ khởi hành');
-
     const qrCodeUrl = await this.qrService.generateSecureTicketQR(paymentHistoryId);
-
     await this.prism.paymentHistory.update({
       where: { id: paymentHistoryId },
       data: {
@@ -286,7 +325,6 @@ export class TicketService {
         paidAt: new Date(),
       },
     });
-
     const ticketIds = groupTickets.map(t => t.id);
     await this.prism.$transaction([
       ...ticketIds.map(id =>
@@ -302,12 +340,10 @@ export class TicketService {
         })
       ),
     ]);
-
     const jobs = await this.ticketQueue.getDelayed();
     for (const job of jobs) {
       if (ticketIds.includes(job.data.ticketId)) await job.remove();
     }
-
     if (firstTicket.user?.email) {
       try {
         if (groupTickets.length === 1) {
@@ -319,7 +355,6 @@ export class TicketService {
         this.logger.error('Gửi email thất bại:', error);
       }
     }
-
     return {
       message: `Thanh toán thành công ${groupTickets.length} vé!`,
       paymentHistoryId,
@@ -335,11 +370,9 @@ export class TicketService {
     if (!ticket) throw new NotFoundException('Vé không tồn tại');
     if (ticket.status !== TicketStatus.BOOKED)
       throw new BadRequestException('Chỉ được hủy vé đang chờ thanh toán');
-
     const diffHours = (new Date(ticket.schedule.departureAt).getTime() - Date.now()) / 3600000;
     if (diffHours < 2)
       throw new BadRequestException('Chỉ được hủy trước 2 giờ');
-
     await this.prism.$transaction([
       this.prism.ticket.update({
         where: { id },
@@ -350,7 +383,6 @@ export class TicketService {
         data: { isAvailable: true },
       }),
     ]);
-
     return { message: 'Hủy vé thành công', ticketId: id };
   }
 
@@ -367,7 +399,6 @@ export class TicketService {
     return ticket;
   }
 
-  // API cũ: lấy payment từ ticketId (giữ nguyên để tương thích)
   async getPaymentHistory(ticketId: number): Promise<PaymentHistoryResponse> {
     const payment = await this.prism.paymentHistory.findFirst({
       where: {
@@ -392,14 +423,11 @@ export class TicketService {
         },
       },
     });
-
     if (!payment || payment.ticketPayments.length === 0)
       throw new NotFoundException('Không tìm thấy lịch sử thanh toán');
-
     const ticketsInGroup = payment.ticketPayments.map(tp => tp.ticket);
     const firstTicket = ticketsInGroup[0];
     const departure = new Date(firstTicket.schedule.departureAt);
-
     return {
       ticketCode: `V${String(firstTicket.id).padStart(6, '0')}`,
       route: `${firstTicket.schedule.route.startPoint} → ${firstTicket.schedule.route.endPoint}`,
@@ -420,7 +448,6 @@ export class TicketService {
     };
   }
 
-  // API MỚI: lấy trực tiếp theo paymentHistoryId – DÀNH RIÊNG CHO GroupTicketQRScreen
   async getPaymentDetailByHistoryId(paymentHistoryId: number): Promise<PaymentHistoryResponse> {
     const payment = await this.prism.paymentHistory.findUnique({
       where: { id: paymentHistoryId },
@@ -443,14 +470,11 @@ export class TicketService {
         },
       },
     });
-
     if (!payment || payment.ticketPayments.length === 0)
       throw new NotFoundException('Không tìm thấy thông tin thanh toán theo paymentHistoryId');
-
     const ticketsInGroup = payment.ticketPayments.map(tp => tp.ticket);
     const firstTicket = ticketsInGroup[0];
     const departure = new Date(firstTicket.schedule.departureAt);
-
     return {
       ticketCode: `V${String(firstTicket.id).padStart(6, '0')}`,
       route: `${firstTicket.schedule.route.startPoint} → ${firstTicket.schedule.route.endPoint}`,

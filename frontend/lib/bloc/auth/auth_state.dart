@@ -7,7 +7,7 @@ class AuthState extends Equatable {
   final String? message;
   final String? error;
   final Map<String, dynamic>? user;
-  final int? userId; // THÊM: userId
+  final int? userId;
 
   const AuthState({
     this.isLoading = false,

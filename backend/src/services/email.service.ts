@@ -23,7 +23,6 @@ export class EmailService {
     const userName = ticket.user?.name || 'Khách hàng';
     const startPoint = ticket.schedule?.route?.startPoint || 'Không xác định';
     const endPoint = ticket.schedule?.route?.endPoint || 'Không xác định';
-    // Lấy thông tin xe
     const bus = ticket.schedule?.bus;
     const busName = bus?.name || 'Không xác định';
     const busPlate = bus?.licensePlate || 'Không xác định';
@@ -37,12 +36,15 @@ export class EmailService {
       minute: '2-digit',
     });
 
+    // DÙNG ticketCode THAY CHO ticket.id
+    const ticketCode = ticket.ticketCode || `V${String(ticket.id).padStart(6, '0')}`;
+
     const html = `
 <!DOCTYPE html>
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Vé xe #${ticket.id} - BusTicket</title>
+<title>Vé xe ${ticketCode} - BusTicket</title>
 <style>
   body { font-family: Arial, sans-serif; background:#f1f4f8; padding:0; margin:0; }
   .container { max-width:600px; margin:auto; background:#fff; border-radius:12px; overflow:hidden; box-shadow:0 4px 10px rgba(0,0,0,0.08); }
@@ -76,7 +78,7 @@ export class EmailService {
     <p>Xin chào <strong>${userName}</strong>,</p>
     <p>Cảm ơn bạn đã đặt vé cùng BusTicket. Dưới đây là thông tin vé của bạn:</p>
     <div class="ticket-box">
-      <div class="ticket-header">Mã vé: #${ticket.id}</div>
+      <div class="ticket-header">Mã vé: ${ticketCode}</div>
       <div class="highlight-box">
         <div class="label">Tuyến</div>
         <div class="highlight-value">${startPoint} → ${endPoint}</div>
@@ -114,7 +116,7 @@ export class EmailService {
     </div>
     <div class="qr">
       <p><strong>Quét mã QR khi lên xe</strong></p>
-      <img src="${qrCodeUrl}" alt="QR Code Ticket #${ticket.id}">
+      <img src="${qrCodeUrl}" alt="QR Code ${ticketCode}">
     </div>
     <div class="notice">
       Vui lòng có mặt trước <strong>30 phút</strong><br>
@@ -144,7 +146,7 @@ export class EmailService {
     }
   }
 
-  // MỚI: GỬI 1 EMAIL CHO NHIỀU VÉ
+  // GỬI EMAIL CHO NHIỀU VÉ (NHÓM)
   async sendBulkTicketEmail(to: string, tickets: any[], qrCodeUrl: string) {
     const userName = tickets[0].user?.name || 'Khách hàng';
     const startPoint = tickets[0].schedule?.route?.startPoint || 'Không xác định';
@@ -161,14 +163,16 @@ export class EmailService {
     });
     const seatCodes = tickets.map(t => t.seat?.code || 'N/A').join(', ');
     const totalAmount = tickets.reduce((sum: number, t: any) => sum + t.price, 0);
-    const ticketIds = tickets.map(t => t.id).join(', #');
+
+    // DÙNG ticketCode CHO TẤT CẢ VÉ TRONG NHÓM
+    const ticketCodes = tickets.map(t => t.ticketCode || `V${String(t.id).padStart(6, '0')}`).join(', ');
 
     const html = `
 <!DOCTYPE html>
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Vé xe nhóm #${tickets[0].id}+ - BusTicket</title>
+<title>Vé xe nhóm ${ticketCodes} - BusTicket</title>
 <style>
   body { font-family: Arial, sans-serif; background:#f1f4f8; padding:0; margin:0; }
   .container { max-width:600px; margin:auto; background:#fff; border-radius:12px; overflow:hidden; box-shadow:0 4px 10px rgba(0,0,0,0.08); }
@@ -202,7 +206,7 @@ export class EmailService {
     <p>Xin chào <strong>${userName}</strong>,</p>
     <p>Cảm ơn bạn đã đặt <strong>${tickets.length} vé</strong> cùng BusTicket. Dưới đây là thông tin:</p>
     <div class="ticket-box">
-      <div class="ticket-header">Mã vé: #${ticketIds}</div>
+      <div class="ticket-header">Mã vé: ${ticketCodes}</div>
       <div class="highlight-box">
         <div class="label">Tuyến</div>
         <div class="highlight-value">${startPoint} → ${endPoint}</div>

@@ -44,14 +44,17 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         await prefs.setString('uid', responseBody['uid']);
         await prefs.setString('user', jsonEncode(responseBody['user']));
 
-        final userId = responseBody['user']['id'] as int; // LẤY userId
+        final userId = responseBody['user']['id'] as int;
+
+        // THÊM: Lưu userId để hệ thống thông báo biết user hiện tại là ai
+        await prefs.setInt('reminder_current_user_id', userId);
 
         emit(state.copyWith(
           isLoading: false,
           success: true,
           message: "Đăng nhập thành công",
           user: responseBody['user'],
-          userId: userId, // GÁN userId
+          userId: userId,
         ));
       } else {
         throw Exception(responseBody['message'] ?? "Sai email hoặc mật khẩu");
@@ -169,6 +172,10 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
           userData['avatar'] = 'http://10.0.2.2:3000/${userData['avatar']}';
         }
         final userId = userData['id'] as int;
+
+        // Khi load user từ cache → cũng lưu lại userId để lọc thông báo
+        await prefs.setInt('reminder_current_user_id', userId);
+
         emit(state.copyWith(
           isLoading: false,
           success: true,
@@ -190,6 +197,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   Future<void> _onLogout(LogoutEvent event, Emitter<AuthState> emit) async {
     try {
       final prefs = await SharedPreferences.getInstance();
+      // XÓA USERID DÙNG ĐỂ LỌC THÔNG BÁO KHI ĐĂNG XUẤT
+      await prefs.remove('reminder_current_user_id');
       await prefs.clear();
       await DefaultCacheManager().emptyCache();
       emit(state.copyWith(
@@ -262,6 +271,10 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
           updatedUser['avatar'] = 'http://10.0.2.2:3000/${updatedUser['avatar']}';
         }
         await prefs.setString('user', jsonEncode(updatedUser));
+
+        // Cập nhật lại reminder_current_user_id sau khi update profile
+        await prefs.setInt('reminder_current_user_id', updatedUser['id'] as int);
+
         emit(state.copyWith(
           isLoading: false,
           success: true,

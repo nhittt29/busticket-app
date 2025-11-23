@@ -5,6 +5,7 @@ import '../bloc/home/home_bloc.dart';
 import '../bloc/home/home_event.dart';
 import '../bloc/home/home_state.dart';
 import '../booking/screens/search_screen.dart';
+import 'package:badges/badges.dart' as badges; // THÊM DÒNG NÀY (cần pubspec.yaml có badges: ^3.1.2)
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -17,6 +18,9 @@ class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
   final PageController _pageController = PageController();
   int _currentPage = 0;
+
+  // Số lượng thông báo chưa đọc (có thể lấy từ state hoặc service sau)
+  int _notificationCount = 3; // Ví dụ: 3 thông báo chưa đọc
 
   @override
   void initState() {
@@ -45,7 +49,18 @@ class _HomeScreenState extends State<HomeScreen> {
         });
         break;
       case 2:
-        Navigator.pushNamed(context, '/profile').then((result) {
+        // Mở trang thông báo (sẽ tạo sau)
+        Navigator.pushNamed(context, '/notifications').then((_) {
+          if (mounted && _selectedIndex != 0) {
+            setState(() {
+              _selectedIndex = 0;
+              _notificationCount = 0; // Đánh dấu đã đọc
+            });
+          }
+        });
+        break;
+      case 3:
+        Navigator.pushNamed(context, '/profile').then((_) {
           if (mounted && _selectedIndex != 0) {
             setState(() => _selectedIndex = 0);
           }
@@ -120,11 +135,11 @@ class _HomeScreenState extends State<HomeScreen> {
       {"icon": Icons.payment, "label": "Thanh toán", "route": "/payment"},
     ];
 
-    const Color primaryBlue = Color(0xFF6AB7F5);     // Banner, nút
-    const Color accentBlue = Color(0xFF4A9EFF);       // Gradient end
-    const Color deepBlue = Color(0xFF1976D2);        // Icon, chữ nhấn
-    const Color pastelBlue = Color(0xFFA0D8F1);      // Icon nhỏ
-    const Color bgLight = Color(0xFFEAF6FF);         // Nền
+    const Color primaryBlue = Color(0xFF6AB7F5);
+    const Color accentBlue = Color(0xFF4A9EFF);
+    const Color deepBlue = Color(0xFF1976D2);
+    const Color pastelBlue = Color(0xFFA0D8F1);
+    const Color bgLight = Color(0xFFEAF6FF);
 
     return PopScope(
       canPop: _selectedIndex == 0,
@@ -160,7 +175,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
             return Column(
               children: [
-                // BANNER MỚI – Gradient + Nút nổi bật
+                // BANNER MỚI
                 Container(
                   width: double.infinity,
                   height: 180,
@@ -182,13 +197,11 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   child: Stack(
                     children: [
-                      // Logo nhỏ
                       Positioned(
                         top: 16,
                         right: 16,
                         child: Image.asset('assets/images/bus_logo.png', height: 50),
                       ),
-                      // Nội dung
                       Padding(
                         padding: const EdgeInsets.all(20),
                         child: Column(
@@ -224,7 +237,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
 
-                // THANH TÌM KIẾM MỚI – Card trắng, icon + nút xanh
+                // THANH TÌM KIẾM
                 Container(
                   margin: const EdgeInsets.symmetric(horizontal: 16),
                   padding: const EdgeInsets.all(16),
@@ -427,17 +440,35 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
 
+                // BOTTOM NAVIGATION BAR MỚI – CÓ ICON CHUÔNG + BADGE
                 BottomNavigationBar(
+                  type: BottomNavigationBarType.fixed, // BẮT BUỘC ĐỂ HIỂN THỊ 4 ITEM
                   backgroundColor: Colors.white,
                   currentIndex: _selectedIndex,
                   onTap: _onItemTapped,
                   selectedItemColor: const Color(0xFF1976D2),
                   unselectedItemColor: Colors.grey,
-                  elevation: 8,
-                  items: const [
-                    BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Trang chủ'),
-                    BottomNavigationBarItem(icon: Icon(Icons.confirmation_number), label: 'Vé của tôi'),
-                    BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Tài khoản'),
+                  elevation: 12,
+                  items: [
+                    const BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Trang chủ'),
+                    const BottomNavigationBarItem(icon: Icon(Icons.confirmation_number), label: 'Vé của tôi'),
+                    BottomNavigationBarItem(
+                      icon: _notificationCount > 0
+                          ? badges.Badge(
+                              badgeContent: Text(
+                                _notificationCount.toString(),
+                                style: const TextStyle(color: Colors.white, fontSize: 10),
+                              ),
+                              badgeStyle: const badges.BadgeStyle(
+                                badgeColor: Colors.red,
+                                padding: EdgeInsets.all(6),
+                              ),
+                              child: const Icon(Icons.notifications),
+                            )
+                          : const Icon(Icons.notifications_outlined),
+                      label: 'Thông báo',
+                    ),
+                    const BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Tài khoản'),
                   ],
                 ),
               ],

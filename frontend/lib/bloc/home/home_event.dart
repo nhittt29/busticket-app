@@ -26,3 +26,11 @@ class SetNewTicketEvent extends HomeEvent {
   @override
   List<Object?> get props => [ticketData];
 }
+
+// ĐÃ THÊM EVENT MỚI – ĐỂ REFRESH THÔNG BÁO SAU THANH TOÁN MOMO
+class RefreshNotificationsEvent extends HomeEvent {
+  const RefreshNotificationsEvent();
+
+  @override
+  List<Object?> get props => [];
+}

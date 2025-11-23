@@ -40,6 +40,7 @@ dependencies:
   # ────────────────────────────────
   flutter_bloc: ^9.1.1
   equatable: ^2.0.7
+  provider: ^6.1.2
 
   # ────────────────────────────────
   # 5. HỖ TRỢ THANH TOÁN & DEEP LINK
@@ -58,17 +59,27 @@ dependencies:
   # ────────────────────────────────
   logger: ^1.1.0
 
+  # ────────────────────────────────
+  # 8. THÔNG BÁO TRONG APP & BADGE + NHẮC NHỞ XE CHẠY
+  # ────────────────────────────────
+  badges: ^3.1.2
+  flutter_local_notifications: ^17.2.2
+  workmanager: ^0.9.0+3
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+  intl: ^0.19.0
+  timezone: ^0.9.4                              
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+  hive_generator: ^2.0.1
+  build_runner: ^2.4.12
 
 flutter:
   uses-material-design: true
 
-  # ────────────────────────────────
-  # 8. TÀI NGUYÊN ẢNH
-  # ────────────────────────────────
   assets:
     - assets/images/default.png
     - assets/images/bus_logo.png

@@ -41,4 +41,21 @@ class TicketApiService {
     final res = await http.delete(Uri.parse('$baseUrl/tickets/$ticketId'));
     if (res.statusCode != 200) throw Exception('Hủy thất bại');
   }
+
+  // HÀM MỚI – LẤY CHI TIẾT VÉ THEO paymentHistoryId (dùng cho DeepLink MoMo trả về)
+  static Future<Map<String, dynamic>?> getTicketDetailByPaymentHistoryId(
+      int paymentHistoryId) async {
+    try {
+      final res = await http.get(
+        Uri.parse('$baseUrl/tickets/payment-history/$paymentHistoryId'),
+        headers: {'Content-Type': 'application/json'},
+      );
+      if (res.statusCode == 200 && res.body.isNotEmpty) {
+        return json.decode(res.body);
+      }
+    } catch (e) {
+      print('Lỗi lấy vé theo paymentHistoryId: $e');
+    }
+    return null;
+  }
 }
