@@ -23,7 +23,7 @@ class SelectBusScreen extends StatefulWidget {
 }
 
 class _SelectBusScreenState extends State<SelectBusScreen> {
-  late final BookingCubit _bookingCubit; // Lưu lại để dùng trong dispose
+  late final BookingCubit _bookingCubit;
 
   @override
   void initState() {
@@ -34,7 +34,6 @@ class _SelectBusScreenState extends State<SelectBusScreen> {
 
   @override
   void dispose() {
-    // ĐÃ SỬA: Không dùng context.read() nữa → an toàn 100%
     _bookingCubit.resetSeats();
     super.dispose();
   }
@@ -267,7 +266,12 @@ class _SelectBusScreenState extends State<SelectBusScreen> {
               Expanded(
                 flex: 2,
                 child: ElevatedButton.icon(
-                  onPressed: state.selectedSeats.isEmpty ? null : () => Navigator.pushNamed(context, '/payment'),
+                  onPressed: state.selectedSeats.isEmpty
+                      ? null
+                      : () {
+                          // ĐÃ SỬA: CHUYỂN SANG MÀN HÌNH CHỌN ĐIỂM TRẢ
+                          Navigator.pushNamed(context, '/dropoff-selection');
+                        },
                   icon: const Icon(Icons.arrow_forward_ios, size: 20),
                   label: const Text('Tiếp theo', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
                   style: ElevatedButton.styleFrom(

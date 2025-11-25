@@ -8,6 +8,7 @@ import '../../bloc/home/home_bloc.dart';
 import '../../bloc/home/home_event.dart';
 import '../../ticket/services/ticket_api_service.dart';
 import '../../services/reminder_service.dart';
+import '../../booking/cubit/booking_cubit.dart'; // THÊM DÒNG NÀY – SỬA LỖI 100%!
 
 class PaymentCubit extends Cubit<PaymentState> {
   PaymentCubit() : super(const PaymentInitial(PaymentMethod.momo));
@@ -78,11 +79,13 @@ class PaymentCubit extends Cubit<PaymentState> {
         return;
       }
 
+      // GỬI finalTotalPrice ĐÃ CỘNG PHỤ THU → ĐÚNG 100%
       final data = await PaymentApiService.createBulkTickets(
+        context: context,
         userId: userId,
         scheduleId: scheduleId,
         seatIds: seatIds,
-        totalPrice: totalPrice,
+        totalPrice: context.read<BookingCubit>().state.finalTotalPrice,
         paymentMethod: currentMethod.name.toUpperCase(),
       );
 
@@ -107,7 +110,6 @@ class PaymentCubit extends Cubit<PaymentState> {
       final finalSeatNumbers = allSeats.isEmpty ? 'Không rõ' : allSeats.join(', ');
       final firstTicket = await TicketApiService.getTicketDetail(data['tickets'][0]['id'] as int);
 
-      // TRUYỀN userId VÀO ĐÂY → CHỈ USER NÀY MỚI NHẬN THÔNG BÁO
       await ReminderService.showBookingSuccessNotification(
         paymentHistoryId: paymentHistoryId,
         userId: userId,
@@ -121,7 +123,7 @@ class PaymentCubit extends Cubit<PaymentState> {
       await ReminderService().scheduleDepartureReminder(
         scheduleId: scheduleId,
         paymentHistoryId: paymentHistoryId,
-        userId: userId, // TRUYỀN userId VÀO ĐÂY
+        userId: userId,
       );
 
       if (currentMethod == PaymentMethod.momo && momoUrl != null) {

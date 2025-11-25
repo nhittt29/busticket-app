@@ -1,7 +1,8 @@
-// lib/cubit/booking_cubit.dart
+// lib/booking/cubit/booking_cubit.dart
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../services/booking_api_service.dart';
 import 'booking_state.dart';
+import '../models/dropoff_point.dart'; // ← ĐÃ THÊM DÒNG NÀY – SỬA HOÀN TOÀN LỖI
 
 class BookingCubit extends Cubit<BookingState> {
   BookingCubit() : super(BookingState.initial());
@@ -22,10 +23,9 @@ class BookingCubit extends Cubit<BookingState> {
         state.to,
         state.date,
       );
-      // ẨN CHUYẾN ĐÃ CHẠY HOẶC ĐÃ ĐẾN NƠI + FULL
       final filteredTrips = trips.where((t) {
-        return t.status != 'FULL' && 
-               t.status != 'ONGOING' && 
+        return t.status != 'FULL' &&
+               t.status != 'ONGOING' &&
                t.status != 'COMPLETED';
       }).toList();
       emit(state.copyWith(trips: filteredTrips, loading: false));
@@ -46,6 +46,7 @@ class BookingCubit extends Cubit<BookingState> {
 
   void selectSeat(Seat seat) {
     if (!seat.isAvailable) return;
+
     final selected = List<Seat>.from(state.selectedSeats);
     if (selected.contains(seat)) {
       selected.remove(seat);
@@ -53,11 +54,24 @@ class BookingCubit extends Cubit<BookingState> {
       selected.add(seat);
     }
     final total = selected.fold<double>(0.0, (sum, s) => sum + s.price);
-    emit(state.copyWith(selectedSeats: selected, totalPrice: total));
+
+    // Tính lại finalTotalPrice khi thay đổi số ghế
+    final totalSurcharge = state.surcharge * selected.length;
+    final newFinalTotalPrice = total + totalSurcharge;
+
+    emit(state.copyWith(
+      selectedSeats: selected,
+      totalPrice: total,
+      finalTotalPrice: newFinalTotalPrice,
+    ));
   }
 
   void clearSelection() {
-    emit(state.copyWith(selectedSeats: [], totalPrice: 0.0));
+    emit(state.copyWith(
+      selectedSeats: [],
+      totalPrice: 0.0,
+      finalTotalPrice: 0.0,
+    ));
   }
 
   void resetSeats() {
@@ -65,7 +79,11 @@ class BookingCubit extends Cubit<BookingState> {
       seats: [],
       selectedSeats: [],
       totalPrice: 0.0,
+      finalTotalPrice: 0.0,
       loadingSeats: false,
+      selectedDropoffPoint: null,
+      dropoffAddress: null,
+      surcharge: 0.0,
     ));
   }
 
@@ -80,8 +98,47 @@ class BookingCubit extends Cubit<BookingState> {
       seats: [],
       selectedSeats: [],
       totalPrice: 0.0,
+      finalTotalPrice: 0.0,
       loading: false,
       loadingSeats: false,
+      selectedDropoffPoint: null,
+      dropoffAddress: null,
+      surcharge: 0.0,
+    ));
+  }
+
+  // ================== MỚI: ĐIỂM TRẢ KHÁCH ==================
+  void selectDropoffPoint(DropoffPoint point) {
+    final totalSurcharge = point.surcharge * state.selectedSeats.length;
+    final newFinalTotalPrice = state.totalPrice + totalSurcharge;
+
+    emit(state.copyWith(
+      selectedDropoffPoint: point,
+      dropoffAddress: null,
+      surcharge: point.surcharge,
+      finalTotalPrice: newFinalTotalPrice,
+    ));
+  }
+
+  void selectDropoffAddress(String address) {
+    const deliveryFee = 150000.0; // phụ thu tận nơi
+    final totalSurcharge = deliveryFee * state.selectedSeats.length;
+    final newFinalTotalPrice = state.totalPrice + totalSurcharge;
+
+    emit(state.copyWith(
+      selectedDropoffPoint: null,
+      dropoffAddress: address,
+      surcharge: deliveryFee,
+      finalTotalPrice: newFinalTotalPrice,
+    ));
+  }
+
+  void clearDropoff() {
+    emit(state.copyWith(
+      selectedDropoffPoint: null,
+      dropoffAddress: null,
+      surcharge: 0.0,
+      finalTotalPrice: state.totalPrice,
     ));
   }
 }

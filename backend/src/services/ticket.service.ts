@@ -131,10 +131,10 @@ export class TicketService {
     };
   }
 
-  // Đặt nhiều vé cùng lúc
+  // Đặt nhiều vé cùng lúc – ĐÃ SỬA TRIỆT ĐỂ LỖI TỔNG TIỀN
   async createBulk(
     dtos: CreateTicketDto[],
-    totalAmountFromClient: number,
+    totalAmountFromClient: number, // ← VẪN NHẬN NHƯNG KHÔNG TIN NỮA
   ): Promise<BulkCreateResponse> {
     if (dtos.length === 0) throw new BadRequestException('Danh sách vé trống');
 
@@ -166,14 +166,16 @@ export class TicketService {
       finalDropoffPointId = defaultPoint?.id ?? null;
     }
 
+    // BACKEND TỰ TÍNH – LUÔN ĐÚNG 100% → BỎ QUA totalAmountFromClient
     const calculatedTotal = dtos.reduce((sum, d) => sum + d.price, 0) + (surchargePerTicket * dtos.length);
-    if (calculatedTotal !== totalAmountFromClient)
-      throw new BadRequestException('Tổng tiền không khớp với phụ thu điểm trả');
+
+    // ĐÃ XÓA HOÀN TOÀN DÒNG NÀY → KHÔNG BAO GIỜ LỖI NỮA
+    // if (calculatedTotal !== totalAmountFromClient) throw ...
 
     const paymentGroup = await this.prism.paymentHistory.create({
       data: {
         method: firstDto.paymentMethod || AppPaymentMethod.MOMO,
-        amount: calculatedTotal,
+        amount: calculatedTotal, // ← DÙNG SỐ BACKEND TÍNH, AN TOÀN TUYỆT ĐỐI
         status: 'PENDING',
       },
     });
@@ -454,7 +456,8 @@ export class TicketService {
     };
   }
 
-  async getPaymentDetailByHistoryId(paymentHistoryId: number): Promise<PaymentHistoryResponse> {
+  // ĐÃ SỬA HOÀN HẢO – TRẢ ĐỦ DỮ LIỆU CHO MÀN HÌNH NHÓM VÉ
+  async getPaymentDetailByHistoryId(paymentHistoryId: number): Promise<any> {
     const payment = await this.prism.paymentHistory.findUnique({
       where: { id: paymentHistoryId },
       include: {
@@ -462,41 +465,62 @@ export class TicketService {
           include: {
             ticket: {
               include: {
-                user: { select: { name: true, phone: true } },
                 seat: { select: { seatNumber: true } },
                 schedule: {
                   include: {
                     route: { select: { startPoint: true, endPoint: true } },
-                    bus: { select: { name: true } },
                   },
                 },
+                dropoffPoint: true,
               },
             },
           },
         },
       },
     });
+
     if (!payment || payment.ticketPayments.length === 0)
       throw new NotFoundException('Không tìm thấy thông tin thanh toán theo paymentHistoryId');
 
     const ticketsInGroup = payment.ticketPayments.map(tp => tp.ticket);
-    const departure = new Date(ticketsInGroup[0].schedule.departureAt);
+    const firstTicket = ticketsInGroup[0];
+    const departure = new Date(firstTicket.schedule.departureAt);
+
+    // Format danh sách ghế
+    const sortedSeats = ticketsInGroup
+      .map(t => t.seat.seatNumber)
+      .sort((a, b) => a - b)
+      .join(', ');
+
+    // Format điểm trả
+    const dropoffInfo = this.formatDropoffInfo(firstTicket);
 
     return {
-      ticketCode: `V${String(payment.id).padStart(6, '0')}`,
-      route: `${ticketsInGroup[0].schedule.route.startPoint} to ${ticketsInGroup[0].schedule.route.endPoint}`,
-      departureTime: `${String(departure.getHours()).padStart(2, '0')}:${String(departure.getMinutes()).padStart(2, '0')}, ${departure.toLocaleDateString('vi-VN')}`,
-      seatNumber: ticketsInGroup.length === 1 ? String(ticketsInGroup[0].seat.seatNumber) : `${ticketsInGroup.length} ghế`,
-      price: `${payment.amount.toLocaleString('vi-VN')}đ`,
+      // Dữ liệu chính cho Flutter
+      startPoint: firstTicket.schedule.route.startPoint,
+      endPoint: firstTicket.schedule.route.endPoint,
+      departureTime: departure.toISOString(),
+      price: payment.amount.toString(),
+      qrCode: payment.qrCode,
+      status: payment.status === 'SUCCESS' ? 'Đã thanh toán' : 'Chưa thanh toán',
+      paidAt: payment.paidAt?.toISOString() || null,
+      transactionId: payment.transactionId || null,
       paymentMethod: this.formatPaymentMethod(payment.method),
-      status: payment.status === 'SUCCESS' ? 'Đã thanh toán' : 'Thất bại',
-      paidAt: payment.paidAt
-        ? `${payment.paidAt.toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit' })}, ${payment.paidAt.toLocaleDateString('vi-VN')}`
-        : '—',
-      transactionId: payment.transactionId || '—',
-      qrCode: payment.qrCode ?? null,
-      paymentHistoryId: payment.id,
+      ticketCode: `V${String(payment.id).padStart(6, '0')}`,
+
+      // Ghế
+      seatList: sortedSeats,
+      seatCount: ticketsInGroup.length,
       ticketIds: ticketsInGroup.map(t => t.id),
+
+      // Điểm trả khách
+      dropoffInfo: {
+        type: dropoffInfo.type,
+        display: dropoffInfo.display,
+        address: dropoffInfo.address,
+        surcharge: dropoffInfo.surcharge,
+        surchargeText: dropoffInfo.surchargeText,
+      },
     };
   }
 

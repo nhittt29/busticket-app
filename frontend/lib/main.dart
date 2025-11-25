@@ -16,6 +16,7 @@ import 'screens/edit_profile_screen.dart';
 import 'booking/screens/search_screen.dart';
 import 'booking/screens/trip_list_screen.dart';
 import 'booking/screens/select_bus_screen.dart';
+import 'booking/screens/dropoff_selection_screen.dart';
 import 'payment/screens/payment_screen.dart';
 import 'ticket/screens/my_tickets_screen.dart';
 import 'ticket/screens/ticket_qr_screen.dart';
@@ -88,6 +89,7 @@ class MyApp extends StatelessWidget {
             if (args is! int) return const SearchScreen();
             return SelectBusScreen(scheduleId: args);
           },
+          '/dropoff-selection': (context) => const DropoffSelectionScreen(),
           '/payment': (context) => const PaymentScreen(),
           '/my-tickets': (context) => const MyTicketsScreen(),
           '/ticket-history': (context) => const TicketHistoryScreen(),

@@ -142,7 +142,7 @@ class _TicketHistoryScreenState extends State<TicketHistoryScreen>
 
                 final int totalPrice = group.fold<int>(
                   0,
-                  (sum, item) => sum + ((item['ticket'] as Map<String, dynamic>)['price'] as num? ?? 0).toInt(),
+                  (sum, item) => sum + ((item['ticket'] as Map<String, dynamic>)['totalPrice'] as num? ?? 0).toInt(),
                 );
 
                 final hasQR = group.any((item) =>
@@ -150,6 +150,12 @@ class _TicketHistoryScreenState extends State<TicketHistoryScreen>
                     (item['payment'] as Map<String, dynamic>)['qrCode'] != null);
 
                 final status = _normalizeStatus(firstTicket['status'] as String? ?? '');
+
+                // ĐIỂM TRẢ KHÁCH – ĐÃ THÊM ĐẸP LUNG LINH
+                final dropoffInfo = firstTicket['dropoffInfo'] as Map<String, dynamic>?;
+                final dropoffDisplay = dropoffInfo?['display']?.toString() ?? 'Bến xe đích';
+                final dropoffSurchargeText = dropoffInfo?['surchargeText']?.toString() ?? 'Miễn phí';
+                final hasSurcharge = dropoffSurchargeText != 'Miễn phí';
 
                 return AnimatedContainer(
                   duration: const Duration(milliseconds: 600),
@@ -163,6 +169,9 @@ class _TicketHistoryScreenState extends State<TicketHistoryScreen>
                     totalPrice: totalPrice,
                     hasQR: hasQR,
                     status: status,
+                    dropoffDisplay: dropoffDisplay,
+                    dropoffSurchargeText: dropoffSurchargeText,
+                    hasSurcharge: hasSurcharge,
                   ),
                 );
               },
@@ -181,6 +190,9 @@ class _TicketHistoryScreenState extends State<TicketHistoryScreen>
     required int totalPrice,
     required bool hasQR,
     required String status,
+    required String dropoffDisplay,
+    required String dropoffSurchargeText,
+    required bool hasSurcharge,
   }) {
     final route = firstTicket['schedule']?['route'] as Map<String, dynamic>?;
     final startPoint = route?['startPoint'] ?? '—';
@@ -292,6 +304,44 @@ class _TicketHistoryScreenState extends State<TicketHistoryScreen>
                   ),
                 ],
               ),
+
+              // ĐIỂM TRẢ KHÁCH – ĐẸP NHƯ VEXERE
+              if (dropoffDisplay != 'Bến xe đích') ...[
+                const SizedBox(height: 10),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(Icons.location_on, size: 19, color: Color(0xFFFF6B6B)),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Trả khách tại',
+                            style: TextStyle(fontSize: 13, color: Colors.black54, fontWeight: FontWeight.w500),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            dropoffDisplay,
+                            style: const TextStyle(fontSize: 15, color: Color(0xFF2E7D32), fontWeight: FontWeight.bold),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (hasSurcharge)
+                      Text(
+                        dropoffSurchargeText,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFFD32F2F),
+                        ),
+                      ),
+                  ],
+                ),
+              ],
+
               const SizedBox(height: 16),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
