@@ -62,8 +62,7 @@ export class TicketRepository {
         schedule: { include: { route: true } },
         seat: true,
         paymentHistory: true,
-        dropoffPoint: true,     // ĐÚNG – relation tới bảng DropoffPoint
-        // dropoffAddress: true, // SAI – đây là field string trong bảng ticket, KHÔNG PHẢI relation → ĐÃ XÓA
+        dropoffPoint: true,
       },
       orderBy: { createdAt: 'desc' },
     });
