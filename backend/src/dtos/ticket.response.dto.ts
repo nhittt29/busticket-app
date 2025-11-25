@@ -1,4 +1,3 @@
-// src/dtos/ticket.response.dto.ts
 export interface CreateResponse {
   message: string;
   ticket: any;
@@ -23,4 +22,13 @@ export interface PaymentHistoryResponse {
   qrCode: string | null;
   paymentHistoryId: number;        
   ticketIds: number[];            
+}
+
+// THÊM MỚI – THÔNG TIN ĐIỂM TRẢ
+export interface DropoffInfo {
+  type: 'tannoi' | 'diemtra' | 'default';
+  display: string;
+  address: string;
+  surcharge: number;
+  surchargeText: string;
 }

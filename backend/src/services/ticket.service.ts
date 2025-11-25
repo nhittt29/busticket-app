@@ -347,7 +347,6 @@ export class TicketService {
       if (ticketIds.includes(job.data.ticketId)) await job.remove();
     }
 
-    // DÙNG 1 HÀM GỬI EMAIL DUY NHẤT – 1 MÃ VÉ CHUNG (V + paymentHistoryId)
     if (firstTicket.user?.email) {
       try {
         await this.emailService.sendUnifiedTicketEmail(
@@ -393,7 +392,11 @@ export class TicketService {
   }
 
   async getTicketsByUser(userId: number) {
-    return this.ticketRepo.getTicketsByUser(userId);
+    const tickets = await this.ticketRepo.getTicketsByUser(userId);
+    return tickets.map(ticket => ({
+      ...ticket,
+      dropoffInfo: this.formatDropoffInfo(ticket),
+    }));
   }
 
   async getStatus(id: number) {
@@ -435,7 +438,7 @@ export class TicketService {
 
     return {
       ticketCode: `V${String(payment.id).padStart(6, '0')}`,
-      route: `${ticketsInGroup[0].schedule.route.startPoint} → ${ticketsInGroup[0].schedule.route.endPoint}`,
+      route: `${ticketsInGroup[0].schedule.route.startPoint} to ${ticketsInGroup[0].schedule.route.endPoint}`,
       departureTime: `${String(departure.getHours()).padStart(2, '0')}:${String(departure.getMinutes()).padStart(2, '0')}, ${departure.toLocaleDateString('vi-VN')}`,
       seatNumber: ticketsInGroup.length === 1 ? String(ticketsInGroup[0].seat.seatNumber) : `${ticketsInGroup.length} ghế`,
       price: `${payment.amount.toLocaleString('vi-VN')}đ`,
@@ -481,7 +484,7 @@ export class TicketService {
 
     return {
       ticketCode: `V${String(payment.id).padStart(6, '0')}`,
-      route: `${ticketsInGroup[0].schedule.route.startPoint} → ${ticketsInGroup[0].schedule.route.endPoint}`,
+      route: `${ticketsInGroup[0].schedule.route.startPoint} to ${ticketsInGroup[0].schedule.route.endPoint}`,
       departureTime: `${String(departure.getHours()).padStart(2, '0')}:${String(departure.getMinutes()).padStart(2, '0')}, ${departure.toLocaleDateString('vi-VN')}`,
       seatNumber: ticketsInGroup.length === 1 ? String(ticketsInGroup[0].seat.seatNumber) : `${ticketsInGroup.length} ghế`,
       price: `${payment.amount.toLocaleString('vi-VN')}đ`,
@@ -511,13 +514,56 @@ export class TicketService {
     const ticket = await this.prism.ticket.findUnique({
       where: { id },
       include: {
-        schedule: { include: { route: true, bus: { include: { brand: true } } } },
+        schedule: {
+          include: {
+            route: true,
+            bus: { include: { brand: true } },
+            dropoffPoints: true,
+          },
+        },
         seat: true,
         user: true,
         paymentHistory: true,
+        dropoffPoint: true,
       },
     });
     if (!ticket) throw new NotFoundException('Vé không tồn tại');
-    return ticket;
+
+    return {
+      ...ticket,
+      dropoffInfo: this.formatDropoffInfo(ticket),
+    };
+  }
+
+  // HÀM MỚI – HIỂN THỊ ĐIỂM TRẢ ĐẸP NHƯ VEXERE
+  private formatDropoffInfo(ticket: any) {
+    if (ticket.dropoffAddress) {
+      return {
+        type: 'tannoi',
+        display: 'Trả tận nơi',
+        address: ticket.dropoffAddress,
+        surcharge: ticket.surcharge || 150000,
+        surchargeText: '+150.000đ',
+      };
+    }
+
+    if (ticket.dropoffPoint) {
+      const point = ticket.dropoffPoint;
+      return {
+        type: 'diemtra',
+        display: point.name,
+        address: point.address,
+        surcharge: point.surcharge || 0,
+        surchargeText: point.surcharge > 0 ? `+${(point.surcharge / 1000).toFixed(0)}k` : 'Miễn phí',
+      };
+    }
+
+    return {
+      type: 'default',
+      display: 'Bến xe đích',
+      address: ticket.schedule?.route?.endPoint || 'Bến xe',
+      surcharge: 0,
+      surchargeText: 'Miễn phí',
+    };
   }
 }
