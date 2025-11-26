@@ -4,8 +4,11 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../bloc/home/home_bloc.dart';
 import '../bloc/home/home_event.dart';
 import '../bloc/home/home_state.dart';
+import '../bloc/notification/notification_bloc.dart';        // ĐÃ CÓ
+import '../bloc/notification/notification_event.dart';       // ĐÃ CÓ
+import '../bloc/notification/notification_state.dart';       // THÊM DÒNG NÀY – QUAN TRỌNG NHẤT!
 import '../booking/screens/search_screen.dart';
-import 'package:badges/badges.dart' as badges; // THÊM DÒNG NÀY (cần pubspec.yaml có badges: ^3.1.2)
+import 'package:badges/badges.dart' as badges;
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -19,14 +22,12 @@ class _HomeScreenState extends State<HomeScreen> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
 
-  // Số lượng thông báo chưa đọc (có thể lấy từ state hoặc service sau)
-  int _notificationCount = 3; // Ví dụ: 3 thông báo chưa đọc
-
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<HomeBloc>().add(LoadUserEvent());
+      context.read<NotificationBloc>().add(LoadNotificationsEvent());
     });
   }
 
@@ -49,13 +50,10 @@ class _HomeScreenState extends State<HomeScreen> {
         });
         break;
       case 2:
-        // Mở trang thông báo (sẽ tạo sau)
         Navigator.pushNamed(context, '/notifications').then((_) {
-          if (mounted && _selectedIndex != 0) {
-            setState(() {
-              _selectedIndex = 0;
-              _notificationCount = 0; // Đánh dấu đã đọc
-            });
+          if (mounted) {
+            setState(() => _selectedIndex = 0);
+            context.read<NotificationBloc>().add(MarkAllAsReadEvent());
           }
         });
         break;
@@ -175,7 +173,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
             return Column(
               children: [
-                // BANNER MỚI
+                // BANNER
                 Container(
                   width: double.infinity,
                   height: 180,
@@ -189,7 +187,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     borderRadius: BorderRadius.circular(24),
                     boxShadow: [
                       BoxShadow(
-                        color: primaryBlue.withOpacity(0.4),
+                        color: primaryBlue.withValues(alpha: 0.4), // SỬA deprecated → withValues
                         blurRadius: 20,
                         offset: const Offset(0, 10),
                       ),
@@ -246,7 +244,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     borderRadius: BorderRadius.circular(20),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.grey.withOpacity(0.15),
+                        color: Colors.grey.withValues(alpha: 0.15), // SỬA deprecated
                         blurRadius: 15,
                         offset: const Offset(0, 6),
                       ),
@@ -307,6 +305,10 @@ class _HomeScreenState extends State<HomeScreen> {
                           padding: EdgeInsets.symmetric(horizontal: 8, vertical: 12),
                           child: Text("Nhanh chóng", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87)),
                         ),
+                        // ... (giữ nguyên toàn bộ phần PageView và các widget khác như cũ)
+                        // (Không thay đổi gì ở đây để đảm bảo UI không bị ảnh hưởng)
+
+                        // PHẦN NÀY GIỮ NGUYÊN NHƯ BẠN ĐÃ CÓ – CHỈ COPY LẠI ĐỂ ĐẦY ĐỦ
                         SizedBox(
                           height: 80,
                           child: PageView.builder(
@@ -440,9 +442,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
 
-                // BOTTOM NAVIGATION BAR MỚI – CÓ ICON CHUÔNG + BADGE
+                // BOTTOM NAVIGATION BAR – BADGE REALTIME HOÀN HẢO
                 BottomNavigationBar(
-                  type: BottomNavigationBarType.fixed, // BẮT BUỘC ĐỂ HIỂN THỊ 4 ITEM
+                  type: BottomNavigationBarType.fixed,
                   backgroundColor: Colors.white,
                   currentIndex: _selectedIndex,
                   onTap: _onItemTapped,
@@ -453,19 +455,22 @@ class _HomeScreenState extends State<HomeScreen> {
                     const BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Trang chủ'),
                     const BottomNavigationBarItem(icon: Icon(Icons.confirmation_number), label: 'Vé của tôi'),
                     BottomNavigationBarItem(
-                      icon: _notificationCount > 0
-                          ? badges.Badge(
-                              badgeContent: Text(
-                                _notificationCount.toString(),
-                                style: const TextStyle(color: Colors.white, fontSize: 10),
-                              ),
-                              badgeStyle: const badges.BadgeStyle(
-                                badgeColor: Colors.red,
-                                padding: EdgeInsets.all(6),
-                              ),
-                              child: const Icon(Icons.notifications),
-                            )
-                          : const Icon(Icons.notifications_outlined),
+                      icon: BlocBuilder<NotificationBloc, NotificationState>(
+                        builder: (context, state) {
+                          final count = state.unreadCount;
+                          if (count <= 0) {
+                            return const Icon(Icons.notifications_outlined);
+                          }
+                          return badges.Badge(
+                            badgeContent: Text(
+                              count > 99 ? '99+' : count.toString(),
+                              style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                            ),
+                            badgeStyle: const badges.BadgeStyle(badgeColor: Colors.red),
+                            child: const Icon(Icons.notifications),
+                          );
+                        },
+                      ),
                       label: 'Thông báo',
                     ),
                     const BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Tài khoản'),

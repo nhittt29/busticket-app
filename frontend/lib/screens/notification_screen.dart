@@ -1,10 +1,13 @@
 // lib/screens/notification_screen.dart
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';                    // THÊM DÒNG NÀY
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../bloc/notification/notification_bloc.dart';               // THÊM DÒNG NÀY
+import '../bloc/notification/notification_event.dart';              // THÊM DÒNG NÀY
 
 const Color primaryGradientStart = Color(0xFF6AB7F5);
 const Color primaryGradientEnd = Color(0xFF4A9EFF);
@@ -28,6 +31,9 @@ class _NotificationScreenState extends State<NotificationScreen> {
   void initState() {
     super.initState();
     _loadCurrentUserIdAndNotifications();
+
+    // QUAN TRỌNG NHẤT: KHI MỞ TRANG → TỰ ĐỘNG ĐÁNH DẤU ĐÃ ĐỌC → BADGE Ở HOME VỀ 0 NGAY LẬP TỨC
+    context.read<NotificationBloc>().add(MarkAllAsReadEvent());
   }
 
   Future<void> _loadCurrentUserIdAndNotifications() async {

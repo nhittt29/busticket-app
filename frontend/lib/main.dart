@@ -4,6 +4,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'bloc/auth/auth_bloc.dart';
 import 'bloc/home/home_bloc.dart';
+import 'bloc/notification/notification_bloc.dart'; 
 import 'booking/cubit/booking_cubit.dart';
 import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
@@ -60,6 +61,7 @@ class MyApp extends StatelessWidget {
         BlocProvider(create: (context) => AuthBloc()),
         BlocProvider(create: (context) => HomeBloc()),
         BlocProvider(create: (context) => BookingCubit()),
+        BlocProvider(create: (context) => NotificationBloc()), // THÊM DÒNG NÀY – QUAN TRỌNG NHẤT!
       ],
       child: MaterialApp(
         title: 'Vé Xe Việt',
