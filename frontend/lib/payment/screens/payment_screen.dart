@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../bloc/auth/auth_bloc.dart';
+import '../../bloc/notification/notification_bloc.dart';     // THÊM DÒNG NÀY
+import '../../bloc/notification/notification_event.dart';    // THÊM DÒNG NÀY
 import '../../booking/cubit/booking_cubit.dart';
 import '../cubit/payment_cubit.dart';
 import '../cubit/payment_state.dart';
@@ -77,13 +79,11 @@ class PaymentScreen extends StatelessWidget {
             ),
           ),
         ),
-        // ĐÃ THÊM SingleChildScrollView + Padding vừa đủ → KHÔNG BAO GIỜ TRÀN MÀN HÌNH
         body: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 30), // thêm bottom padding an toàn
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 30),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // CARD THÔNG TIN NGƯỜI ĐẶT
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(20),
@@ -125,7 +125,6 @@ class PaymentScreen extends StatelessWidget {
 
               const SizedBox(height: 20),
 
-              // CARD GHẾ + TỔNG TIỀN
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(20),
@@ -210,12 +209,11 @@ class PaymentScreen extends StatelessWidget {
                 },
               ),
 
-              const SizedBox(height: 100), // ĐỆM ĐỂ NÚT THANH TOÁN KHÔNG BỊ ĐÈ
+              const SizedBox(height: 100),
             ],
           ),
         ),
 
-        // NÚT THANH TOÁN CỐ ĐỊNH DƯỚI ĐÁY – ĐẸP & KHÔNG BAO GIỜ BỊ CHE
         bottomNavigationBar: Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
@@ -226,6 +224,9 @@ class PaymentScreen extends StatelessWidget {
             child: BlocConsumer<PaymentCubit, PaymentState>(
               listener: (context, state) {
                 if (state is PaymentSuccess) {
+                  // DÒNG QUAN TRỌNG NHẤT: CẬP NHẬT BADGE REALTIME SAU KHI THANH TOÁN THÀNH CÔNG
+                  context.read<NotificationBloc>().add(LoadNotificationsEvent());
+
                   if (state.momoPayUrl != null) {
                     launchUrl(Uri.parse(state.momoPayUrl!), mode: LaunchMode.externalApplication);
                   } else {
