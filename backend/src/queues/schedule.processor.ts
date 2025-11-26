@@ -4,7 +4,7 @@ import type { Job } from 'bull';
 import { Logger } from '@nestjs/common';
 import { PrismaService } from '../services/prisma.service';
 import { ScheduleStatus } from '@prisma/client';
-import { SCHEDULE_QUEUE, UPDATE_STATUS_JOB } from './schedule.queue'; // ĐÃ IMPORT ĐÚNG
+import { SCHEDULE_QUEUE, UPDATE_STATUS_JOB } from './schedule.queue';
 
 @Processor(SCHEDULE_QUEUE)
 export class ScheduleProcessor {

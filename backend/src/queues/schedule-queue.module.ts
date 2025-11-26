@@ -17,7 +17,7 @@ import { SCHEDULE_QUEUE, UPDATE_STATUS_JOB } from './schedule.queue';
   ],
   providers: [
     ScheduleProcessor,
-    PrismaService, // ← Đã thêm để ScheduleProcessor dùng được
+    PrismaService,
     {
       provide: 'SCHEDULE_STATUS_INIT',
       useFactory: async (queue: any) => {
@@ -29,7 +29,7 @@ import { SCHEDULE_QUEUE, UPDATE_STATUS_JOB } from './schedule.queue';
           }
         }
 
-        // Tạo job chạy lặp lại mỗi 20 phút – TỐI ƯU NHẤT
+        // Tạo job chạy lặp lại mỗi 20 phút
         await queue.add(
           UPDATE_STATUS_JOB,
           {},
