@@ -16,10 +16,12 @@ import { TicketModule } from './modules/ticket.module';
 import { SeatModule } from './modules/seat.module';
 import { BookingModule } from './modules/booking.module';
 import { DropoffPointModule } from './modules/dropoff-point.module';
+import { TicketQueueModule } from './queues/ticket-queue.module';
+import { ScheduleQueueModule } from './queues/schedule-queue.module';
 
 @Module({
   imports: [
-    // Kết nối Redis cho Bull queue
+    // Kết nối Redis cho tất cả Bull queues (giữ nguyên như cũ)
     BullModule.forRoot({
       redis: {
         host: '127.0.0.1',
@@ -27,10 +29,10 @@ import { DropoffPointModule } from './modules/dropoff-point.module';
       },
     }),
 
-    // Kích hoạt CronJob của NestJS Schedule
+    // NestJS Schedule (nếu bạn vẫn muốn dùng Cron truyền thống – giữ nguyên)
     NestScheduleModule.forRoot(),
 
-    // Các module nghiệp vụ
+    // CÁC MODULE NGHIỆP VỤ (giữ nguyên thứ tự cũ)
     BusModule,
     BrandModule,
     RouteModule,
@@ -39,6 +41,10 @@ import { DropoffPointModule } from './modules/dropoff-point.module';
     SeatModule,
     BookingModule,
     DropoffPointModule,
+
+    // QUEUE MODULES – CHỈ THÊM 2 DÒNG NÀY VÀO CUỐI → HOÀN HẢO
+    TicketQueueModule,      // Đã có sẵn – giữ nguyên
+    ScheduleQueueModule,    // MỚI THÊM – TỰ ĐỘNG CẬP NHẬT TRẠNG THÁI CHUYẾN XE
   ],
   controllers: [AuthController],
   providers: [AuthService, PrismaService, UserRepository],
