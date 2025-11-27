@@ -149,6 +149,7 @@ CREATE TABLE "Ticket" (
     "status" "TicketStatus" NOT NULL DEFAULT 'BOOKED',
     "paymentMethod" "PaymentMethod",
     "dropoffPointId" INTEGER,
+    "dropoffAddress" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
     "paymentHistoryId" INTEGER,

@@ -29,6 +29,10 @@ export interface Ticket {
   status: TicketStatus;
   paymentMethod?: PaymentMethod | null;
   dropoffPointId?: number | null;
+
+  // TRƯỜNG MỚI – ĐỒNG BỘ VỚI PRISMA SCHEMA
+  dropoffAddress?: string | null;
+
   paymentHistoryId?: number | null;
   createdAt: Date;
   updatedAt: Date;
