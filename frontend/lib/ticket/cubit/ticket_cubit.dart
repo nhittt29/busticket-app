@@ -1,4 +1,3 @@
-// lib/ticket/cubit/ticket_cubit.dart
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../services/ticket_api_service.dart';
 import 'ticket_state.dart';
@@ -19,7 +18,7 @@ class TicketCubit extends Cubit<TicketState> {
   Future<void> cancelTicket(int ticketId, int userId) async {
     try {
       await TicketApiService.cancelTicket(ticketId);
-      await loadUserTickets(userId);
+      await loadUserTickets(userId); // Reload realtime sau khi hủy
     } catch (e) {
       emit(TicketError('Hủy vé thất bại: $e'));
     }

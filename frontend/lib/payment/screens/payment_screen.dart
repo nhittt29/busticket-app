@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../bloc/auth/auth_bloc.dart';
-import '../../bloc/notification/notification_bloc.dart';     // THÊM DÒNG NÀY
-import '../../bloc/notification/notification_event.dart';    // THÊM DÒNG NÀY
+import '../../bloc/notification/notification_bloc.dart';
+import '../../bloc/notification/notification_event.dart';
 import '../../booking/cubit/booking_cubit.dart';
 import '../cubit/payment_cubit.dart';
 import '../cubit/payment_state.dart';
@@ -159,10 +159,16 @@ class PaymentScreen extends StatelessWidget {
                       const Divider(height: 32),
                       Row(
                         children: [
-                          Expanded(child: Text(bookingState.dropoffAddress != null ? 'Phụ thu trả tận nơi' : 'Phụ thu điểm trả',
-                              style: const TextStyle(fontSize: 15.5, color: Colors.orange, fontWeight: FontWeight.w600))),
-                          Text('+${(bookingState.surcharge * selectedSeats.length).toInt().toString().replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.')}đ',
-                              style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: Colors.orange)),
+                          Expanded(
+                            child: Text(
+                              bookingState.dropoffAddress != null ? 'Phụ thu trả tận nơi' : 'Phụ thu điểm trả',
+                              style: const TextStyle(fontSize: 15.5, color: Colors.orange, fontWeight: FontWeight.w600),
+                            ),
+                          ),
+                          Text(
+                            '+${(bookingState.surcharge * selectedSeats.length).toInt().toString().replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.')}đ',
+                            style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: Colors.orange),
+                          ),
                         ],
                       ),
                     ],
@@ -171,7 +177,12 @@ class PaymentScreen extends StatelessWidget {
 
                     Row(
                       children: [
-                        const Expanded(child: Text('Tổng thanh toán', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF023E8A)))),
+                        const Expanded(
+                          child: Text(
+                            'Tổng thanh toán',
+                            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF023E8A)),
+                          ),
+                        ),
                         Text(
                           '${amountToPay.toInt().toString().replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.')}đ',
                           style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: successGreen),
@@ -224,17 +235,23 @@ class PaymentScreen extends StatelessWidget {
             child: BlocConsumer<PaymentCubit, PaymentState>(
               listener: (context, state) {
                 if (state is PaymentSuccess) {
-                  // DÒNG QUAN TRỌNG NHẤT: CẬP NHẬT BADGE REALTIME SAU KHI THANH TOÁN THÀNH CÔNG
+                  // Cập nhật badge thông báo realtime
                   context.read<NotificationBloc>().add(LoadNotificationsEvent());
 
-                  if (state.momoPayUrl != null) {
+                  if (state.momoPayUrl != null && state.momoPayUrl!.isNotEmpty) {
                     launchUrl(Uri.parse(state.momoPayUrl!), mode: LaunchMode.externalApplication);
                   } else {
                     Navigator.pushNamed(context, '/group-qr', arguments: state.paymentHistoryId);
                   }
                 } else if (state is PaymentFailure) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(state.error), backgroundColor: Colors.redAccent, behavior: SnackBarBehavior.floating, margin: const EdgeInsets.all(16)),
+                    SnackBar(
+                      content: Text(state.error),
+                      backgroundColor: Colors.redAccent,
+                      behavior: SnackBarBehavior.floating,
+                      margin: const EdgeInsets.all(16),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    ),
                   );
                 }
               },
@@ -243,19 +260,28 @@ class PaymentScreen extends StatelessWidget {
                 return SizedBox(
                   height: 64,
                   child: ElevatedButton.icon(
-                    onPressed: isLoading || selectedSeats.isEmpty ? null : () {
-                      context.read<PaymentCubit>().pay(
-                        context: context,
-                        userId: userId,
-                        scheduleId: scheduleId!,
-                        seatIds: selectedSeats.map((s) => s.id).toList(),
-                        totalPrice: amountToPay,
-                      );
-                    },
+                    onPressed: isLoading || selectedSeats.isEmpty
+                        ? null
+                        : () {
+                            context.read<PaymentCubit>().pay(
+                              context: context,
+                              userId: userId,
+                              scheduleId: scheduleId!,
+                              seatIds: selectedSeats.map((s) => s.id).toList(),
+                              totalPrice: amountToPay,
+                            );
+                          },
                     icon: isLoading
-                        ? const SizedBox(width: 26, height: 26, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3))
+                        ? const SizedBox(
+                            width: 26,
+                            height: 26,
+                            child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3),
+                          )
                         : const Icon(Icons.payment_rounded, size: 30),
-                    label: Text(isLoading ? 'Đang xử lý...' : 'Thanh toán ngay', style: const TextStyle(fontSize: 19, fontWeight: FontWeight.bold)),
+                    label: Text(
+                      isLoading ? 'Đang xử lý...' : 'Thanh toán ngay',
+                      style: const TextStyle(fontSize: 19, fontWeight: FontWeight.bold),
+                    ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: primaryBlue,
                       disabledBackgroundColor: Colors.grey[400],
@@ -283,8 +309,21 @@ class PaymentScreen extends StatelessWidget {
           child: Icon(icon, size: 24, color: deepBlue),
         ),
         const SizedBox(width: 14),
-        Expanded(flex: 2, child: Text(label, style: const TextStyle(fontSize: 15.5, color: Colors.black87, fontWeight: FontWeight.w600))),
-        Expanded(flex: 3, child: Text(value, textAlign: TextAlign.end, style: const TextStyle(fontSize: 16.5, fontWeight: FontWeight.bold, color: Color(0xFF023E8A)))),
+        Expanded(
+          flex: 2,
+          child: Text(
+            label,
+            style: const TextStyle(fontSize: 15.5, color: Colors.black87, fontWeight: FontWeight.w600),
+          ),
+        ),
+        Expanded(
+          flex: 3,
+          child: Text(
+            value,
+            textAlign: TextAlign.end,
+            style: const TextStyle(fontSize: 16.5, fontWeight: FontWeight.bold, color: Color(0xFF023E8A)),
+          ),
+        ),
       ],
     );
   }

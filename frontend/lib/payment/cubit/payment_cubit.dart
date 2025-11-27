@@ -1,4 +1,3 @@
-// lib/payment/cubit/payment_cubit.dart
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -8,7 +7,7 @@ import '../../bloc/home/home_bloc.dart';
 import '../../bloc/home/home_event.dart';
 import '../../ticket/services/ticket_api_service.dart';
 import '../../services/reminder_service.dart';
-import '../../booking/cubit/booking_cubit.dart'; // THÊM DÒNG NÀY – SỬA LỖI 100%!
+import '../../booking/cubit/booking_cubit.dart';
 
 class PaymentCubit extends Cubit<PaymentState> {
   PaymentCubit() : super(const PaymentInitial(PaymentMethod.momo));
@@ -79,7 +78,6 @@ class PaymentCubit extends Cubit<PaymentState> {
         return;
       }
 
-      // GỬI finalTotalPrice ĐÃ CỘNG PHỤ THU → ĐÚNG 100%
       final data = await PaymentApiService.createBulkTickets(
         context: context,
         userId: userId,
@@ -96,7 +94,7 @@ class PaymentCubit extends Cubit<PaymentState> {
       for (var ticket in data['tickets']) {
         final ticketId = ticket['id'] as int;
         final fullTicket = await TicketApiService.getTicketDetail(ticketId);
-        
+
         if (context.mounted) {
           context.read<HomeBloc>().add(SetNewTicketEvent(fullTicket));
         }
@@ -115,8 +113,8 @@ class PaymentCubit extends Cubit<PaymentState> {
         userId: userId,
         busName: _safeString(firstTicket['schedule']?['bus']?['name'], 'Xe khách'),
         seatNumbers: finalSeatNumbers,
-        from: _safeString(firstTicket['schedule']?['route']?['startPoint'], 'Không rõ'),
-        to: _safeString(firstTicket['schedule']?['route']?['endPoint'], 'Không rõ'),
+        from: _safeString(firstTicket['schedule']?['route']?['startPoint']),
+        to: _safeString(firstTicket['schedule']?['route']?['endPoint']),
         departureTime: _formatTime(firstTicket['schedule']?['departureAt'] as String?),
       );
 
@@ -126,7 +124,7 @@ class PaymentCubit extends Cubit<PaymentState> {
         userId: userId,
       );
 
-      if (currentMethod == PaymentMethod.momo && momoUrl != null) {
+      if (currentMethod == PaymentMethod.momo && momoUrl != null && momoUrl.isNotEmpty) {
         emit(PaymentSuccess(
           ticketId: data['tickets'][0]['id'] as int,
           momoPayUrl: momoUrl,
@@ -140,10 +138,10 @@ class PaymentCubit extends Cubit<PaymentState> {
       }
     } catch (e, stackTrace) {
       if (kDebugMode) {
-        debugPrint('Lỗi trong PaymentCubit: $e');
-        debugPrint('StackTrace: $stackTrace');
+        debugPrint('PaymentCubit Error: $e');
+        debugPrint(stackTrace.toString());
       }
-      emit(const PaymentFailure('Thanh toán thất bại. Vui lòng thử lại (hoặc bạn đã đạt giới hạn đặt 8 vé/1 ngày).'));
+      emit(const PaymentFailure('Thanh toán thất bại. Vui lòng thử lại.'));
     }
   }
 }

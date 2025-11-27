@@ -28,6 +28,12 @@ class _DropoffSelectionScreenState extends State<DropoffSelectionScreen> {
   @override
   void initState() {
     super.initState();
+
+    // Listener để bật tắt nút "Xác nhận" theo chữ nhập vào
+    _addressController.addListener(() {
+      if (mounted) setState(() {});
+    });
+
     _loadDropoffPoints();
   }
 
@@ -38,9 +44,7 @@ class _DropoffSelectionScreenState extends State<DropoffSelectionScreen> {
     try {
       final scheduleId = context.read<BookingCubit>().state.selectedTrip?.id;
       if (scheduleId == null) {
-        if (mounted) {
-          _showSnackBar('Không tìm thấy chuyến xe', isError: true);
-        }
+        if (mounted) _showSnackBar('Không tìm thấy chuyến xe', isError: true);
         return;
       }
 
@@ -64,18 +68,30 @@ class _DropoffSelectionScreenState extends State<DropoffSelectionScreen> {
     }
   }
 
+  // ✅ ĐÃ SỬA: SnackBar giống 100% style nút "Tiếp tục thanh toán"
   void _showSnackBar(String message, {bool isError = false}) {
     if (!mounted) return;
+
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(
         SnackBar(
-          content: Text(message, style: const TextStyle(fontWeight: FontWeight.w600)),
-          backgroundColor: isError ? Colors.redAccent : successGreen,
+          content: Text(
+            message,
+            style: const TextStyle(
+              fontWeight: FontWeight.w700,
+              fontSize: 16,
+              color: Colors.white,
+            ),
+          ),
+          backgroundColor: isError ? Colors.redAccent : primaryBlue,
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-          margin: const EdgeInsets.all(16),
-          duration: const Duration(seconds: 3),
+          elevation: 10,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(31), // 💯 như nút thanh toán
+          ),
+          margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          duration: const Duration(seconds: 2),
         ),
       );
   }
@@ -86,20 +102,24 @@ class _DropoffSelectionScreenState extends State<DropoffSelectionScreen> {
       builder: (context, state) {
         final selectedSeatsCount = state.selectedSeats.length;
         final baseTotal = state.totalPrice;
-        final surchargePerPerson = state.surcharge;
-        final totalSurcharge = surchargePerPerson * selectedSeatsCount;
+        final surcharge = state.surcharge * selectedSeatsCount;
         final finalTotal = state.finalTotalPrice;
+
+        final doorToDoorPoint = DropoffPoint(
+          id: -1,
+          name: "Trả tận nơi",
+          address: _addressController.text.trim().isEmpty ? "Nhập địa chỉ..." : _addressController.text.trim(),
+          surcharge: 150000,
+        );
+
+        final isDoorToDoorSelected = state.selectedDropoffPoint?.id == -1;
 
         return Scaffold(
           backgroundColor: backgroundLight,
           appBar: AppBar(
             flexibleSpace: Container(
               decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [primaryBlue, accentBlue],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
+                gradient: LinearGradient(colors: [primaryBlue, accentBlue], begin: Alignment.topLeft, end: Alignment.bottomRight),
               ),
             ),
             elevation: 0,
@@ -110,73 +130,58 @@ class _DropoffSelectionScreenState extends State<DropoffSelectionScreen> {
             ),
             title: const Text(
               'Chọn điểm trả khách',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 23,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 0.5,
-              ),
+              style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w800, letterSpacing: 0.4),
             ),
           ),
           body: Column(
             children: [
-              // CARD TỔNG TIỀN – ĐẸP & HIỆN ĐẠI
               Container(
-                margin: const EdgeInsets.all(20),
-                padding: const EdgeInsets.all(24),
+                margin: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+                padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(28),
-                  border: Border.all(color: pastelBlue.withOpacity(0.6), width: 1.5),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.grey.withOpacity(0.3),
-                      blurRadius: 20,
-                      offset: const Offset(0, 10),
-                    ),
-                  ],
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: pastelBlue.withAlpha(153), width: 1.4),
+                  boxShadow: [BoxShadow(color: Colors.grey.withAlpha(77), blurRadius: 16, offset: const Offset(0, 8))],
                 ),
                 child: Column(
                   children: [
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('Số ghế đã chọn', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                        const Text('Số ghế', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
                         Text('$selectedSeatsCount ghế', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: deepBlue)),
                       ],
                     ),
-                    const SizedBox(height: 14),
+                    const SizedBox(height: 12),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('Tiền vé gốc', style: TextStyle(fontSize: 15)),
-                        Text(
-                          '${baseTotal.toInt().toString().replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.')}đ',
-                          style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
-                        ),
+                        const Text('Tiền vé', style: TextStyle(fontSize: 15)),
+                        Text('${baseTotal.toInt().toString().replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.')}đ'),
                       ],
                     ),
-                    if (totalSurcharge > 0) ...[
-                      const SizedBox(height: 10),
+                    if (surcharge > 0) ...[
+                      const SizedBox(height: 8),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text('Phụ thu trả khách', style: TextStyle(color: Colors.orange, fontWeight: FontWeight.w600)),
+                          const Text('Phụ thu', style: TextStyle(color: Colors.orange, fontWeight: FontWeight.w600)),
                           Text(
-                            '+${totalSurcharge.toInt().toString().replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.')}đ',
-                            style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.orange, fontSize: 17),
+                            '+${surcharge.toInt().toString().replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.')}đ',
+                            style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.orange),
                           ),
                         ],
                       ),
                     ],
-                    const Divider(height: 32, thickness: 1.2),
+                    const Divider(height: 28),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('Tổng thanh toán', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                        const Text('Tổng thanh toán', style: TextStyle(fontSize: 19, fontWeight: FontWeight.bold)),
                         Text(
                           '${finalTotal.toInt().toString().replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.')}đ',
-                          style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: successGreen),
+                          style: TextStyle(fontSize: 27, fontWeight: FontWeight.bold, color: successGreen),
                         ),
                       ],
                     ),
@@ -188,34 +193,26 @@ class _DropoffSelectionScreenState extends State<DropoffSelectionScreen> {
                 padding: EdgeInsets.symmetric(horizontal: 24),
                 child: Align(
                   alignment: Alignment.centerLeft,
-                  child: Text(
-                    'Chọn điểm trả khách',
-                    style: TextStyle(fontSize: 19, fontWeight: FontWeight.w700, color: Colors.black87),
-                  ),
+                  child: Text('Điểm trả khách', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87)),
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
 
               Expanded(
                 child: _isLoadingPoints
                     ? const Center(child: CircularProgressIndicator(color: primaryBlue))
-                    : ListView.builder(
+                    : ListView(
                         padding: const EdgeInsets.symmetric(horizontal: 20),
-                        itemCount: _dropoffPoints.length + 1,
-                        itemBuilder: (context, index) {
-                          if (index < _dropoffPoints.length) {
-                            final point = _dropoffPoints[index];
+                        children: [
+                          ..._dropoffPoints.map((point) {
                             final isSelected = state.selectedDropoffPoint?.id == point.id;
-
                             return Container(
-                              margin: const EdgeInsets.only(bottom: 14),
+                              margin: const EdgeInsets.only(bottom: 12),
                               decoration: BoxDecoration(
                                 color: Colors.white,
-                                borderRadius: BorderRadius.circular(20),
+                                borderRadius: BorderRadius.circular(18),
                                 border: Border.all(color: isSelected ? primaryBlue : Colors.transparent, width: 2),
-                                boxShadow: [
-                                  BoxShadow(color: Colors.grey.withOpacity(0.2), blurRadius: 10, offset: const Offset(0, 4)),
-                                ],
+                                boxShadow: [BoxShadow(color: Colors.grey.withAlpha(51), blurRadius: 10, offset: const Offset(0, 4))],
                               ),
                               child: RadioListTile<DropoffPoint>(
                                 value: point,
@@ -223,94 +220,112 @@ class _DropoffSelectionScreenState extends State<DropoffSelectionScreen> {
                                 activeColor: primaryBlue,
                                 selected: isSelected,
                                 title: Text(point.name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
-                                subtitle: Text(point.address, style: const TextStyle(color: Colors.black54)),
+                                subtitle: Text(point.address, style: const TextStyle(fontSize: 14)),
                                 secondary: Text(
                                   point.surcharge == 0 ? 'Miễn phí' : '+${point.surcharge.toInt()}k',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: point.surcharge == 0 ? successGreen : Colors.orange,
-                                    fontSize: 15,
-                                  ),
+                                  style: TextStyle(fontWeight: FontWeight.bold, color: point.surcharge == 0 ? successGreen : Colors.orange),
                                 ),
-                                controlAffinity: ListTileControlAffinity.leading,
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                                tileColor: isSelected ? primaryBlue.withOpacity(0.08) : null,
-                                onChanged: (value) => context.read<BookingCubit>().selectDropoffPoint(point),
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                                tileColor: isSelected ? primaryBlue.withAlpha(25) : null,
+                                onChanged: (_) => context.read<BookingCubit>().selectDropoffPoint(point),
                               ),
                             );
-                          }
+                          }),
 
-                          // PHẦN TRẢ TẬN NƠI – ĐẸP & NỔI BẬT
-                          return Container(
-                            margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                          Container(
+                            margin: const EdgeInsets.only(bottom: 12),
                             decoration: BoxDecoration(
-                              gradient: const LinearGradient(colors: [Color(0xFFE1BEE7), Color(0xFFF3E5F5)]),
-                              borderRadius: BorderRadius.circular(24),
-                              boxShadow: [BoxShadow(color: Colors.purple.withOpacity(0.2), blurRadius: 12, offset: const Offset(0, 6))],
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(18),
+                              border: Border.all(color: isDoorToDoorSelected ? deepBlue : Colors.transparent, width: 2),
+                              boxShadow: [BoxShadow(color: deepBlue.withAlpha(51), blurRadius: 10, offset: const Offset(0, 4))],
                             ),
-                            child: ExpansionTile(
-                              leading: const Icon(Icons.home_filled, color: Colors.purple, size: 28),
-                              title: const Text('Trả tận nơi (+150.000đ/người)', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.purple, fontSize: 16)),
-                              childrenPadding: const EdgeInsets.all(20),
-                              expandedCrossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                TextField(
-                                  controller: _addressController,
-                                  maxLines: 3,
-                                  decoration: InputDecoration(
-                                    hintText: 'Nhập địa chỉ chi tiết (số nhà, đường, phường/xã, quận/huyện...)',
-                                    filled: true,
-                                    fillColor: Colors.white,
-                                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
-                                    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Colors.purple, width: 2)),
-                                  ),
-                                ),
-                                const SizedBox(height: 20),
-                                SizedBox(
-                                  width: double.infinity,
-                                  child: ElevatedButton(
-                                    onPressed: _addressController.text.trim().isEmpty
-                                        ? null
-                                        : () {
-                                            context.read<BookingCubit>().selectDropoffAddress(_addressController.text.trim());
-                                            _showSnackBar('Đã chọn trả tận nơi');
-                                          },
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.purple,
-                                      padding: const EdgeInsets.symmetric(vertical: 16),
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                                      elevation: 6,
+                            child: RadioListTile<DropoffPoint>(
+                              value: doorToDoorPoint,
+                              groupValue: state.selectedDropoffPoint,
+                              activeColor: deepBlue,
+                              selected: isDoorToDoorSelected,
+                              title: const Text("Trả tận nơi", style: TextStyle(fontWeight: FontWeight.bold, color: deepBlue, fontSize: 16)),
+                              subtitle: const Text("Phụ thu 150.000đ/người"),
+                              secondary: const Text("+150k", style: TextStyle(fontWeight: FontWeight.bold, color: deepBlue)),
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                              tileColor: isDoorToDoorSelected ? deepBlue.withAlpha(25) : null,
+                              onChanged: (_) {
+                                context.read<BookingCubit>().selectDropoffPoint(doorToDoorPoint);
+                              },
+                            ),
+                          ),
+
+                          if (isDoorToDoorSelected)
+                            Container(
+                              margin: const EdgeInsets.only(bottom: 20),
+                              padding: const EdgeInsets.all(20),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(color: deepBlue.withAlpha(102), width: 1.5),
+                                boxShadow: [BoxShadow(color: deepBlue.withAlpha(51), blurRadius: 12, offset: const Offset(0, 6))],
+                              ),
+                              child: Column(
+                                children: [
+                                  TextField(
+                                    controller: _addressController,
+                                    maxLines: 3,
+                                    decoration: InputDecoration(
+                                      hintText: 'Số nhà, đường, phường/xã, quận/huyện...',
+                                      filled: true,
+                                      fillColor: deepBlue.withAlpha(25),
+                                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                                      focusedBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(16),
+                                        borderSide: const BorderSide(color: deepBlue, width: 2),
+                                      ),
                                     ),
-                                    child: const Text('Xác nhận trả tận nơi', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
                                   ),
-                                ),
-                              ],
+                                  const SizedBox(height: 16),
+                                  SizedBox(
+                                    width: double.infinity,
+                                    child: ElevatedButton(
+                                      onPressed: _addressController.text.trim().isEmpty
+                                          ? null
+                                          : () {
+                                              context.read<BookingCubit>().selectDropoffAddress(_addressController.text.trim());
+                                              _showSnackBar("Đã lưu địa chỉ trả tận nơi");
+                                            },
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: deepBlue,
+                                        padding: const EdgeInsets.symmetric(vertical: 16),
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                        elevation: 6,
+                                      ),
+                                      child: const Text('Xác nhận địa chỉ', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
-                          );
-                        },
+                        ],
                       ),
               ),
 
-              // NÚT THANH TOÁN – ĐỈNH CAO
               Container(
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.12), blurRadius: 16, offset: const Offset(0, -6))],
-                ),
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(color: Colors.white, boxShadow: [BoxShadow(color: Colors.black.withAlpha(51), blurRadius: 16, offset: const Offset(0, -6))]),
                 child: SizedBox(
-                  height: 64,
+                  height: 62,
                   child: ElevatedButton.icon(
                     onPressed: finalTotal > 0 ? () => Navigator.pushNamed(context, '/payment') : null,
-                    icon: const Icon(Icons.payment, size: 30),
-                    label: const Text('Tiếp tục thanh toán', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                    icon: const Icon(Icons.payment_rounded, size: 28),
+                    label: const Text('Tiếp tục thanh toán', style: TextStyle(fontSize: 19, fontWeight: FontWeight.bold)),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: primaryBlue,
                       disabledBackgroundColor: Colors.grey[400],
                       foregroundColor: Colors.white,
                       elevation: 10,
-                      shadowColor: primaryBlue.withOpacity(0.5),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
+                      shadowColor: primaryBlue.withAlpha(128),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(31)),
                     ),
                   ),
                 ),

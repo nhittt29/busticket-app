@@ -27,17 +27,24 @@ class _TicketHistoryScreenState extends State<TicketHistoryScreen>
   }
 
   void _loadTickets() {
-    final userId = context.read<AuthBloc>().state.userId;
-    if (userId == null) return;
+    final userId = context.read<AuthBloc>().state.user?['id'] as int?;
+    if (userId == null || userId <= 0) {
+      _ticketsFuture = Future.value([]);
+      return;
+    }
 
     _ticketsFuture = TicketApiService.getUserTickets(userId).then((tickets) async {
       final List<Map<String, dynamic>> enriched = [];
       for (final ticket in tickets) {
-        final payment = await TicketApiService.getPaymentDetail(ticket['id'] as int);
-        enriched.add({'ticket': ticket, 'payment': payment});
+        try {
+          final payment = await TicketApiService.getPaymentDetail(ticket['id'] as int);
+          enriched.add({'ticket': ticket, 'payment': payment});
+        } catch (e) {
+          enriched.add({'ticket': ticket, 'payment': null});
+        }
       }
       return enriched;
-    });
+    }).catchError((_) => <Map<String, dynamic>>[]);
   }
 
   @override
@@ -140,22 +147,37 @@ class _TicketHistoryScreenState extends State<TicketHistoryScreen>
                 final paymentHistoryId = firstTicket['paymentHistoryId'] as int?;
                 final isGroup = group.length > 1;
 
-                final int totalPrice = group.fold<int>(
-                  0,
-                  (sum, item) => sum + ((item['ticket'] as Map<String, dynamic>)['totalPrice'] as num? ?? 0).toInt(),
-                );
+                final int totalPrice = group.fold<int>(0, (sum, item) {
+                  final price = (item['ticket'] as Map<String, dynamic>)['totalPrice'] as num?;
+                  return sum + (price?.toInt() ?? 0);
+                });
 
-                final hasQR = group.any((item) =>
-                    item['payment'] != null &&
-                    (item['payment'] as Map<String, dynamic>)['qrCode'] != null);
+                final hasQR = group.any((item) {
+                  final payment = item['payment'] as Map<String, dynamic>?;
+                  return payment != null && payment['qrCode']?.toString().isNotEmpty == true;
+                });
 
                 final status = _normalizeStatus(firstTicket['status'] as String? ?? '');
 
-                // ĐIỂM TRẢ KHÁCH – ĐÃ THÊM ĐẸP LUNG LINH
+                // ĐIỂM TRẢ KHÁCH – HIỂN THỊ RÕ ĐỊA CHỈ + PHỤ THU ĐỎ (ĐẸP NHƯ GROUPTICKET)
                 final dropoffInfo = firstTicket['dropoffInfo'] as Map<String, dynamic>?;
-                final dropoffDisplay = dropoffInfo?['display']?.toString() ?? 'Bến xe đích';
-                final dropoffSurchargeText = dropoffInfo?['surchargeText']?.toString() ?? 'Miễn phí';
-                final hasSurcharge = dropoffSurchargeText != 'Miễn phí';
+                final dropoffAddress = firstTicket['dropoffAddress']?.toString();
+
+                String dropoffTitle = 'Bến xe đích';
+                String dropoffAddressLine = '';
+                String surchargeText = 'Miễn phí';
+                bool hasSurcharge = false;
+
+                if (dropoffInfo != null) {
+                  dropoffTitle = dropoffInfo['display']?.toString() ?? 'Trả tận nơi';
+                  dropoffAddressLine = dropoffInfo['address']?.toString() ?? dropoffAddress ?? '';
+                  surchargeText = dropoffInfo['surchargeText']?.toString() ?? 'Miễn phí';
+                  hasSurcharge = surchargeText != 'Miễn phí' && surchargeText.isNotEmpty;
+                } else if (dropoffAddress != null && dropoffAddress.isNotEmpty) {
+                  dropoffTitle = 'Trả tận nơi';
+                  dropoffAddressLine = dropoffAddress;
+                  hasSurcharge = true;
+                }
 
                 return AnimatedContainer(
                   duration: const Duration(milliseconds: 600),
@@ -169,8 +191,9 @@ class _TicketHistoryScreenState extends State<TicketHistoryScreen>
                     totalPrice: totalPrice,
                     hasQR: hasQR,
                     status: status,
-                    dropoffDisplay: dropoffDisplay,
-                    dropoffSurchargeText: dropoffSurchargeText,
+                    dropoffTitle: dropoffTitle,
+                    dropoffAddressLine: dropoffAddressLine,
+                    surchargeText: surchargeText,
                     hasSurcharge: hasSurcharge,
                   ),
                 );
@@ -190,22 +213,30 @@ class _TicketHistoryScreenState extends State<TicketHistoryScreen>
     required int totalPrice,
     required bool hasQR,
     required String status,
-    required String dropoffDisplay,
-    required String dropoffSurchargeText,
+    required String dropoffTitle,
+    required String dropoffAddressLine,
+    required String surchargeText,
     required bool hasSurcharge,
   }) {
     final route = firstTicket['schedule']?['route'] as Map<String, dynamic>?;
-    final startPoint = route?['startPoint'] ?? '—';
-    final endPoint = route?['endPoint'] ?? '—';
+    final startPoint = route?['startPoint']?.toString() ?? '—';
+    final endPoint = route?['endPoint']?.toString() ?? '—';
     final departureAt = firstTicket['schedule']?['departureAt']?.toString() ?? '';
     final seatCount = groupTickets?.length ?? 1;
 
     final seatDisplay = groupTickets != null
         ? groupTickets
-            .map((t) => t['seat']?['code']?.toString() ?? '')
+            .map((t) {
+              final seat = t['seat'] as Map<String, dynamic>?;
+              return seat?['seatNumber']?.toString() ??
+                  seat?['code']?.toString() ??
+                  '';
+            })
             .where((s) => s.isNotEmpty)
             .join(', ')
-        : firstTicket['seat']?['code']?.toString() ?? '—';
+        : (firstTicket['seat'] as Map<String, dynamic>?)?.let((s) =>
+                s['seatNumber']?.toString() ?? s['code']?.toString()) ??
+            '—';
 
     final formattedPrice = totalPrice.toString().replaceAllMapped(
           RegExp(r'(\d)(?=(\d{3})+(?!\d))'),
@@ -228,15 +259,19 @@ class _TicketHistoryScreenState extends State<TicketHistoryScreen>
       child: InkWell(
         borderRadius: BorderRadius.circular(22),
         onTap: () {
-          if (paymentHistoryId != null) {
+          if (paymentHistoryId != null && paymentHistoryId > 0) {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => GroupTicketQRScreen(paymentHistoryId: paymentHistoryId)),
+              MaterialPageRoute(
+                builder: (_) => GroupTicketQRScreen(paymentHistoryId: paymentHistoryId),
+              ),
             );
           } else {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => TicketDetailScreen(ticketId: firstTicket['id'] as int)),
+              MaterialPageRoute(
+                builder: (_) => TicketDetailScreen(ticketId: firstTicket['id'] as int),
+              ),
             );
           }
         },
@@ -305,8 +340,8 @@ class _TicketHistoryScreenState extends State<TicketHistoryScreen>
                 ],
               ),
 
-              // ĐIỂM TRẢ KHÁCH – ĐẸP NHƯ VEXERE
-              if (dropoffDisplay != 'Bến xe đích') ...[
+              // ĐIỂM TRẢ KHÁCH – RÕ RÀNG, ĐẸP NHƯ GROUPTICKET
+              if (dropoffTitle != 'Bến xe đích' || hasSurcharge) ...[
                 const SizedBox(height: 10),
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -317,23 +352,25 @@ class _TicketHistoryScreenState extends State<TicketHistoryScreen>
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
-                            'Trả khách tại',
-                            style: TextStyle(fontSize: 13, color: Colors.black54, fontWeight: FontWeight.w500),
-                          ),
-                          const SizedBox(height: 2),
                           Text(
-                            dropoffDisplay,
-                            style: const TextStyle(fontSize: 15, color: Color(0xFF2E7D32), fontWeight: FontWeight.bold),
+                            dropoffTitle,
+                            style: const TextStyle(fontSize: 14, color: Color(0xFF2E7D32), fontWeight: FontWeight.bold),
                           ),
+                          if (dropoffAddressLine.isNotEmpty) ...[
+                            const SizedBox(height: 3),
+                            Text(
+                              dropoffAddressLine,
+                              style: const TextStyle(fontSize: 14.2, color: Colors.black87, fontWeight: FontWeight.w500),
+                            ),
+                          ],
                         ],
                       ),
                     ),
                     if (hasSurcharge)
                       Text(
-                        dropoffSurchargeText,
+                        surchargeText,
                         style: const TextStyle(
-                          fontSize: 14,
+                          fontSize: 14.5,
                           fontWeight: FontWeight.bold,
                           color: Color(0xFFD32F2F),
                         ),
@@ -377,7 +414,6 @@ class _TicketHistoryScreenState extends State<TicketHistoryScreen>
       'BOOKED': 'Không có vé đang chờ',
       'CANCELLED': 'Không có vé đã hủy',
     };
-
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -399,9 +435,10 @@ class _TicketHistoryScreenState extends State<TicketHistoryScreen>
   }
 
   String _normalizeStatus(String status) {
-    if (status.toUpperCase().contains('PAID') || status.contains('thanh toán')) return 'PAID';
-    if (status.toUpperCase().contains('BOOKED') || status.contains('chờ')) return 'BOOKED';
-    if (status.toUpperCase().contains('CANCELLED') || status.contains('hủy')) return 'CANCELLED';
+    final s = status.toUpperCase();
+    if (s.contains('PAID') || s.contains('THANH TOÁN')) return 'PAID';
+    if (s.contains('BOOKED') || s.contains('CHỜ')) return 'BOOKED';
+    if (s.contains('CANCELLED') || s.contains('HỦY')) return 'CANCELLED';
     return 'ALL';
   }
 
@@ -431,5 +468,13 @@ class _TicketHistoryScreenState extends State<TicketHistoryScreen>
     } catch (_) {
       return '—';
     }
+  }
+}
+
+// Extension để tránh null crash
+extension on Map<String, dynamic>? {
+  T? let<T>(T Function(Map<String, dynamic>) block) {
+    if (this == null) return null;
+    return block(this!);
   }
 }

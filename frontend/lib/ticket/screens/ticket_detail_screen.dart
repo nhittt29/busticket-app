@@ -84,14 +84,16 @@ class _TicketDetailScreenState extends State<TicketDetailScreen>
         final paymentHistoryId = ticket['paymentHistoryId'] as int?;
 
         // VÉ NHÓM → CHUYỂN LUÔN SANG MÀN HÌNH NHÓM
-        if (paymentHistoryId != null) {
+        if (paymentHistoryId != null && paymentHistoryId > 0) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder: (_) => GroupTicketQRScreen(paymentHistoryId: paymentHistoryId),
-              ),
-            );
+            if (mounted) {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => GroupTicketQRScreen(paymentHistoryId: paymentHistoryId),
+                ),
+              );
+            }
           });
           return const Scaffold(
             backgroundColor: Color(0xFFEAF6FF),
@@ -160,19 +162,38 @@ class _TicketDetailScreenState extends State<TicketDetailScreen>
 
   Widget _buildInfoTab(Map<String, dynamic> ticket, bool isPaid, String? qrCode) {
     final route = ticket['schedule']?['route'] as Map<String, dynamic>?;
-    final startPoint = route?['startPoint'] ?? '—';
-    final endPoint = route?['endPoint'] ?? '—';
+    final startPoint = route?['startPoint']?.toString() ?? '—';
+    final endPoint = route?['endPoint']?.toString() ?? '—';
     final departureAt = ticket['schedule']?['departureAt']?.toString() ?? '';
-    final seatNumber = ticket['seat']?['seatNumber']?.toString() ?? ticket['seat']?['code'] ?? '—';
+    final seatNumber = ticket['seat']?['seatNumber']?.toString() ??
+        ticket['seat']?['code']?.toString() ??
+        '—';
 
-    final price = (ticket['totalPrice'] as num?)?.toInt() ?? (ticket['price'] as num?)?.toInt() ?? 0;
-    final formattedPrice = price.toString().replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.');
+    final price = (ticket['totalPrice'] as num?)?.toDouble() ??
+        (ticket['price'] as num?)?.toDouble() ??
+        0.0;
+    final formattedPrice = price.toInt().toString().replaceAllMapped(
+        RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.');
 
-    // ĐIỂM TRẢ KHÁCH – DÙNG dropoffInfo ĐÃ CÓ SẴN TRONG ticket
+    // ĐIỂM TRẢ KHÁCH – HIỂN THỊ RÕ ĐỊA CHỈ + PHỤ THU ĐỎ CHÓT (giống GroupTicket)
     final dropoffInfo = ticket['dropoffInfo'] as Map<String, dynamic>?;
-    final dropoffDisplay = dropoffInfo?['display']?.toString() ?? 'Bến xe đích';
-    final surchargeText = dropoffInfo?['surchargeText']?.toString() ?? 'Miễn phí';
-    final hasSurcharge = surchargeText != 'Miễn phí';
+    final dropoffAddress = ticket['dropoffAddress']?.toString();
+
+    String dropoffTitle = 'Bến xe đích';
+    String dropoffAddressLine = '';
+    String surchargeText = 'Miễn phí';
+    bool hasSurcharge = false;
+
+    if (dropoffInfo != null) {
+      dropoffTitle = dropoffInfo['display']?.toString() ?? 'Trả tận nơi';
+      dropoffAddressLine = dropoffInfo['address']?.toString() ?? dropoffAddress ?? '';
+      surchargeText = dropoffInfo['surchargeText']?.toString() ?? 'Miễn phí';
+      hasSurcharge = surchargeText != 'Miễn phí' && surchargeText.isNotEmpty;
+    } else if (dropoffAddress != null && dropoffAddress.isNotEmpty) {
+      dropoffTitle = 'Trả tận nơi';
+      dropoffAddressLine = dropoffAddress;
+      hasSurcharge = true;
+    }
 
     return SingleChildScrollView(
       physics: const AlwaysScrollableScrollPhysics(),
@@ -195,7 +216,8 @@ class _TicketDetailScreenState extends State<TicketDetailScreen>
                   );
                 },
                 icon: const Icon(Icons.qr_code_scanner, size: 26),
-                label: const Text('Xem mã QR lên xe', style: TextStyle(fontSize: 16.8, fontWeight: FontWeight.bold)),
+                label: const Text('Xem mã QR lên xe',
+                    style: TextStyle(fontSize: 16.8, fontWeight: FontWeight.bold)),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF4CAF50),
                   foregroundColor: Colors.white,
@@ -223,32 +245,49 @@ class _TicketDetailScreenState extends State<TicketDetailScreen>
                 _infoRow('Giờ khởi hành', _formatDateTime(departureAt), icon: Icons.access_time_filled),
                 _infoRow('Số ghế', seatNumber, icon: Icons.event_seat, valueSize: 17),
 
-                // ĐIỂM TRẢ KHÁCH – ĐẸP NHƯ VEXERE
+                // ĐIỂM TRẢ KHÁCH – ĐẸP, RÕ RÀNG NHƯ GROUP TICKET
                 Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  padding: const EdgeInsets.symmetric(vertical: 16),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Icon(Icons.location_on, size: 26, color: Color(0xFFFF5252)),
+                      const Icon(Icons.location_on, size: 28, color: Color(0xFFFF5252)),
                       const SizedBox(width: 16),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text('Điểm trả khách', style: TextStyle(color: Colors.grey, fontSize: 15.5, fontWeight: FontWeight.w500)),
-                            const SizedBox(height: 6),
-                            Text(dropoffDisplay, style: const TextStyle(fontSize: 16.5, fontWeight: FontWeight.bold, color: Color(0xFF1B5E20))),
+                            Text(
+                              dropoffTitle,
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF1B5E20),
+                              ),
+                            ),
+                            if (dropoffAddressLine.isNotEmpty) ...[
+                              const SizedBox(height: 6),
+                              Text(
+                                dropoffAddressLine,
+                                style: const TextStyle(
+                                  fontSize: 15.5,
+                                  color: Colors.black87,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
                           ],
                         ),
                       ),
-                      Text(
-                        surchargeText,
-                        style: TextStyle(
-                          fontSize: 16.5,
-                          fontWeight: FontWeight.bold,
-                          color: hasSurcharge ? const Color(0xFFD32F2F) : const Color(0xFF2E7D32),
+                      if (hasSurcharge)
+                        Text(
+                          surchargeText,
+                          style: const TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFFD32F2F),
+                          ),
                         ),
-                      ),
                     ],
                   ),
                 ),
@@ -367,28 +406,43 @@ class _TicketDetailScreenState extends State<TicketDetailScreen>
 
   String _statusText(String? s) {
     switch (s) {
-      case 'PAID': case 'Đã thanh toán': return 'Đã thanh toán';
-      case 'BOOKED': return 'Đang chờ thanh toán';
-      case 'CANCELLED': return 'Đã hủy';
-      default: return s ?? 'Không xác định';
+      case 'PAID':
+      case 'Đã thanh toán':
+        return 'Đã thanh toán';
+      case 'BOOKED':
+        return 'Đang chờ thanh toán';
+      case 'CANCELLED':
+        return 'Đã hủy';
+      default:
+        return s ?? 'Không xác định';
     }
   }
 
   Color _statusColor(String? s) {
     switch (s) {
-      case 'PAID': case 'Đã thanh toán': return const Color(0xFF4CAF50);
-      case 'BOOKED': return const Color(0xFFFFA726);
-      case 'CANCELLED': return const Color(0xFFEF5350);
-      default: return Colors.grey;
+      case 'PAID':
+      case 'Đã thanh toán':
+        return const Color(0xFF4CAF50);
+      case 'BOOKED':
+        return const Color(0xFFFFA726);
+      case 'CANCELLED':
+        return const Color(0xFFEF5350);
+      default:
+        return Colors.grey;
     }
   }
 
   IconData _statusIcon(String? s) {
     switch (s) {
-      case 'PAID': case 'Đã thanh toán': return Icons.check_circle;
-      case 'BOOKED': return Icons.schedule;
-      case 'CANCELLED': return Icons.cancel;
-      default: return Icons.info;
+      case 'PAID':
+      case 'Đã thanh toán':
+        return Icons.check_circle;
+      case 'BOOKED':
+        return Icons.schedule;
+      case 'CANCELLED':
+        return Icons.cancel;
+      default:
+        return Icons.info;
     }
   }
 }

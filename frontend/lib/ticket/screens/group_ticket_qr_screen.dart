@@ -59,7 +59,7 @@ class _GroupTicketQRScreenState extends State<GroupTicketQRScreen>
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<Map<String, dynamic>?>(
+    return FutureBuilder<Map<String, dynamic>?>(  
       future: _paymentFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
@@ -111,7 +111,6 @@ class _GroupTicketQRScreenState extends State<GroupTicketQRScreen>
         final qrCode = payment['qrCode']?.toString();
         final hasQR = qrCode != null && qrCode.isNotEmpty;
         final isPaid = payment['status'] == 'Đã thanh toán';
-
         final startPoint = payment['startPoint']?.toString() ?? '—';
         final endPoint = payment['endPoint']?.toString() ?? '—';
         final departureTime = payment['departureTime']?.toString() ?? '';
@@ -120,11 +119,24 @@ class _GroupTicketQRScreenState extends State<GroupTicketQRScreen>
         final seatDisplay = seatCount > 1 ? '$seatList ($seatCount ghế)' : seatList;
         final formattedPrice = _formatPrice(payment['price']?.toString() ?? '0');
 
-        // ĐIỂM TRẢ KHÁCH
         final dropoffInfo = payment['dropoffInfo'] as Map<String, dynamic>?;
-        final dropoffDisplay = dropoffInfo?['display']?.toString() ?? 'Bến xe đích';
-        final surchargeText = dropoffInfo?['surchargeText']?.toString() ?? 'Miễn phí';
-        final hasSurcharge = surchargeText != 'Miễn phí' && surchargeText.isNotEmpty;
+        final dropoffAddress = payment['dropoffAddress']?.toString();
+
+        String dropoffTitle = 'Bến xe đích';
+        String dropoffAddressLine = '';
+        String surchargeText = 'Miễn phí';
+        bool hasSurcharge = false;
+
+        if (dropoffInfo != null) {
+          dropoffTitle = dropoffInfo['display']?.toString() ?? 'Trả tận nơi';
+          dropoffAddressLine = dropoffInfo['address']?.toString() ?? dropoffAddress ?? '';
+          surchargeText = dropoffInfo['surchargeText']?.toString() ?? 'Miễn phí';
+          hasSurcharge = surchargeText != 'Miễn phí' && surchargeText.isNotEmpty;
+        } else if (dropoffAddress != null && dropoffAddress.isNotEmpty) {
+          dropoffTitle = 'Trả tận nơi';
+          dropoffAddressLine = dropoffAddress;
+          hasSurcharge = true;
+        }
 
         return Scaffold(
           backgroundColor: const Color(0xFFEAF6FF),
@@ -169,11 +181,11 @@ class _GroupTicketQRScreenState extends State<GroupTicketQRScreen>
           body: TabBarView(
             controller: _tabController,
             children: [
-              // TAB 1: THÔNG TIN VÉ
               RefreshIndicator(
                 onRefresh: () async {
                   setState(() {
-                    _paymentFuture = TicketApiService.getPaymentDetailByHistoryId(widget.paymentHistoryId);
+                    _paymentFuture =
+                        TicketApiService.getPaymentDetailByHistoryId(widget.paymentHistoryId);
                   });
                 },
                 color: const Color(0xFF6AB7F5),
@@ -182,7 +194,6 @@ class _GroupTicketQRScreenState extends State<GroupTicketQRScreen>
                   padding: const EdgeInsets.fromLTRB(18, 20, 18, 40),
                   child: Column(
                     children: [
-                      // Thông báo nếu chưa có QR
                       if (!hasQR && isPaid)
                         Container(
                           width: double.infinity,
@@ -206,16 +217,18 @@ class _GroupTicketQRScreenState extends State<GroupTicketQRScreen>
                             ],
                           ),
                         ),
-
                       Container(
                         padding: const EdgeInsets.symmetric(vertical: 22, horizontal: 24),
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(24),
-                          border: Border.all(color: const Color(0xFFA0D8F1).withAlpha(178), width: 1.4),
+                          border: Border.all(
+                            color: const Color(0xFFA0D8F1).withValues(alpha: 0.7),
+                            width: 1.4,
+                          ),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.grey.withOpacity(0.25),
+                              color: Colors.grey.withValues(alpha: 0.25),
                               blurRadius: 14,
                               offset: const Offset(0, 8),
                             ),
@@ -227,42 +240,48 @@ class _GroupTicketQRScreenState extends State<GroupTicketQRScreen>
                             _infoRow('Giờ khởi hành', _formatDepartureTime(departureTime), icon: Icons.access_time_filled),
                             _infoRow('Số ghế', seatDisplay, icon: Icons.event_seat, valueSize: 17),
 
-                            // ĐIỂM TRẢ KHÁCH
                             Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              padding: const EdgeInsets.symmetric(vertical: 16),
                               child: Row(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Icon(Icons.location_on, size: 26, color: Color(0xFFFF5252)),
+                                  const Icon(Icons.location_on, size: 28, color: Color(0xFFFF5252)),
                                   const SizedBox(width: 16),
                                   Expanded(
                                     child: Column(
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
-                                        const Text(
-                                          'Điểm trả khách',
-                                          style: TextStyle(color: Colors.grey, fontSize: 15.5, fontWeight: FontWeight.w500),
-                                        ),
-                                        const SizedBox(height: 6),
                                         Text(
-                                          dropoffDisplay,
+                                          dropoffTitle,
                                           style: const TextStyle(
-                                            fontSize: 16.5,
+                                            fontSize: 16,
                                             fontWeight: FontWeight.bold,
                                             color: Color(0xFF1B5E20),
                                           ),
                                         ),
+                                        if (dropoffAddressLine.isNotEmpty) ...[
+                                          const SizedBox(height: 6),
+                                          Text(
+                                            dropoffAddressLine,
+                                            style: const TextStyle(
+                                              fontSize: 15.5,
+                                              color: Colors.black87,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                        ],
                                       ],
                                     ),
                                   ),
-                                  Text(
-                                    surchargeText,
-                                    style: TextStyle(
-                                      fontSize: 16.5,
-                                      fontWeight: FontWeight.bold,
-                                      color: hasSurcharge ? const Color(0xFFD32F2F) : const Color(0xFF2E7D32),
+                                  if (hasSurcharge)
+                                    Text(
+                                      surchargeText,
+                                      style: const TextStyle(
+                                        fontSize: 17,
+                                        fontWeight: FontWeight.bold,
+                                        color: Color(0xFFD32F2F),
+                                      ),
                                     ),
-                                  ),
                                 ],
                               ),
                             ),
@@ -284,8 +303,6 @@ class _GroupTicketQRScreenState extends State<GroupTicketQRScreen>
                   ),
                 ),
               ),
-
-              // TAB 2: THANH TOÁN & QR
               SingleChildScrollView(
                 padding: const EdgeInsets.fromLTRB(18, 20, 18, 40),
                 child: Column(
@@ -295,9 +312,16 @@ class _GroupTicketQRScreenState extends State<GroupTicketQRScreen>
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(24),
-                        border: Border.all(color: const Color(0xFFA0D8F1).withAlpha(178), width: 1.4),
+                        border: Border.all(
+                          color: const Color(0xFFA0D8F1).withValues(alpha: 0.7),
+                          width: 1.4,
+                        ),
                         boxShadow: [
-                          BoxShadow(color: Colors.grey.withOpacity(0.25), blurRadius: 14, offset: const Offset(0, 8)),
+                          BoxShadow(
+                            color: Colors.grey.withValues(alpha: 0.25),
+                            blurRadius: 14,
+                            offset: const Offset(0, 8),
+                          ),
                         ],
                       ),
                       child: Column(
@@ -315,7 +339,6 @@ class _GroupTicketQRScreenState extends State<GroupTicketQRScreen>
                         ],
                       ),
                     ),
-
                     if (hasQR) ...[
                       const SizedBox(height: 32),
                       Center(
@@ -325,7 +348,11 @@ class _GroupTicketQRScreenState extends State<GroupTicketQRScreen>
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(28),
                             boxShadow: [
-                              BoxShadow(color: Colors.grey.withOpacity(0.3), blurRadius: 18, offset: const Offset(0, 10)),
+                              BoxShadow(
+                                color: Colors.grey.withValues(alpha: 0.3),
+                                blurRadius: 18,
+                                offset: const Offset(0, 10),
+                              ),
                             ],
                           ),
                           child: Column(
