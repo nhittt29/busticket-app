@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import Image from "next/image";
-import { BusFront, Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
 
 export default function LoginPage() {
     const { mutate: login, isPending } = useLogin();
@@ -33,50 +33,49 @@ export default function LoginPage() {
     };
 
     return (
-        <div className="w-full h-screen lg:grid lg:grid-cols-2">
-            {/* Left Side - Hero Image */}
-            <div className="hidden lg:flex relative h-full w-full flex-col bg-muted p-10 text-white dark:border-r">
-                <div className="absolute inset-0 bg-zinc-900" />
-                <div className="absolute inset-0">
-                    <Image
-                        src="/login-hero.png"
-                        alt="Bus Ticket Admin"
-                        fill
-                        className="object-cover opacity-80"
-                        priority
-                    />
-                    {/* Gradient Overlay */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-[#2c3e50]/90 to-[#2c3e50]/30 mix-blend-multiply" />
-                </div>
-
-                <div className="relative z-20 flex items-center text-lg font-medium">
-                    <div className="relative w-8 h-8 mr-2">
-                        <Image src="/icon.png" alt="Logo" fill className="object-contain" />
-                    </div>
-                    busticket-app Admin
-                </div>
-                <div className="relative z-20 mt-auto">
-                    <blockquote className="space-y-2">
-                        <p className="text-lg">
-                            "Hệ thống quản lý vé xe khách hiện đại, chuyên nghiệp và hiệu quả nhất Việt Nam."
-                        </p>
-                        <footer className="text-sm">Admin Team</footer>
-                    </blockquote>
-                </div>
+        <div className="min-h-screen w-full flex font-sans overflow-hidden">
+            {/* Left Side - Image Section (Full Screen) */}
+            <div className="hidden lg:block relative w-[65%] h-screen bg-[#CDEEF3]">
+                <Image
+                    src="/logo_bg.png"
+                    alt="BusTicket Background"
+                    fill
+                    className="object-contain"
+                    priority
+                />
+                {/* Gradient Overlay for depth (optional, keeping it subtle) */}
+                <div className="absolute inset-0 bg-gradient-to-t from-[#2c3e50]/20 via-transparent to-transparent" />
             </div>
 
-            {/* Right Side - Login Form */}
-            <div className="flex items-center justify-center py-12 bg-white">
-                <div className="mx-auto grid w-[350px] gap-6">
-                    <div className="grid gap-2 text-center">
-                        <h1 className="text-3xl font-bold text-[#2c3e50]">Đăng nhập</h1>
-                        <p className="text-balance text-muted-foreground">
-                            Nhập email và mật khẩu để truy cập hệ thống
-                        </p>
+            {/* Right Side - Login Form (Full Screen) */}
+            <div className="w-full lg:w-[35%] h-screen bg-white flex flex-col justify-center px-8 sm:px-12 xl:px-16 shadow-2xl relative z-10 overflow-hidden">
+
+                {/* Decorative Background Blobs */}
+                <div className="absolute top-[-10%] right-[-10%] w-96 h-96 bg-[#CDEEF3]/70 rounded-full blur-[80px] animate-pulse" />
+                <div className="absolute bottom-[-10%] left-[-10%] w-96 h-96 bg-[#96DFD8]/70 rounded-full blur-[80px] animate-pulse delay-1000" />
+                <div className="absolute top-[40%] right-[-20%] w-72 h-72 bg-[#D6E9AA]/60 rounded-full blur-[60px] animate-pulse delay-700" />
+                <div className="absolute top-[10%] left-[-10%] w-64 h-64 bg-[#AEE6CB]/60 rounded-full blur-[60px] animate-pulse delay-500" />
+                <div className="absolute bottom-[20%] right-[10%] w-48 h-48 bg-[#85D4BE]/50 rounded-full blur-[40px] animate-pulse delay-200" />
+
+                <div className="w-full max-w-sm mx-auto space-y-8 relative z-20">
+                    {/* Header */}
+                    <div className="text-center">
+                        <div className="relative w-28 h-28 mx-auto mb-6 transition-transform hover:scale-105 duration-300">
+                            <Image
+                                src="/bus_logo.png"
+                                alt="BusTicket Logo"
+                                fill
+                                className="object-contain"
+                            />
+                        </div>
+                        <h1 className="text-3xl font-black text-[#2c3e50] tracking-tight mb-2">Xin chào!</h1>
+                        <p className="text-[#64748b] font-medium">Đăng nhập để bắt đầu phiên làm việc</p>
                     </div>
-                    <form onSubmit={handleSubmit} className="grid gap-4">
-                        <div className="grid gap-2">
-                            <Label htmlFor="email">Email</Label>
+
+                    {/* Form */}
+                    <form onSubmit={handleSubmit} className="space-y-6">
+                        <div className="space-y-2">
+                            <Label htmlFor="email" className="text-[#2c3e50] font-bold text-base">Email</Label>
                             <Input
                                 id="email"
                                 type="email"
@@ -84,12 +83,15 @@ export default function LoginPage() {
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 required
-                                className="h-11 focus-visible:ring-[#96DFD8]"
+                                className="h-14 bg-[#f8fafc] border-[#e2e8f0] focus:bg-white focus:ring-4 focus:ring-[#96DFD8]/20 focus:border-[#96DFD8] rounded-2xl transition-all font-medium text-base"
                             />
                         </div>
-                        <div className="grid gap-2">
-                            <div className="flex items-center">
-                                <Label htmlFor="password">Mật khẩu</Label>
+                        <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                                <Label htmlFor="password" className="text-[#2c3e50] font-bold text-base">Mật khẩu</Label>
+                                <a href="#" className="text-sm font-bold text-[#96DFD8] hover:text-[#85D4BE] hover:underline">
+                                    Quên mật khẩu?
+                                </a>
                             </div>
                             <div className="relative">
                                 <Input
@@ -98,34 +100,43 @@ export default function LoginPage() {
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
                                     required
-                                    className="h-11 focus-visible:ring-[#96DFD8] pr-10"
+                                    className="h-14 bg-[#f8fafc] border-[#e2e8f0] focus:bg-white focus:ring-4 focus:ring-[#96DFD8]/20 focus:border-[#96DFD8] pr-12 rounded-2xl transition-all font-medium text-base"
                                 />
                                 <button
                                     type="button"
                                     onClick={() => setShowPassword(!showPassword)}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
                                 >
                                     {showPassword ? (
-                                        <EyeOff className="h-5 w-5" />
+                                        <EyeOff className="h-6 w-6" />
                                     ) : (
-                                        <Eye className="h-5 w-5" />
+                                        <Eye className="h-6 w-6" />
                                     )}
                                 </button>
                             </div>
                         </div>
+
                         <Button
                             type="submit"
-                            className="w-full h-11 bg-[#96DFD8] hover:bg-[#85D4BE] text-white font-semibold text-base transition-all shadow-sm hover:shadow-md"
+                            className="w-full h-14 bg-[#96DFD8] hover:bg-[#85D4BE] text-[#2c3e50] font-extrabold text-lg rounded-2xl shadow-lg hover:shadow-[#96DFD8]/50 hover:-translate-y-1 transition-all duration-300 mt-4"
                             disabled={isPending}
                         >
-                            {isPending ? "Đang xử lý..." : "Đăng nhập"}
+                            {isPending ? (
+                                <>
+                                    <Loader2 className="mr-2 h-6 w-6 animate-spin" />
+                                    Đang xử lý...
+                                </>
+                            ) : (
+                                "Đăng nhập ngay"
+                            )}
                         </Button>
                     </form>
-                    <div className="mt-4 text-center text-sm text-muted-foreground">
-                        Bạn quên mật khẩu?{" "}
-                        <a href="#" className="underline underline-offset-4 hover:text-primary">
-                            Liên hệ IT
-                        </a>
+
+                    {/* Footer */}
+                    <div className="text-center pt-6">
+                        <p className="text-sm text-gray-400 font-medium">
+                            &copy; 2025 BusTicket System.
+                        </p>
                     </div>
                 </div>
             </div>
