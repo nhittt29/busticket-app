@@ -12,7 +12,8 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { BellRing, Search, Filter, MoreHorizontal, Send } from "lucide-react";
+import { BellRing, Search, Filter, MoreHorizontal, Send, ArrowLeft } from "lucide-react";
+import { useRouter } from "next/navigation";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -53,16 +54,23 @@ const notifications = [
 ];
 
 export default function NotificationsPage() {
+    const router = useRouter();
     return (
         <ListLayout
             title="Thông báo"
             description="Quản lý và gửi thông báo đến người dùng."
             icon={BellRing}
             actions={
-                <Button className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm">
-                    <Send className="w-4 h-4 mr-2" />
-                    Tạo thông báo mới
-                </Button>
+                <div className="flex gap-2">
+                    <Button variant="outline" onClick={() => router.push("/")}>
+                        <ArrowLeft className="w-4 h-4 mr-2" />
+                        Quay lại
+                    </Button>
+                    <Button className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm">
+                        <Send className="w-4 h-4 mr-2" />
+                        Tạo thông báo mới
+                    </Button>
+                </div>
             }
             filters={
                 <div className="flex flex-col sm:flex-row gap-4">

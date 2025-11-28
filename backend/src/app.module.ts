@@ -18,6 +18,7 @@ import { BookingModule } from './modules/booking.module';
 import { DropoffPointModule } from './modules/dropoff-point.module';
 import { TicketQueueModule } from './queues/ticket-queue.module';
 import { ScheduleQueueModule } from './queues/schedule-queue.module';
+import { UserModule } from './modules/user.module';
 
 @Module({
   imports: [
@@ -45,8 +46,9 @@ import { ScheduleQueueModule } from './queues/schedule-queue.module';
     // QUEUE MODULES – CHỈ THÊM 2 DÒNG NÀY VÀO CUỐI → HOÀN HẢO
     TicketQueueModule,      // Đã có sẵn – giữ nguyên
     ScheduleQueueModule,    // MỚI THÊM – TỰ ĐỘNG CẬP NHẬT TRẠNG THÁI CHUYẾN XE
+    UserModule,
   ],
   controllers: [AuthController],
   providers: [AuthService, PrismaService, UserRepository],
 })
-export class AppModule {}
+export class AppModule { }

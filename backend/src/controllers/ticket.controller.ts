@@ -11,7 +11,12 @@ export class TicketController {
   constructor(
     private readonly ticketService: TicketService,
     private readonly prism: PrismaService,
-  ) {}
+  ) { }
+
+  @Get()
+  async findAll() {
+    return this.ticketService.getAllTickets();
+  }
 
   @Post()
   create(@Body() dto: CreateTicketDto) {

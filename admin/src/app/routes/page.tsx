@@ -1,5 +1,6 @@
 "use client";
 
+import { useList, useDelete } from "@refinedev/core";
 import { ListLayout } from "@/components/common/ListLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,7 +13,7 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Route, Plus, Search, Filter, MoreHorizontal, MapPin } from "lucide-react";
+import { Map, Search, Filter, MoreHorizontal, Plus, Pencil, Trash2, Clock, MapPin, ArrowLeft } from "lucide-react";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -21,74 +22,81 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { IRoute } from "@/interfaces/route";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
-// Mock data for demonstration
-const routes = [
-    {
-        id: 1,
-        origin: "Sài Gòn",
-        destination: "Đà Lạt",
-        distance: "300km",
-        duration: "6h 30m",
-        price: "350.000đ",
-        status: "active",
-    },
-    {
-        id: 2,
-        origin: "Hà Nội",
-        destination: "Sapa",
-        distance: "320km",
-        duration: "5h 45m",
-        price: "450.000đ",
-        status: "active",
-    },
-    {
-        id: 3,
-        origin: "Đà Nẵng",
-        destination: "Huế",
-        distance: "100km",
-        duration: "2h 15m",
-        price: "180.000đ",
-        status: "inactive",
-    },
-    {
-        id: 4,
-        origin: "Cần Thơ",
-        destination: "Cà Mau",
-        distance: "150km",
-        duration: "3h 00m",
-        price: "160.000đ",
-        status: "active",
-    },
-    {
-        id: 5,
-        origin: "Nha Trang",
-        destination: "Đà Lạt",
-        distance: "140km",
-        duration: "3h 30m",
-        price: "220.000đ",
-        status: "maintenance",
-    },
-];
+export default function RouteListPage() {
+    const router = useRouter();
+    // useList returns { query, result } in this version
+    const hookResult = useList<IRoute>({
+        resource: "routes",
+    });
 
-export default function RoutesPage() {
+    // Safely access data
+    const { query, result } = hookResult as any;
+    const routes = result?.data || (hookResult as any).data?.data || [];
+    const isLoading = query?.isLoading || (hookResult as any).isLoading;
+
+    const { mutate: deleteRoute } = useDelete();
+
+    const handleDelete = (id: number) => {
+        if (confirm("Bạn có chắc chắn muốn xóa tuyến đường này không?")) {
+            deleteRoute(
+                {
+                    resource: "routes",
+                    id,
+                },
+                {
+                    onSuccess: () => {
+                        toast.success("Xóa tuyến đường thành công");
+                    },
+                    onError: (error) => {
+                        toast.error("Xóa tuyến đường thất bại", {
+                            description: error.message,
+                        });
+                    },
+                }
+            );
+        }
+    };
+
+    const formatDuration = (minutes: number) => {
+        const hours = Math.floor(minutes / 60);
+        const mins = minutes % 60;
+        return `${hours}h ${mins}p`;
+    };
+
+    const formatCurrency = (amount: number) => {
+        return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
+    };
+
     return (
         <ListLayout
             title="Quản lý Tuyến đường"
-            description="Xem và quản lý tất cả các tuyến đường xe chạy hiện có."
-            icon={Route}
+            description="Danh sách các tuyến đường vận hành."
+            icon={Map}
             actions={
-                <Button className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm">
-                    <Plus className="w-4 h-4 mr-2" />
-                    Thêm tuyến mới
-                </Button>
+                <div className="flex gap-2">
+                    <Button variant="outline" onClick={() => router.push("/")}>
+                        <ArrowLeft className="w-4 h-4 mr-2" />
+                        Quay lại
+                    </Button>
+                    <Button
+                        className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm"
+                        onClick={() => router.push("/routes/create")}
+                    >
+                        <Plus className="w-4 h-4 mr-2" />
+                        Thêm tuyến mới
+                    </Button>
+                </div>
             }
             filters={
                 <div className="flex flex-col sm:flex-row gap-4">
                     <div className="relative flex-1">
                         <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                         <Input
-                            placeholder="Tìm kiếm điểm đi, điểm đến..."
+                            placeholder="Tìm điểm đi, điểm đến..."
                             className="pl-9 bg-background"
                         />
                     </div>
@@ -102,80 +110,84 @@ export default function RoutesPage() {
             <Table>
                 <TableHeader>
                     <TableRow className="hover:bg-transparent">
-                        <TableHead className="w-[100px]">ID</TableHead>
+                        <TableHead className="w-[60px]">ID</TableHead>
                         <TableHead>Điểm đi</TableHead>
                         <TableHead>Điểm đến</TableHead>
-                        <TableHead>Khoảng cách</TableHead>
                         <TableHead>Thời gian</TableHead>
-                        <TableHead>Giá vé cơ bản</TableHead>
-                        <TableHead>Trạng thái</TableHead>
+                        <TableHead>Giá thấp nhất</TableHead>
+                        <TableHead>Khoảng cách</TableHead>
+                        <TableHead>Nhà xe</TableHead>
                         <TableHead className="text-right">Thao tác</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {routes.map((route) => (
-                        <TableRow key={route.id} className="hover:bg-muted/50 transition-colors">
-                            <TableCell className="font-medium">#{route.id}</TableCell>
-                            <TableCell>
-                                <div className="flex items-center gap-2">
-                                    <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
-                                        <MapPin className="w-4 h-4" />
-                                    </div>
-                                    <span className="font-medium">{route.origin}</span>
-                                </div>
-                            </TableCell>
-                            <TableCell>
-                                <div className="flex items-center gap-2">
-                                    <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center text-orange-600">
-                                        <MapPin className="w-4 h-4" />
-                                    </div>
-                                    <span className="font-medium">{route.destination}</span>
-                                </div>
-                            </TableCell>
-                            <TableCell>{route.distance}</TableCell>
-                            <TableCell>{route.duration}</TableCell>
-                            <TableCell className="font-semibold text-primary">
-                                {route.price}
-                            </TableCell>
-                            <TableCell>
-                                <Badge
-                                    variant="secondary"
-                                    className={
-                                        route.status === "active"
-                                            ? "bg-green-100 text-green-700 hover:bg-green-100"
-                                            : route.status === "inactive"
-                                                ? "bg-gray-100 text-gray-700 hover:bg-gray-100"
-                                                : "bg-yellow-100 text-yellow-700 hover:bg-yellow-100"
-                                    }
-                                >
-                                    {route.status === "active"
-                                        ? "Hoạt động"
-                                        : route.status === "inactive"
-                                            ? "Ngưng"
-                                            : "Bảo trì"}
-                                </Badge>
-                            </TableCell>
-                            <TableCell className="text-right">
-                                <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                        <Button variant="ghost" className="h-8 w-8 p-0">
-                                            <span className="sr-only">Open menu</span>
-                                            <MoreHorizontal className="h-4 w-4" />
-                                        </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end">
-                                        <DropdownMenuLabel>Thao tác</DropdownMenuLabel>
-                                        <DropdownMenuItem>Xem chi tiết</DropdownMenuItem>
-                                        <DropdownMenuItem>Chỉnh sửa</DropdownMenuItem>
-                                        <DropdownMenuSeparator />
-                                        <DropdownMenuItem className="text-destructive">
-                                            Xóa tuyến
-                                        </DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
+                    {isLoading ? (
+                        <TableRow>
+                            <TableCell colSpan={8} className="h-24 text-center">
+                                Đang tải dữ liệu...
                             </TableCell>
                         </TableRow>
-                    ))}
+                    ) : routes.length === 0 ? (
+                        <TableRow>
+                            <TableCell colSpan={8} className="h-24 text-center">
+                                Chưa có tuyến đường nào.
+                            </TableCell>
+                        </TableRow>
+                    ) : (
+                        routes.map((route: IRoute) => (
+                            <TableRow key={route.id} className="hover:bg-muted/50 transition-colors">
+                                <TableCell className="font-medium">#{route.id}</TableCell>
+                                <TableCell>
+                                    <div className="flex items-center gap-2">
+                                        <MapPin className="w-4 h-4 text-green-500" />
+                                        {route.startPoint}
+                                    </div>
+                                </TableCell>
+                                <TableCell>
+                                    <div className="flex items-center gap-2">
+                                        <MapPin className="w-4 h-4 text-red-500" />
+                                        {route.endPoint}
+                                    </div>
+                                </TableCell>
+                                <TableCell>
+                                    <Badge variant="outline" className="gap-1">
+                                        <Clock className="w-3 h-3" />
+                                        {formatDuration(route.averageDurationMin)}
+                                    </Badge>
+                                </TableCell>
+                                <TableCell className="font-medium text-green-600">
+                                    {formatCurrency(route.lowestPrice)}
+                                </TableCell>
+                                <TableCell>{route.distanceKm ? `${route.distanceKm} km` : "N/A"}</TableCell>
+                                <TableCell>{route.brand?.name || "N/A"}</TableCell>
+                                <TableCell className="text-right">
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                            <Button variant="ghost" className="h-8 w-8 p-0">
+                                                <span className="sr-only">Open menu</span>
+                                                <MoreHorizontal className="h-4 w-4" />
+                                            </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="end">
+                                            <DropdownMenuLabel>Thao tác</DropdownMenuLabel>
+                                            <DropdownMenuItem onClick={() => router.push(`/routes/edit/${route.id}`)}>
+                                                <Pencil className="w-4 h-4 mr-2" />
+                                                Chỉnh sửa
+                                            </DropdownMenuItem>
+                                            <DropdownMenuSeparator />
+                                            <DropdownMenuItem
+                                                className="text-destructive focus:text-destructive"
+                                                onClick={() => handleDelete(route.id)}
+                                            >
+                                                <Trash2 className="w-4 h-4 mr-2" />
+                                                Xóa tuyến
+                                            </DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
+                                </TableCell>
+                            </TableRow>
+                        ))
+                    )}
                 </TableBody>
             </Table>
         </ListLayout>

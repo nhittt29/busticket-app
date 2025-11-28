@@ -34,7 +34,7 @@ export class TicketService {
     private readonly emailService: EmailService,
     private readonly qrService: QrService,
     @InjectQueue('ticket') private readonly ticketQueue: Queue,
-  ) {}
+  ) { }
 
   // ĐẶT VÉ LẺ – ĐÃ SỬA HOÀN HẢO
   async create(dto: CreateTicketDto): Promise<CreateResponse> {
@@ -521,6 +521,23 @@ export class TicketService {
         surchargeText: dropoffInfo.surchargeText,
       },
     };
+  }
+
+  async getAllTickets() {
+    const tickets = await this.prism.ticket.findMany({
+      include: {
+        user: true,
+        schedule: {
+          include: {
+            route: true,
+            bus: true,
+          },
+        },
+        seat: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+    return tickets;
   }
 
   private formatPaymentMethod(method: any): string {

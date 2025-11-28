@@ -1,31 +1,38 @@
-export enum BusCategory {
-    MINIVAN = 'MINIVAN',
-    COACH = 'COACH',
-    LIMOUSINE = 'LIMOUSINE',
-    SLEEPER = 'SLEEPER',
-    VIP = 'VIP',
-}
-
-export enum SeatType {
-    SEAT = 'SEAT',
-    BERTH = 'BERTH',
-}
-
-export enum BerthType {
-    SINGLE = 'SINGLE',
-    DOUBLE = 'DOUBLE',
-}
-
 export interface IBus {
     id: number;
     name: string;
     licensePlate: string;
     seatCount: number;
-    category: BusCategory;
-    seatType: SeatType;
-    berthType?: BerthType;
+    category: "MINIVAN" | "COACH" | "LIMOUSINE" | "SLEEPER" | "VIP";
+    seatType: "SEAT" | "BERTH";
+    berthType?: "SINGLE" | "DOUBLE";
     brandId: number;
-    price: number;
-    createdAt?: string;
-    updatedAt?: string;
+    brand?: {
+        id: number;
+        name: string;
+    };
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface IBusCreate {
+    name: string;
+    licensePlate: string;
+    seatCount: number;
+    category: string;
+    seatType: string;
+    berthType?: string;
+    brandId: number;
+    price: number; // Required for backend to initialize seats
+}
+
+export interface IBusUpdate {
+    name?: string;
+    licensePlate?: string;
+    seatCount?: number;
+    category?: string;
+    seatType?: string;
+    berthType?: string;
+    brandId?: number;
+    // No price field for update
 }

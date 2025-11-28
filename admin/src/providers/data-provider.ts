@@ -25,7 +25,14 @@ export const dataProvider: DataProvider = {
             query.order = sorters[0].order;
         }
 
-        const { data } = await api.get(`/${resource}`, { params: query });
+        // Map resource names to API endpoints if they differ
+        const resourceMap: Record<string, string> = {
+            "buses": "bus",
+            // Add other mappings here if needed
+        };
+        const endpoint = resourceMap[resource] || resource;
+
+        const { data } = await api.get(`/${endpoint}`, { params: query });
 
         return {
             data: data.data || data, // Adjust based on your API response structure
@@ -34,28 +41,44 @@ export const dataProvider: DataProvider = {
     },
 
     getOne: async ({ resource, id }) => {
-        const { data } = await api.get(`/${resource}/${id}`);
+        const resourceMap: Record<string, string> = {
+            "buses": "bus",
+        };
+        const endpoint = resourceMap[resource] || resource;
+        const { data } = await api.get(`/${endpoint}/${id}`);
         return {
             data,
         };
     },
 
     create: async ({ resource, variables }) => {
-        const { data } = await api.post(`/${resource}`, variables);
+        const resourceMap: Record<string, string> = {
+            "buses": "bus",
+        };
+        const endpoint = resourceMap[resource] || resource;
+        const { data } = await api.post(`/${endpoint}`, variables);
         return {
             data,
         };
     },
 
     update: async ({ resource, id, variables }) => {
-        const { data } = await api.patch(`/${resource}/${id}`, variables);
+        const resourceMap: Record<string, string> = {
+            "buses": "bus",
+        };
+        const endpoint = resourceMap[resource] || resource;
+        const { data } = await api.patch(`/${endpoint}/${id}`, variables);
         return {
             data,
         };
     },
 
     deleteOne: async ({ resource, id }) => {
-        const { data } = await api.delete(`/${resource}/${id}`);
+        const resourceMap: Record<string, string> = {
+            "buses": "bus",
+        };
+        const endpoint = resourceMap[resource] || resource;
+        const { data } = await api.delete(`/${endpoint}/${id}`);
         return {
             data,
         };

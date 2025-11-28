@@ -21,6 +21,7 @@ import {
   Settings,
   BarChart3,
   LogOut,
+  Calendar,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -33,7 +34,7 @@ const menuItems = [
   { title: "Tuyến đường", icon: Route, href: "/routes" },
   { title: "Xe buýt", icon: BusFront, href: "/buses" },
   { title: "Vé đã đặt", icon: Ticket, href: "/tickets" },
-  { title: "Khách hàng", icon: Users, href: "/users" },
+  { title: "Người dùng", icon: Users, href: "/users" },
   { title: "Thông báo", icon: BellRing, href: "/notifications" },
   { title: "Thống kê", icon: BarChart3, href: "/stats" },
   { title: "Cài đặt", icon: Settings, href: "/settings" },

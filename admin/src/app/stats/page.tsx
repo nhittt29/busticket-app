@@ -2,14 +2,23 @@
 
 import { ListLayout } from "@/components/common/ListLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BarChart3, TrendingUp, Users, Ticket, BusFront } from "lucide-react";
+import { BarChart3, TrendingUp, Users, Ticket, BusFront, ArrowLeft } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
 
 export default function StatsPage() {
+    const router = useRouter();
     return (
         <ListLayout
             title="Thống kê & Báo cáo"
             description="Tổng hợp số liệu kinh doanh và hiệu quả hoạt động."
             icon={BarChart3}
+            actions={
+                <Button variant="outline" onClick={() => router.push("/")}>
+                    <ArrowLeft className="w-4 h-4 mr-2" />
+                    Quay lại
+                </Button>
+            }
         >
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 p-6">
                 <Card>

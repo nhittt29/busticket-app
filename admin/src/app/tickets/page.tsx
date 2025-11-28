@@ -1,5 +1,6 @@
 "use client";
 
+import { useList, useUpdate } from "@refinedev/core";
 import { ListLayout } from "@/components/common/ListLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,7 +13,12 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Ticket, Search, Filter, MoreHorizontal, Download } from "lucide-react";
+import { Ticket, Search, Filter, Eye, Ban, CheckCircle, ArrowLeft } from "lucide-react";
+import { ITicket, TicketStatus, PaymentMethod } from "@/interfaces/ticket";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { format } from "date-fns";
+import { vi } from "date-fns/locale";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -21,60 +27,60 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { MoreHorizontal } from "lucide-react";
 
-const tickets = [
-    {
-        id: "T-1001",
-        customer: "Nguyễn Văn A",
-        route: "Sài Gòn - Đà Lạt",
-        departure: "22:00 - 20/11/2025",
-        seat: "A01",
-        price: "350.000đ",
-        status: "paid",
-        paymentMethod: "Momo",
-    },
-    {
-        id: "T-1002",
-        customer: "Trần Thị B",
-        route: "Hà Nội - Sapa",
-        departure: "21:30 - 20/11/2025",
-        seat: "B05",
-        price: "450.000đ",
-        status: "pending",
-        paymentMethod: "Chuyển khoản",
-    },
-    {
-        id: "T-1003",
-        customer: "Lê Văn C",
-        route: "Đà Nẵng - Huế",
-        departure: "08:00 - 21/11/2025",
-        seat: "C12",
-        price: "180.000đ",
-        status: "cancelled",
-        paymentMethod: "Tiền mặt",
-    },
-    {
-        id: "T-1004",
-        customer: "Phạm Thị D",
-        route: "Cần Thơ - Cà Mau",
-        departure: "07:00 - 21/11/2025",
-        seat: "D02",
-        price: "160.000đ",
-        status: "paid",
-        paymentMethod: "ZaloPay",
-    },
-];
+export default function TicketListPage() {
+    const router = useRouter();
+    const { query, result } = useList<ITicket>({
+        resource: "tickets",
+        sorters: [
+            {
+                field: "createdAt",
+                order: "desc",
+            },
+        ],
+    }) as any; // Casting to any to avoid type issues with useList return
 
-export default function TicketsPage() {
+    const tickets = result?.data || [];
+    const isLoading = query?.isLoading;
+
+    const formatCurrency = (amount: number) => {
+        return new Intl.NumberFormat("vi-VN", {
+            style: "currency",
+            currency: "VND",
+        }).format(amount);
+    };
+
+    const formatDateTime = (dateString: string) => {
+        try {
+            return format(new Date(dateString), "HH:mm dd/MM/yyyy", { locale: vi });
+        } catch (e) {
+            return dateString;
+        }
+    };
+
+    const getStatusBadge = (status: TicketStatus) => {
+        switch (status) {
+            case TicketStatus.PAID:
+                return <Badge className="bg-green-100 text-green-700 hover:bg-green-100">Đã thanh toán</Badge>;
+            case TicketStatus.BOOKED:
+                return <Badge className="bg-yellow-100 text-yellow-700 hover:bg-yellow-100">Chờ thanh toán</Badge>;
+            case TicketStatus.CANCELLED:
+                return <Badge className="bg-red-100 text-red-700 hover:bg-red-100">Đã hủy</Badge>;
+            default:
+                return <Badge variant="outline">{status}</Badge>;
+        }
+    };
+
     return (
         <ListLayout
-            title="Quản lý Vé xe"
-            description="Danh sách vé đã đặt và trạng thái thanh toán."
+            title="Quản lý Vé"
+            description="Danh sách vé đã đặt và trạng thái."
             icon={Ticket}
             actions={
-                <Button variant="outline" className="gap-2">
-                    <Download className="w-4 h-4" />
-                    Xuất Excel
+                <Button variant="outline" onClick={() => router.push("/")}>
+                    <ArrowLeft className="w-4 h-4 mr-2" />
+                    Quay lại
                 </Button>
             }
             filters={
@@ -82,97 +88,97 @@ export default function TicketsPage() {
                     <div className="relative flex-1">
                         <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                         <Input
-                            placeholder="Tìm mã vé, tên khách, SĐT..."
+                            placeholder="Tìm theo mã vé, tên khách..."
                             className="pl-9 bg-background"
                         />
                     </div>
-                    <div className="flex gap-2">
-                        <Input type="date" className="w-auto bg-background" />
-                        <Button variant="outline" className="gap-2">
-                            <Filter className="w-4 h-4" />
-                            Bộ lọc
-                        </Button>
-                    </div>
+                    <Button variant="outline" className="gap-2">
+                        <Filter className="w-4 h-4" />
+                        Bộ lọc
+                    </Button>
                 </div>
             }
         >
             <Table>
                 <TableHeader>
                     <TableRow className="hover:bg-transparent">
-                        <TableHead className="w-[100px]">Mã vé</TableHead>
+                        <TableHead className="w-[80px]">ID</TableHead>
                         <TableHead>Khách hàng</TableHead>
                         <TableHead>Chuyến xe</TableHead>
                         <TableHead>Ghế</TableHead>
-                        <TableHead>Giá vé</TableHead>
-                        <TableHead>Thanh toán</TableHead>
+                        <TableHead>Tổng tiền</TableHead>
                         <TableHead>Trạng thái</TableHead>
+                        <TableHead>Ngày đặt</TableHead>
                         <TableHead className="text-right">Thao tác</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {tickets.map((ticket) => (
-                        <TableRow key={ticket.id} className="hover:bg-muted/50 transition-colors">
-                            <TableCell className="font-medium font-mono">{ticket.id}</TableCell>
-                            <TableCell>
-                                <div className="font-medium">{ticket.customer}</div>
-                            </TableCell>
-                            <TableCell>
-                                <div className="flex flex-col">
-                                    <span className="font-medium">{ticket.route}</span>
-                                    <span className="text-xs text-muted-foreground">{ticket.departure}</span>
-                                </div>
-                            </TableCell>
-                            <TableCell>
-                                <Badge variant="outline" className="font-mono">
-                                    {ticket.seat}
-                                </Badge>
-                            </TableCell>
-                            <TableCell className="font-semibold text-primary">
-                                {ticket.price}
-                            </TableCell>
-                            <TableCell className="text-sm text-muted-foreground">
-                                {ticket.paymentMethod}
-                            </TableCell>
-                            <TableCell>
-                                <Badge
-                                    variant="secondary"
-                                    className={
-                                        ticket.status === "paid"
-                                            ? "bg-green-100 text-green-700 hover:bg-green-100"
-                                            : ticket.status === "pending"
-                                                ? "bg-yellow-100 text-yellow-700 hover:bg-yellow-100"
-                                                : "bg-red-100 text-red-700 hover:bg-red-100"
-                                    }
-                                >
-                                    {ticket.status === "paid"
-                                        ? "Đã thanh toán"
-                                        : ticket.status === "pending"
-                                            ? "Chờ thanh toán"
-                                            : "Đã hủy"}
-                                </Badge>
-                            </TableCell>
-                            <TableCell className="text-right">
-                                <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                        <Button variant="ghost" className="h-8 w-8 p-0">
-                                            <span className="sr-only">Open menu</span>
-                                            <MoreHorizontal className="h-4 w-4" />
-                                        </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end">
-                                        <DropdownMenuLabel>Thao tác</DropdownMenuLabel>
-                                        <DropdownMenuItem>Xem chi tiết</DropdownMenuItem>
-                                        <DropdownMenuItem>In vé</DropdownMenuItem>
-                                        <DropdownMenuItem>Gửi email xác nhận</DropdownMenuItem>
-                                        <DropdownMenuSeparator />
-                                        <DropdownMenuItem className="text-destructive">
-                                            Hủy vé
-                                        </DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
+                    {isLoading ? (
+                        <TableRow>
+                            <TableCell colSpan={8} className="h-24 text-center">
+                                Đang tải dữ liệu...
                             </TableCell>
                         </TableRow>
-                    ))}
+                    ) : tickets.length === 0 ? (
+                        <TableRow>
+                            <TableCell colSpan={8} className="h-24 text-center">
+                                Chưa có vé nào.
+                            </TableCell>
+                        </TableRow>
+                    ) : (
+                        tickets.map((ticket: ITicket) => (
+                            <TableRow key={ticket.id} className="hover:bg-muted/50 transition-colors">
+                                <TableCell className="font-medium">#{ticket.id}</TableCell>
+                                <TableCell>
+                                    <div className="flex flex-col">
+                                        <span className="font-medium">{ticket.user?.name || "Khách vãng lai"}</span>
+                                        <span className="text-xs text-muted-foreground">{ticket.user?.phone}</span>
+                                    </div>
+                                </TableCell>
+                                <TableCell>
+                                    <div className="flex flex-col max-w-[200px]">
+                                        <span className="truncate font-medium">
+                                            {ticket.schedule?.route?.startPoint} - {ticket.schedule?.route?.endPoint}
+                                        </span>
+                                        <span className="text-xs text-muted-foreground">
+                                            {formatDateTime(ticket.schedule?.departureAt || "")}
+                                        </span>
+                                    </div>
+                                </TableCell>
+                                <TableCell>
+                                    <Badge variant="outline" className="font-mono">
+                                        {ticket.seat?.seatNumber}
+                                    </Badge>
+                                </TableCell>
+                                <TableCell className="font-medium text-primary">
+                                    {formatCurrency(ticket.totalPrice)}
+                                </TableCell>
+                                <TableCell>
+                                    {getStatusBadge(ticket.status)}
+                                </TableCell>
+                                <TableCell className="text-muted-foreground text-sm">
+                                    {formatDateTime(ticket.createdAt)}
+                                </TableCell>
+                                <TableCell className="text-right">
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                            <Button variant="ghost" className="h-8 w-8 p-0">
+                                                <span className="sr-only">Open menu</span>
+                                                <MoreHorizontal className="h-4 w-4" />
+                                            </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="end">
+                                            <DropdownMenuLabel>Thao tác</DropdownMenuLabel>
+                                            <DropdownMenuItem onClick={() => router.push(`/tickets/show/${ticket.id}`)}>
+                                                <Eye className="w-4 h-4 mr-2" />
+                                                Xem chi tiết
+                                            </DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
+                                </TableCell>
+                            </TableRow>
+                        ))
+                    )}
                 </TableBody>
             </Table>
         </ListLayout>

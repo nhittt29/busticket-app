@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Settings, Save, User, Lock, Bell, Globe } from "lucide-react";
+import { Settings, Save, User, Lock, Bell, Globe, ArrowLeft } from "lucide-react";
+import { useRouter } from "next/navigation";
 import {
     Card,
     CardContent,
@@ -22,11 +23,18 @@ import {
 } from "@/components/ui/tabs";
 
 export default function SettingsPage() {
+    const router = useRouter();
     return (
         <ListLayout
             title="Cài đặt"
             description="Quản lý cấu hình hệ thống và tài khoản."
             icon={Settings}
+            actions={
+                <Button variant="outline" onClick={() => router.push("/")}>
+                    <ArrowLeft className="w-4 h-4 mr-2" />
+                    Quay lại
+                </Button>
+            }
         >
             <Tabs defaultValue="profile" className="w-full">
                 <TabsList className="grid w-full grid-cols-4 lg:w-[400px]">
