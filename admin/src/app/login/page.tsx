@@ -35,7 +35,7 @@ export default function LoginPage() {
     return (
         <div className="min-h-screen w-full flex font-sans overflow-hidden">
             {/* Left Side - Image Section (Full Screen) */}
-            <div className="hidden lg:block relative w-[65%] h-screen bg-[#CDEEF3]">
+            <div className="hidden lg:block relative w-[65%] h-screen bg-[#DAF1DE]">
                 <Image
                     src="/logo_bg.png"
                     alt="BusTicket Background"
@@ -124,7 +124,7 @@ export default function LoginPage() {
                             {isPending ? (
                                 <>
                                     <Loader2 className="mr-2 h-6 w-6 animate-spin" />
-                                    Đang xử lý...
+                                    Đang xác thực...
                                 </>
                             ) : (
                                 "Đăng nhập ngay"
