@@ -20,6 +20,13 @@ async function bootstrap() {
   // Prefix API
   app.setGlobalPrefix('api');
 
+  // Enable CORS
+  app.enableCors({
+    origin: true, // Cho phép tất cả origin (hoặc cấu hình cụ thể: 'http://localhost:3001')
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+    credentials: true,
+  });
+
   // Validation global
   app.useGlobalPipes(
     new ValidationPipe({

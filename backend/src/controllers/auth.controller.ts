@@ -10,6 +10,8 @@ import {
   Headers,
   NotFoundException,
   BadRequestException,
+  Get,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
@@ -21,7 +23,7 @@ import { auth } from '../config/firebase';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private authService: AuthService) {}
+  constructor(private authService: AuthService) { }
 
   // ========================================
   // 🔹 ĐĂNG KÝ NGƯỜI DÙNG (CÓ UPLOAD ẢNH)
@@ -155,6 +157,25 @@ export class AuthController {
 
     const updatedUser = await this.authService.updateUserProfile(user.id, updatedData);
     return updatedUser;
+  }
+
+  // ========================================
+  // 🔹 LẤY THÔNG TIN NGƯỜI DÙNG HIỆN TẠI (ME)
+  // ========================================
+  @Get('me')
+  @HttpCode(HttpStatus.OK)
+  async me(@Headers('Authorization') authHeader: string) {
+    if (!authHeader) throw new UnauthorizedException('Missing Authorization header');
+
+    const token = authHeader.split(' ')[1];
+    try {
+      const decodedToken = await auth.verifyIdToken(token);
+      const uid = decodedToken.uid;
+      const user = await this.authService.findUserByUid(uid);
+      return user;
+    } catch (error) {
+      throw new UnauthorizedException('Invalid token');
+    }
   }
 
   // Hàm kiểm tra định dạng ngày YYYY-MM-DD và ngày hợp lệ
