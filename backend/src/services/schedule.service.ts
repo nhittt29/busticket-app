@@ -16,6 +16,14 @@ export class ScheduleService {
     startPoint?: string;
     endPoint?: string;
     date?: string;
+    minPrice?: number;
+    maxPrice?: number;
+    startTime?: string;
+    endTime?: string;
+    busType?: string;
+    brandId?: number;
+    dropoffPoint?: string;
+    sortBy?: string;
   }) {
     return this.scheduleRepo.getAllSchedules(query);
   }

@@ -20,14 +20,34 @@ export class ScheduleController {
     return this.scheduleService.createSchedule(dto);
   }
 
-  // TÌM KIẾM CHUYẾN XE THEO ĐIỂM ĐI - ĐIỂM ĐẾN - NGÀY (DÙNG CHO KHÁCH HÀNG ĐẶT VÉ)
+  // TÌM KIẾM CHUYẾN XE CHO KHÁCH HÀNG: THEO ĐIỂM ĐI - ĐIỂM ĐẾN - NGÀY (DÙNG CHO KHÁCH HÀNG ĐẶT VÉ)
   @Get()
   findAll(
     @Query('startPoint') startPoint?: string,
     @Query('endPoint') endPoint?: string,
     @Query('date') date?: string,
+    @Query('minPrice') minPrice?: number,
+    @Query('maxPrice') maxPrice?: number,
+    @Query('startTime') startTime?: string,
+    @Query('endTime') endTime?: string,
+    @Query('busType') busType?: string,
+    @Query('brandId') brandId?: number,
+    @Query('dropoffPoint') dropoffPoint?: string,
+    @Query('sortBy') sortBy?: string,
   ) {
-    return this.scheduleService.getAllSchedules({ startPoint, endPoint, date });
+    return this.scheduleService.getAllSchedules({
+      startPoint,
+      endPoint,
+      date,
+      minPrice: minPrice ? Number(minPrice) : undefined,
+      maxPrice: maxPrice ? Number(maxPrice) : undefined,
+      startTime,
+      endTime,
+      busType,
+      brandId: brandId ? Number(brandId) : undefined,
+      dropoffPoint,
+      sortBy,
+    });
   }
 
   // LẤY TOÀN BỘ CHUYẾN XE (KHÔNG LỌC) - DÀNH RIÊNG CHO ADMIN QUẢN LÝ
