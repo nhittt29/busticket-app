@@ -83,8 +83,8 @@ export function AppSidebar() {
               size="lg"
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
-              <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                <BusFront className="size-4" />
+              <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-white text-primary-foreground overflow-hidden border border-gray-200">
+                <Image src="/icon.png" alt="Logo" width={32} height={32} className="object-contain p-0.5" />
               </div>
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-semibold">BusTicket Admin</span>
