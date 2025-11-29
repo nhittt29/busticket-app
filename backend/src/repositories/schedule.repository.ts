@@ -6,6 +6,7 @@ import { ScheduleStatus } from '@prisma/client';
 export class ScheduleRepository {
   constructor(private readonly prisma: PrismaService) { }
 
+  // TẠO MỚI MỘT CHUYẾN XE (LỊCH TRÌNH) TRONG HỆ THỐNG
   async createSchedule(dto: any) {
     return this.prisma.schedule.create({
       data: {
@@ -18,6 +19,7 @@ export class ScheduleRepository {
     });
   }
 
+  // TÌM KIẾM CHUYẾN XE CHO KHÁCH HÀNG: THEO ĐIỂM ĐI - ĐIỂM ĐẾN - NGÀY ĐI, CHỈ HIỆN CHƯA KHỞI HÀNH
   async getAllSchedules(query?: {
     startPoint?: string;
     endPoint?: string;
@@ -80,6 +82,7 @@ export class ScheduleRepository {
     });
   }
 
+  // LẤY TOÀN BỘ CHUYẾN XE (KHÔNG LỌC) - DÀNH RIÊNG CHO ADMIN QUẢN LÝ, BAO GỒM CẢ QUÁ KHỨ VÀ TƯƠNG LAI
   async getAllSchedulesForAdmin() {
     return this.prisma.schedule.findMany({
       include: {
@@ -92,6 +95,7 @@ export class ScheduleRepository {
     });
   }
 
+  // LẤY THÔNG TIN CHI TIẾT MỘT CHUYẾN XE THEO ID (DÙNG CHO CHI TIẾT CHUYẾN, ĐẶT VÉ, CHỌN GHẾ...)
   async getScheduleById(id: number) {
     return this.prisma.schedule.findUnique({
       where: { id },
@@ -102,12 +106,14 @@ export class ScheduleRepository {
     });
   }
 
+  // XÓA TẤT CẢ VÉ ĐÃ ĐẶT TRÊN MỘT CHUYẾN XE (DÙNG KHI HỦY CHUYẾN HOẶC XÓA CHUYẾN)
   async deleteTicketsByScheduleId(scheduleId: number) {
     return this.prisma.ticket.deleteMany({
       where: { scheduleId },
     });
   }
 
+  // XÓA HOÀN TOÀN MỘT CHUYẾN XE KHỎI HỆ THỐNG (ADMIN ONLY - THƯỜNG KẾT HỢP VỚI XÓA VÉ TRƯỚC)
   async deleteSchedule(id: number) {
     return this.prisma.schedule.delete({
       where: { id },

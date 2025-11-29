@@ -5,7 +5,7 @@ import { PrismaService } from '../services/prisma.service';
 export class UserRepository {
   constructor(private readonly prisma: PrismaService) { }
 
-  //Tạo mới người dùng
+  // TẠO MỚI NGƯỜI DÙNG SAU KHI ĐĂNG KÝ/ĐĂNG NHẬP QUA FIREBASE AUTH (TỰ ĐỘNG HOẶC ADMIN TẠO)
   async createUser(data: {
     uid: string;
     name: string;
@@ -36,7 +36,7 @@ export class UserRepository {
     });
   }
 
-  //Lấy người dùng theo ID
+  // LẤY THÔNG TIN CHI TIẾT NGƯỜI DÙNG THEO ID (DÙNG TRONG ADMIN HOẶC PROFILE)
   async findById(id: number) {
     return this.prisma.user.findUnique({
       where: { id },
@@ -47,7 +47,7 @@ export class UserRepository {
     });
   }
 
-  //Lấy người dùng theo Email
+  // LẤY NGƯỜI DÙNG THEO EMAIL (DÙNG CHO ĐĂNG NHẬP, QUÊN MẬT KHẨU, KIỂM TRA TRÙNG)
   async findByEmail(email: string) {
     return this.prisma.user.findUnique({
       where: { email },
@@ -58,7 +58,7 @@ export class UserRepository {
     });
   }
 
-  //Lấy người dùng theo UID Firebase
+  // LẤY NGƯỜI DÙNG THEO UID FIREBASE (CHÍNH XÁC NHẤT KHI ĐĂNG NHẬP QUA FIREBASE)
   async findByUid(uid: string) {
     return this.prisma.user.findUnique({
       where: { uid },
@@ -69,7 +69,7 @@ export class UserRepository {
     });
   }
 
-  //Cập nhật thông tin người dùng
+  // CẬP NHẬT THÔNG TIN CÁ NHÂN, QUYỀN, TRẠNG THÁI HOẠT ĐỘNG, AVATAR, NGÀY SINH, GIỚI TÍNH
   async updateUser(
     id: number,
     data: Partial<{
@@ -92,14 +92,14 @@ export class UserRepository {
     });
   }
 
-  //Xóa người dùng
+  // XÓA NGƯỜI DÙNG KHỎI HỆ THỐNG (HARD DELETE - CẨN THẬN KHI DÙNG)
   async deleteUser(id: number) {
     return this.prisma.user.delete({
       where: { id },
     });
   }
 
-  //Lấy tất cả người dùng (phân biệt theo role nếu muốn)
+  // LẤY DANH SÁCH TẤT CẢ NGƯỜI DÙNG (KHÁCH HÀNG, NHÀ XE, ADMIN) - DÀNH CHO QUẢN TRỊ VIÊN
   async findAll() {
     return this.prisma.user.findMany({
       include: {

@@ -8,6 +8,7 @@ import { TicketStatus } from '../models/Ticket';
 export class TicketRepository {
   constructor(private prisma: PrismaService) { }
 
+  // TẠO MỚI MỘT VÉ ĐÃ ĐẶT (TRẠNG THÁI BOOKED) - DÙNG CHO ĐẶT VÉ ONLINE HOẶC TẠI QUẦY
   create(data: CreateTicketDto) {
     return this.prisma.ticket.create({
       data: {
@@ -22,6 +23,7 @@ export class TicketRepository {
     });
   }
 
+  // LẤY THÔNG TIN CHI TIẾT MỘT VÉ THEO ID (KÈM THÔNG TIN GHẾ)
   findById(id: number) {
     return this.prisma.ticket.findUnique({
       where: { id },
@@ -29,6 +31,7 @@ export class TicketRepository {
     });
   }
 
+  // CẬP NHẬT TRẠNG THÁI HOẶC THÔNG TIN VÉ (THANH TOÁN, HỦY, HOÀN TIỀN...)
   update(id: number, data: any) {
     return this.prisma.ticket.update({
       where: { id },
@@ -36,6 +39,7 @@ export class TicketRepository {
     });
   }
 
+  // KIỂM TRA GHẾ ĐÃ ĐƯỢC ĐẶT CHƯA TRONG CHUYẾN XE ĐÓ (NGĂN ĐẶT TRÙNG GHẾ)
   checkSeatBooked(scheduleId: number, seatId: number) {
     return this.prisma.ticket.findFirst({
       where: {
@@ -46,6 +50,7 @@ export class TicketRepository {
     });
   }
 
+  // ĐẾM SỐ LẦN ĐẶT VÉ CỦA MỘT NGƯỜI DÙNG TRONG NGÀY HIỆN TẠI (CHỐNG SPAM ĐẶT VÉ)
   findUserBookedToday(userId: number) {
     const now = new Date();
     const start = new Date(now.setHours(0, 0, 0, 0));
@@ -55,6 +60,7 @@ export class TicketRepository {
     });
   }
 
+  // LẤY DANH SÁCH VÉ CỦA MỘT NGƯỜI DÙNG (TRANG "VÉ CỦA TÔI") - KÈM THÔNG TIN CHUYẾN, GHẾ, THANH TOÁN, ĐIỂM TRẢ
   getTicketsByUser(userId: number) {
     return this.prisma.ticket.findMany({
       where: { userId },
@@ -68,6 +74,7 @@ export class TicketRepository {
     });
   }
 
+  // THỐNG KÊ SỐ VÉ ĐÃ BÁN TRONG NGÀY HIỆN TẠI CỦA MỘT NHÀ XE (DÙNG CHO BÁO CÁO DOANH THU)
   countBrandSoldToday(brandId: number) {
     const now = new Date();
     const start = new Date(now.setHours(0, 0, 0, 0));

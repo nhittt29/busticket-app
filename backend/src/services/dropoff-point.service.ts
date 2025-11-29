@@ -5,8 +5,9 @@ import { CreateDropoffPointDto, UpdateDropoffPointDto } from '../dtos/dropoff-po
 
 @Injectable()
 export class DropoffPointService {
-  constructor(private readonly repo: DropoffPointRepository) {}
+  constructor(private readonly repo: DropoffPointRepository) { }
 
+  // LẤY DANH SÁCH ĐIỂM TRẢ KHÁCH CỦA MỘT CHUYẾN XE – NÉM LỖI 404 NẾU CHƯA CÓ ĐIỂM NÀO
   async getByScheduleId(scheduleId: number) {
     const points = await this.repo.findManyByScheduleId(scheduleId);
     if (points.length === 0) {
@@ -15,6 +16,7 @@ export class DropoffPointService {
     return points;
   }
 
+  // TẠO MỚI ĐIỂM TRẢ KHÁCH CHO CHUYẾN XE – TỰ ĐỘNG BỎ MẶC ĐỊNH CŨ NẾU ĐIỂM MỚI LÀ MẶC ĐỊNH
   async create(scheduleId: number, dto: CreateDropoffPointDto) {
     if (dto.isDefault) {
       await this.repo.resetDefault(scheduleId);
@@ -32,6 +34,7 @@ export class DropoffPointService {
     return this.repo.create(data);
   }
 
+  // CẬP NHẬT ĐIỂM TRẢ KHÁCH – TỰ ĐỘNG RESET MẶC ĐỊNH CŨ NẾU ĐIỂM NÀY ĐƯỢC SET LÀ MẶC ĐỊNH
   async update(id: number, dto: UpdateDropoffPointDto) {
     const point = await this.repo.findUnique(id);
     if (!point) throw new NotFoundException(`Không tìm thấy điểm trả #${id}`);
@@ -50,6 +53,7 @@ export class DropoffPointService {
     return this.repo.update(id, data);
   }
 
+  // XÓA ĐIỂM TRẢ KHÁCH – CHẶN XÓA NẾU ĐÃ CÓ KHÁCH CHỌN ĐIỂM NÀY
   async delete(id: number) {
     const point = await this.repo.findUnique(id);
     if (!point) throw new NotFoundException(`Không tìm thấy điểm trả #${id}`);

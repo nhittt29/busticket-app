@@ -6,6 +6,7 @@ import { CreateBusDto, UpdateBusDto } from '../dtos/bus.dto';
 export class BusRepository {
   constructor(private readonly prisma: PrismaService) { }
 
+  // LẤY DANH SÁCH TẤT CẢ XE BUÝT KÈM THÔNG TIN HÃNG, LỊCH TRÌNH VÀ GHẾ
   findAll() {
     return this.prisma.bus.findMany({
       include: {
@@ -17,6 +18,7 @@ export class BusRepository {
     });
   }
 
+  // LẤY THÔNG TIN CHI TIẾT MỘT XE BUÝT THEO ID (BAO GỒM HÃNG, LỊCH CHẠY, DANH SÁCH GHẾ)
   findById(id: number) {
     return this.prisma.bus.findUnique({
       where: { id },
@@ -28,6 +30,7 @@ export class BusRepository {
     });
   }
 
+  // TẠO MỚI MỘT XE BUÝT + TỰ ĐỘNG TẠO ĐỦ GHẾ THEO LOẠI XE (GIƯỜNG NẰM / GHẾ NGỒI)
   async create(data: CreateBusDto) {
     // Bước 1: Tạo xe
     const bus = await this.prisma.bus.create({
@@ -68,6 +71,7 @@ export class BusRepository {
     return this.findById(bus.id);
   }
 
+  // CẬP NHẬT THÔNG TIN XE BUÝT (TÊN, BIỂN SỐ, LOẠI GHẾ, HÃNG XE...)
   update(id: number, data: UpdateBusDto) {
     return this.prisma.bus.update({
       where: { id },
@@ -75,6 +79,7 @@ export class BusRepository {
     });
   }
 
+  // XÓA XE BUÝT KHỎI HỆ THỐNG (SẼ XÓA CẢ GHẾ VÀ LỊCH TRÌNH LIÊN QUAN - DÙNG CẨN THẬN)
   delete(id: number) {
     return this.prisma.bus.delete({
       where: { id },

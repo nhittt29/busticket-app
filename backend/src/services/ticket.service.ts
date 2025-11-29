@@ -36,7 +36,7 @@ export class TicketService {
     @InjectQueue('ticket') private readonly ticketQueue: Queue,
   ) { }
 
-  // ĐẶT VÉ LẺ
+  // ĐẶT VÉ LẺ – KIỂM TRA TOÀN DIỆN: GIỜ KHỞI HÀNH, GHẾ TRÙNG, GIỚI HẠN NGÀY, PHỤ THU TRẢ KHÁCH
   async create(dto: CreateTicketDto): Promise<CreateResponse> {
     const { userId, scheduleId, seatId, price, paymentMethod, dropoffPointId, dropoffAddress } = dto;
 
@@ -133,7 +133,7 @@ export class TicketService {
     };
   }
 
-  // ĐẶT NHIỀU VÉ
+  // ĐẶT NHIỀU VÉ CÙNG LÚC (CHỌN NHIỀU GHẾ) – TỐI ƯU CHO ĐẶT VÉ ONLINE
   async createBulk(
     dtos: CreateTicketDto[],
     totalAmountFromClient: number,
@@ -243,6 +243,7 @@ export class TicketService {
     };
   }
 
+  // XỬ LÝ REDIRECT TỪ MOMO SAU KHI KHÁCH THANH TOÁN (THÀNH CÔNG / THẤT BẠI)
   async handleMomoRedirect(query: any) {
     this.logger.log(`MoMo Redirect: ${JSON.stringify(query)}`);
     const { resultCode, orderId, transId } = query;
@@ -261,6 +262,7 @@ export class TicketService {
     }
   }
 
+  // NHẬN CALLBACK (IPN) TỪ MOMO – XÁC NHẬN THANH TOÁN TỪ SERVER MOMO (AN TOÀN NHẤT)
   async handleMomoCallback(data: any) {
     this.logger.log(`MoMo IPN: ${JSON.stringify(data)}`);
     if (data.resultCode !== 0) {
@@ -287,6 +289,7 @@ export class TicketService {
     }
   }
 
+  // XỬ LÝ THANH TOÁN THÀNH CÔNG – CẬP NHẬT TRẠNG THÁI, TẠO QR, GỬI EMAIL, HỦY JOB HẾT HẠN
   async payTicket(paymentHistoryId: number, method: AppPaymentMethod, transId?: string) {
     this.logger.log(`Thanh toán nhóm vé từ paymentHistoryId #${paymentHistoryId}`);
     const paymentHistory = await this.prism.paymentHistory.findUnique({
@@ -372,6 +375,7 @@ export class TicketService {
     };
   }
 
+  // HỦY VÉ ĐANG CHỜ THANH TOÁN – CHỈ CHO PHÉP TRƯỚC 2 GIỜ KHỞI HÀNH
   async cancel(id: number) {
     const ticket = await this.prism.ticket.findUnique({
       where: { id },
@@ -396,6 +400,7 @@ export class TicketService {
     return { message: 'Hủy vé thành công', ticketId: id };
   }
 
+  // LẤY DANH SÁCH VÉ CỦA NGƯỜI DÙNG – TRANG "VÉ CỦA TÔI" TRÊN APP/WEB
   async getTicketsByUser(userId: number) {
     const tickets = await this.ticketRepo.getTicketsByUser(userId);
     return tickets.map(ticket => ({
@@ -404,6 +409,7 @@ export class TicketService {
     }));
   }
 
+  // LẤY TRẠNG THÁI HIỆN TẠI CỦA MỘT VÉ (BOOKED / PAID / CANCELLED...)
   async getStatus(id: number) {
     const ticket = await this.prism.ticket.findUnique({
       where: { id },
@@ -413,6 +419,7 @@ export class TicketService {
     return ticket;
   }
 
+  // LẤY THÔNG TIN THANH TOÁN + VÉ (DÙNG CHO TRANG CHI TIẾT VÉ)
   async getPaymentHistory(ticketId: number): Promise<PaymentHistoryResponse> {
     const payment = await this.prism.paymentHistory.findFirst({
       where: { ticketPayments: { some: { ticketId } } },
@@ -459,6 +466,7 @@ export class TicketService {
     };
   }
 
+  // LẤY CHI TIẾT THANH TOÁN THEO PAYMENT HISTORY ID (DÙNG CHO QR, XÁC NHẬN, IN VÉ)
   async getPaymentDetailByHistoryId(paymentHistoryId: number): Promise<any> {
     const payment = await this.prism.paymentHistory.findUnique({
       where: { id: paymentHistoryId },
@@ -519,6 +527,7 @@ export class TicketService {
     };
   }
 
+  // LẤY TẤT CẢ VÉ TRONG HỆ THỐNG (DÀNH CHO ADMIN HOẶC DEBUG)
   async getAllTickets() {
     const tickets = await this.prism.ticket.findMany({
       include: {
@@ -537,6 +546,7 @@ export class TicketService {
     return tickets;
   }
 
+  // CHUYỂN ĐỔI TÊN PHƯƠNG THỨC THANH TOÁN SANG TIẾNG VIỆT
   private formatPaymentMethod(method: any): string {
     const map: Record<string, string> = {
       CASH: 'Tiền mặt',
@@ -547,6 +557,7 @@ export class TicketService {
     return map[method] || method;
   }
 
+  // LẤY CHI TIẾT MỘT VÉ THEO ID – DÙNG CHO TRANG XEM VÉ, IN VÉ
   async getTicketById(id: number) {
     const ticket = await this.prism.ticket.findUnique({
       where: { id },
@@ -572,6 +583,7 @@ export class TicketService {
     };
   }
 
+  // FORMAT THÔNG TIN ĐIỂM TRẢ KHÁCH (TRẢ TẬN NƠI / ĐIỂM TRẢ / BẾN ĐÍCH)
   private formatDropoffInfo(ticket: any) {
     if (ticket.dropoffAddress) {
       return {
@@ -603,6 +615,7 @@ export class TicketService {
     };
   }
 
+  // LẤY DANH SÁCH BOOKING CHO ADMIN – HIỂN THỊ THEO NHÓM THANH TOÁN
   async getAllBookingsForAdmin() {
     const bookings = await this.prism.paymentHistory.findMany({
       include: {
@@ -644,6 +657,7 @@ export class TicketService {
     }).filter(Boolean);
   }
 
+  // LẤY CHI TIẾT MỘT BOOKING THEO ID – DÀNH CHO ADMIN XEM ĐƠN
   async getBookingById(id: number) {
     const booking = await this.prism.paymentHistory.findUnique({
       where: { id },

@@ -5,10 +5,9 @@ import { ReminderInfoDto } from '../dtos/reminder-info.dto';
 
 @Injectable()
 export class BookingService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
-  // Các hàm cũ của bạn...
-
+  // LẤY THÔNG TIN NHẮC NHỞ KHÁCH HÀNG TRƯỚC GIỜ XE CHẠY (DÙNG CHO SMS / ZALO OA / PUSH NOTIFICATION)
   async getReminderInfo(scheduleId: number): Promise<ReminderInfoDto> {
     const schedule = await this.prisma.schedule.findUnique({
       where: { id: scheduleId },

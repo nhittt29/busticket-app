@@ -6,6 +6,7 @@ import { Prisma } from '@prisma/client';
 export class RouteRepository {
   constructor(private readonly prisma: PrismaService) { }
 
+  // LẤY DANH SÁCH TẤT CẢ TUYẾN ĐƯỜNG KÈM THÔNG TIN NHÀ XE/HÃNG XE QUẢN LÝ
   async findAll() {
     return this.prisma.route.findMany({
       include: { brand: true },
@@ -13,6 +14,7 @@ export class RouteRepository {
     });
   }
 
+  // LẤY THÔNG TIN CHI TIẾT MỘT TUYẾN ĐƯỜNG THEO ID (BAO GỒM NHÀ XE QUẢN LÝ)
   async findById(id: number) {
     return this.prisma.route.findUnique({
       where: { id },
@@ -20,10 +22,12 @@ export class RouteRepository {
     });
   }
 
+  // TẠO MỚI MỘT TUYẾN ĐƯỜNG (ĐIỂM ĐI → ĐIỂM ĐẾN, KHOẢNG CÁCH, THỜI GIAN, GIÁ VÉ, HÃNG XE)
   async create(data: Prisma.RouteCreateInput) {
     return this.prisma.route.create({ data });
   }
 
+  // CẬP NHẬT THÔNG TIN TUYẾN ĐƯỜNG (GIÁ VÉ, THỜI GIAN ƯỚC TÍNH, TRẠNG THÁI, HÃNG XE...)
   async update(id: number, data: Prisma.RouteUpdateInput) {
     return this.prisma.route.update({
       where: { id },
@@ -31,6 +35,7 @@ export class RouteRepository {
     });
   }
 
+  // XÓA TUYẾN ĐƯỜNG KHỎI HỆ THỐNG (CẨN THẬN - SẼ ẢNH HƯỞNG ĐẾN CÁC CHUYẾN XE ĐÃ TẠO)
   async delete(id: number) {
     return this.prisma.route.delete({
       where: { id },

@@ -4,8 +4,9 @@ import { PrismaService } from '../services/prisma.service';
 
 @Injectable()
 export class SeatRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
+  // LẤY DANH SÁCH GHẾ + TRẠNG THÁI CỦA MỘT CHUYẾN XE THEO SCHEDULEID – DÙNG CHO CHỌN GHẾ TRÊN APP/WEB
   async findSeatsByScheduleId(scheduleId: number) {
     const schedule = await this.prisma.schedule.findUnique({
       where: { id: scheduleId },
