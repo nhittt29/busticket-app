@@ -4,7 +4,7 @@ import { CreateBusDto, UpdateBusDto } from '../dtos/bus.dto';
 
 @Injectable()
 export class BusRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   findAll() {
     return this.prisma.bus.findMany({
@@ -13,6 +13,7 @@ export class BusRepository {
         schedules: true,
         seats: true,
       },
+      orderBy: { id: 'asc' },
     });
   }
 

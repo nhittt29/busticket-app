@@ -6,7 +6,7 @@ import { TicketStatus } from '../models/Ticket';
 
 @Injectable()
 export class TicketRepository {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   create(data: CreateTicketDto) {
     return this.prisma.ticket.create({
@@ -64,7 +64,7 @@ export class TicketRepository {
         paymentHistory: true,
         dropoffPoint: true,
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { id: 'asc' },
     });
   }
 

@@ -31,6 +31,12 @@ export default function RouteListPage() {
     // useList returns { query, result } in this version
     const hookResult = useList<IRoute>({
         resource: "routes",
+        sorters: [
+            {
+                field: "id",
+                order: "asc",
+            },
+        ],
     });
 
     // Safely access data
@@ -135,7 +141,11 @@ export default function RouteListPage() {
                         </TableRow>
                     ) : (
                         routes.map((route: IRoute) => (
-                            <TableRow key={route.id} className="hover:bg-muted/50 transition-colors">
+                            <TableRow
+                                key={route.id}
+                                className="hover:bg-muted/50 transition-colors cursor-pointer"
+                                onClick={() => router.push(`/routes/edit/${route.id}`)}
+                            >
                                 <TableCell className="font-medium">#{route.id}</TableCell>
                                 <TableCell>
                                     <div className="flex items-center gap-2">
@@ -170,14 +180,14 @@ export default function RouteListPage() {
                                         </DropdownMenuTrigger>
                                         <DropdownMenuContent align="end">
                                             <DropdownMenuLabel>Thao tác</DropdownMenuLabel>
-                                            <DropdownMenuItem onClick={() => router.push(`/routes/edit/${route.id}`)}>
+                                            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); router.push(`/routes/edit/${route.id}`); }}>
                                                 <Pencil className="w-4 h-4 mr-2" />
                                                 Chỉnh sửa
                                             </DropdownMenuItem>
                                             <DropdownMenuSeparator />
                                             <DropdownMenuItem
                                                 className="text-destructive focus:text-destructive"
-                                                onClick={() => handleDelete(route.id)}
+                                                onClick={(e) => { e.stopPropagation(); handleDelete(route.id); }}
                                             >
                                                 <Trash2 className="w-4 h-4 mr-2" />
                                                 Xóa tuyến

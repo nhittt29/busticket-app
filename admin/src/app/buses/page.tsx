@@ -32,6 +32,12 @@ export default function BusListPage() {
     // Based on TS error, useList returns { query, result }
     const hookResult = useList<IBus>({
         resource: "buses",
+        sorters: [
+            {
+                field: "id",
+                order: "asc",
+            },
+        ],
     });
 
     console.log("BusListPage useList result:", hookResult);
@@ -141,7 +147,11 @@ export default function BusListPage() {
                         </TableRow>
                     ) : (
                         buses.map((bus: IBus) => (
-                            <TableRow key={bus.id} className="hover:bg-muted/50 transition-colors">
+                            <TableRow
+                                key={bus.id}
+                                className="hover:bg-muted/50 transition-colors cursor-pointer"
+                                onClick={() => router.push(`/buses/edit/${bus.id}`)}
+                            >
                                 <TableCell className="font-medium">#{bus.id}</TableCell>
                                 <TableCell className="font-medium">{bus.name}</TableCell>
                                 <TableCell>
@@ -169,14 +179,14 @@ export default function BusListPage() {
                                         </DropdownMenuTrigger>
                                         <DropdownMenuContent align="end">
                                             <DropdownMenuLabel>Thao tác</DropdownMenuLabel>
-                                            <DropdownMenuItem onClick={() => router.push(`/buses/edit/${bus.id}`)}>
+                                            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); router.push(`/buses/edit/${bus.id}`); }}>
                                                 <Pencil className="w-4 h-4 mr-2" />
                                                 Chỉnh sửa
                                             </DropdownMenuItem>
                                             <DropdownMenuSeparator />
                                             <DropdownMenuItem
                                                 className="text-destructive focus:text-destructive"
-                                                onClick={() => handleDelete(bus.id)}
+                                                onClick={(e) => { e.stopPropagation(); handleDelete(bus.id); }}
                                             >
                                                 <Trash2 className="w-4 h-4 mr-2" />
                                                 Xóa xe

@@ -4,12 +4,12 @@ import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class RouteRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   async findAll() {
     return this.prisma.route.findMany({
       include: { brand: true },
-      orderBy: { id: 'desc' },
+      orderBy: { id: 'asc' },
     });
   }
 

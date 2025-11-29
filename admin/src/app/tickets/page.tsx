@@ -31,17 +31,17 @@ import { MoreHorizontal } from "lucide-react";
 
 export default function TicketListPage() {
     const router = useRouter();
-    const { query, result } = useList<ITicket>({
-        resource: "tickets",
+    const { query, result } = useList<any>({
+        resource: "bookings",
         sorters: [
             {
                 field: "createdAt",
                 order: "desc",
             },
         ],
-    }) as any; // Casting to any to avoid type issues with useList return
+    }) as any;
 
-    const tickets = result?.data || [];
+    const bookings = result?.data || [];
     const isLoading = query?.isLoading;
 
     const formatCurrency = (amount: number) => {
@@ -74,8 +74,8 @@ export default function TicketListPage() {
 
     return (
         <ListLayout
-            title="Quản lý Vé"
-            description="Danh sách vé đã đặt và trạng thái."
+            title="Quản lý Đặt Vé"
+            description="Danh sách các giao dịch đặt vé (nhóm theo mã đặt chỗ)."
             icon={Ticket}
             actions={
                 <Button variant="outline" onClick={() => router.push("/")}>
@@ -102,10 +102,11 @@ export default function TicketListPage() {
             <Table>
                 <TableHeader>
                     <TableRow className="hover:bg-transparent">
-                        <TableHead className="w-[80px]">ID</TableHead>
+                        <TableHead className="w-[80px]">Mã Đặt</TableHead>
                         <TableHead>Khách hàng</TableHead>
                         <TableHead>Chuyến xe</TableHead>
-                        <TableHead>Ghế</TableHead>
+                        <TableHead>Số ghế</TableHead>
+                        <TableHead>Danh sách ghế</TableHead>
                         <TableHead>Tổng tiền</TableHead>
                         <TableHead>Trạng thái</TableHead>
                         <TableHead>Ngày đặt</TableHead>
@@ -115,49 +116,58 @@ export default function TicketListPage() {
                 <TableBody>
                     {isLoading ? (
                         <TableRow>
-                            <TableCell colSpan={8} className="h-24 text-center">
+                            <TableCell colSpan={9} className="h-24 text-center">
                                 Đang tải dữ liệu...
                             </TableCell>
                         </TableRow>
-                    ) : tickets.length === 0 ? (
+                    ) : bookings.length === 0 ? (
                         <TableRow>
-                            <TableCell colSpan={8} className="h-24 text-center">
-                                Chưa có vé nào.
+                            <TableCell colSpan={9} className="h-24 text-center">
+                                Chưa có giao dịch nào.
                             </TableCell>
                         </TableRow>
                     ) : (
-                        tickets.map((ticket: ITicket) => (
-                            <TableRow key={ticket.id} className="hover:bg-muted/50 transition-colors">
-                                <TableCell className="font-medium">#{ticket.id}</TableCell>
+                        bookings.map((booking: any) => (
+                            <TableRow
+                                key={booking.id}
+                                className="hover:bg-muted/50 transition-colors cursor-pointer"
+                                onClick={() => router.push(`/tickets/show/${booking.id}`)}
+                            >
+                                <TableCell className="font-medium">#{booking.id}</TableCell>
                                 <TableCell>
                                     <div className="flex flex-col">
-                                        <span className="font-medium">{ticket.user?.name || "Khách vãng lai"}</span>
-                                        <span className="text-xs text-muted-foreground">{ticket.user?.phone}</span>
+                                        <span className="font-medium">{booking.user?.name || "Khách vãng lai"}</span>
+                                        <span className="text-xs text-muted-foreground">{booking.user?.phone}</span>
                                     </div>
                                 </TableCell>
                                 <TableCell>
                                     <div className="flex flex-col max-w-[200px]">
                                         <span className="truncate font-medium">
-                                            {ticket.schedule?.route?.startPoint} - {ticket.schedule?.route?.endPoint}
+                                            {booking.schedule?.route?.startPoint} - {booking.schedule?.route?.endPoint}
                                         </span>
                                         <span className="text-xs text-muted-foreground">
-                                            {formatDateTime(ticket.schedule?.departureAt || "")}
+                                            {formatDateTime(booking.schedule?.departureAt || "")}
                                         </span>
                                     </div>
                                 </TableCell>
                                 <TableCell>
-                                    <Badge variant="outline" className="font-mono">
-                                        {ticket.seat?.seatNumber}
+                                    <Badge variant="secondary" className="font-mono">
+                                        {booking.seatCount} vé
                                     </Badge>
                                 </TableCell>
+                                <TableCell>
+                                    <span className="text-sm font-mono text-muted-foreground">
+                                        {booking.seatList}
+                                    </span>
+                                </TableCell>
                                 <TableCell className="font-medium text-primary">
-                                    {formatCurrency(ticket.totalPrice)}
+                                    {formatCurrency(booking.totalPrice)}
                                 </TableCell>
                                 <TableCell>
-                                    {getStatusBadge(ticket.status)}
+                                    {getStatusBadge(booking.status)}
                                 </TableCell>
                                 <TableCell className="text-muted-foreground text-sm">
-                                    {formatDateTime(ticket.createdAt)}
+                                    {formatDateTime(booking.createdAt)}
                                 </TableCell>
                                 <TableCell className="text-right">
                                     <div className="flex justify-end gap-2">
@@ -165,26 +175,11 @@ export default function TicketListPage() {
                                             variant="ghost"
                                             size="icon"
                                             className="h-8 w-8 text-muted-foreground hover:text-primary"
-                                            onClick={() => router.push(`/tickets/show/${ticket.id}`)}
+                                            onClick={(e) => { e.stopPropagation(); router.push(`/tickets/show/${booking.id}`); }}
                                             title="Xem chi tiết"
                                         >
                                             <Eye className="h-4 w-4" />
                                         </Button>
-                                        <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
-                                                <Button variant="ghost" className="h-8 w-8 p-0">
-                                                    <span className="sr-only">Open menu</span>
-                                                    <MoreHorizontal className="h-4 w-4" />
-                                                </Button>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="end">
-                                                <DropdownMenuLabel>Thao tác</DropdownMenuLabel>
-                                                <DropdownMenuItem onClick={() => router.push(`/tickets/show/${ticket.id}`)}>
-                                                    <Eye className="w-4 h-4 mr-2" />
-                                                    Xem chi tiết
-                                                </DropdownMenuItem>
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
                                     </div>
                                 </TableCell>
                             </TableRow>

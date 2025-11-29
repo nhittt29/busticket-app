@@ -4,8 +4,9 @@ import { SeatService } from '../services/seat.service';
 
 @Controller('seats')
 export class SeatController {
-  constructor(private readonly seatService: SeatService) {}
+  constructor(private readonly seatService: SeatService) { }
 
+  // LẤY DANH SÁCH GHẾ + TRẠNG THÁI CỦA MỘT CHUYẾN XE THEO SCHEDULEID (DÙNG CHO CHỌN GHẾ TRÊN APP/WEB)
   @Get('by-schedule/:scheduleId')
   async getSeatsBySchedule(@Param('scheduleId', ParseIntPipe) scheduleId: number) {
     return this.seatService.getSeatsBySchedule(scheduleId);

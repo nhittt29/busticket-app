@@ -35,8 +35,8 @@ export default function UserListPage() {
         resource: "users",
         sorters: [
             {
-                field: "createdAt",
-                order: "desc",
+                field: "id",
+                order: "asc",
             },
         ],
     }) as any;
@@ -130,7 +130,11 @@ export default function UserListPage() {
                         </TableRow>
                     ) : (
                         users.map((user: IUser) => (
-                            <TableRow key={user.id} className="hover:bg-muted/50 transition-colors">
+                            <TableRow
+                                key={user.id}
+                                className="hover:bg-muted/50 transition-colors cursor-pointer"
+                                onClick={() => router.push(`/users/show/${user.id}`)}
+                            >
                                 <TableCell className="font-medium">#{user.id}</TableCell>
                                 <TableCell>
                                     <div className="flex items-center gap-3">
@@ -173,16 +177,16 @@ export default function UserListPage() {
                                         </DropdownMenuTrigger>
                                         <DropdownMenuContent align="end">
                                             <DropdownMenuLabel>Thao tác</DropdownMenuLabel>
-                                            <DropdownMenuItem onClick={() => router.push(`/users/show/${user.id}`)}>
+                                            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); router.push(`/users/show/${user.id}`); }}>
                                                 <Eye className="w-4 h-4 mr-2" />
                                                 Xem chi tiết
                                             </DropdownMenuItem>
-                                            <DropdownMenuItem onClick={() => router.push(`/users/edit/${user.id}`)}>
+                                            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); router.push(`/users/edit/${user.id}`); }}>
                                                 <Edit className="w-4 h-4 mr-2" />
                                                 Chỉnh sửa
                                             </DropdownMenuItem>
                                             <DropdownMenuSeparator />
-                                            <DropdownMenuItem onClick={() => handleToggleStatus(user.id, user.isActive)}>
+                                            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleToggleStatus(user.id, user.isActive); }}>
                                                 {user.isActive ? (
                                                     <>
                                                         <Lock className="w-4 h-4 mr-2 text-red-500" />

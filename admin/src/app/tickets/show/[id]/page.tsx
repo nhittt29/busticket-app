@@ -22,51 +22,25 @@ import api from "@/lib/api";
 export default function TicketShowPage() {
     const router = useRouter();
     const params = useParams<{ id: string }>();
-    const [ticket, setTicket] = useState<ITicket | null>(null);
+    const [booking, setBooking] = useState<any | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<any>(null);
 
     useEffect(() => {
         if (params?.id) {
             setIsLoading(true);
-            api.get(`/tickets/${params.id}`)
+            api.get(`/tickets/bookings/${params.id}`)
                 .then((res) => {
-                    setTicket(res.data);
+                    setBooking(res.data);
                     setIsLoading(false);
                 })
                 .catch((err) => {
-                    console.error("Error fetching ticket:", err);
+                    console.error("Error fetching booking:", err);
                     setError(err);
                     setIsLoading(false);
                 });
         }
     }, [params?.id]);
-
-    const { mutate: updateTicket } = useUpdate();
-
-    const handleCancel = () => {
-        if (confirm("Bạn có chắc chắn muốn hủy vé này không?")) {
-            updateTicket(
-                {
-                    resource: "tickets",
-                    id: params?.id,
-                    values: {
-                        status: TicketStatus.CANCELLED,
-                    },
-                },
-                {
-                    onSuccess: () => {
-                        toast.success("Hủy vé thành công");
-                    },
-                    onError: (error) => {
-                        toast.error("Hủy vé thất bại", {
-                            description: error.message,
-                        });
-                    },
-                }
-            );
-        }
-    };
 
     const formatCurrency = (amount: number) => {
         return new Intl.NumberFormat("vi-VN", {
@@ -98,13 +72,13 @@ export default function TicketShowPage() {
     };
 
     if (isLoading) {
-        return <div className="p-8 text-center">Đang tải thông tin vé...</div>;
+        return <div className="p-8 text-center">Đang tải thông tin đặt vé...</div>;
     }
 
     if (error) {
         return (
             <div className="p-8 text-center text-red-500">
-                <p>Đã xảy ra lỗi khi tải vé.</p>
+                <p>Đã xảy ra lỗi khi tải thông tin đặt vé.</p>
                 <p className="text-sm text-muted-foreground">{error?.message || JSON.stringify(error)}</p>
                 <Button variant="outline" onClick={() => router.back()} className="mt-4">
                     Quay lại
@@ -113,17 +87,10 @@ export default function TicketShowPage() {
         );
     }
 
-    if (!ticket) {
+    if (!booking) {
         return (
             <div className="p-8 text-center">
-                <p>Không tìm thấy vé #{params?.id}.</p>
-                <div className="mt-4 p-4 bg-gray-100 rounded text-left text-xs font-mono overflow-auto max-w-lg mx-auto">
-                    <p>DEBUG INFO:</p>
-                    <p>Params: {JSON.stringify(params)}</p>
-                    <p>Ticket State: {JSON.stringify(ticket)}</p>
-                    <p>IsLoading: {isLoading ? 'true' : 'false'}</p>
-                    <p>Error: {error ? JSON.stringify(error) : 'null'}</p>
-                </div>
+                <p>Không tìm thấy mã đặt vé #{params?.id}.</p>
                 <Button variant="outline" onClick={() => router.back()} className="mt-4">
                     Quay lại
                 </Button>
@@ -133,8 +100,8 @@ export default function TicketShowPage() {
 
     return (
         <ListLayout
-            title={`Chi tiết Vé #${ticket.id}`}
-            description={`Thông tin chi tiết vé và lịch sử thanh toán.`}
+            title={`Chi tiết Đặt Vé #${booking.id}`}
+            description={`Thông tin chi tiết nhóm vé và thanh toán.`}
             icon={Ticket}
             actions={
                 <Button variant="outline" onClick={() => router.back()}>
@@ -157,15 +124,15 @@ export default function TicketShowPage() {
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <p className="text-sm text-muted-foreground">Họ và tên</p>
-                                    <p className="font-medium text-lg">{ticket.user?.name}</p>
+                                    <p className="font-medium text-lg">{booking.user?.name}</p>
                                 </div>
                                 <div>
                                     <p className="text-sm text-muted-foreground">Số điện thoại</p>
-                                    <p className="font-medium text-lg">{ticket.user?.phone || "N/A"}</p>
+                                    <p className="font-medium text-lg">{booking.user?.phone || "N/A"}</p>
                                 </div>
                                 <div>
                                     <p className="text-sm text-muted-foreground">Email</p>
-                                    <p className="font-medium">{ticket.user?.email}</p>
+                                    <p className="font-medium">{booking.user?.email}</p>
                                 </div>
                             </div>
                         </CardContent>
@@ -181,8 +148,8 @@ export default function TicketShowPage() {
                         <CardContent className="space-y-6">
                             <div className="flex items-center justify-between p-4 bg-muted/30 rounded-lg">
                                 <div className="text-center">
-                                    <p className="text-2xl font-bold text-primary">{ticket.schedule?.route?.startPoint}</p>
-                                    <p className="text-sm text-muted-foreground">{formatDateTime(ticket.schedule?.departureAt)}</p>
+                                    <p className="text-2xl font-bold text-primary">{booking.schedule?.route?.startPoint}</p>
+                                    <p className="text-sm text-muted-foreground">{formatDateTime(booking.schedule?.departureAt)}</p>
                                 </div>
                                 <div className="flex-1 px-4 flex flex-col items-center">
                                     <div className="w-full h-[2px] bg-border relative">
@@ -190,25 +157,25 @@ export default function TicketShowPage() {
                                         <div className="absolute right-0 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-primary" />
                                     </div>
                                     <span className="text-xs text-muted-foreground mt-2">
-                                        {ticket.schedule?.route?.averageDurationMin} phút
+                                        {booking.schedule?.route?.averageDurationMin} phút
                                     </span>
                                 </div>
                                 <div className="text-center">
-                                    <p className="text-2xl font-bold text-primary">{ticket.schedule?.route?.endPoint}</p>
-                                    <p className="text-sm text-muted-foreground">{formatDateTime(ticket.schedule?.arrivalAt)}</p>
+                                    <p className="text-2xl font-bold text-primary">{booking.schedule?.route?.endPoint}</p>
+                                    <p className="text-sm text-muted-foreground">{formatDateTime(booking.schedule?.arrivalAt)}</p>
                                 </div>
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <p className="text-sm text-muted-foreground">Nhà xe</p>
-                                    <p className="font-medium">{ticket.schedule?.bus?.name}</p>
-                                    <p className="text-sm text-muted-foreground">{ticket.schedule?.bus?.licensePlate}</p>
+                                    <p className="font-medium">{booking.schedule?.bus?.name}</p>
+                                    <p className="text-sm text-muted-foreground">{booking.schedule?.bus?.licensePlate}</p>
                                 </div>
                                 <div>
-                                    <p className="text-sm text-muted-foreground">Ghế</p>
+                                    <p className="text-sm text-muted-foreground">Tổng số ghế</p>
                                     <Badge variant="secondary" className="text-lg px-3">
-                                        {ticket.seat?.seatNumber} ({ticket.seat?.code})
+                                        {booking.seatCount} vé
                                     </Badge>
                                 </div>
                             </div>
@@ -216,12 +183,13 @@ export default function TicketShowPage() {
                             <Separator />
 
                             <div>
-                                <p className="text-sm text-muted-foreground mb-2">Điểm trả khách</p>
-                                <div className="p-3 bg-muted/50 rounded-md border">
-                                    <p className="font-medium">{ticket.dropoffAddress || "Bến xe đích"}</p>
-                                    {ticket.dropoffAddress && (
-                                        <Badge variant="outline" className="mt-1 text-xs">Trả tận nơi</Badge>
-                                    )}
+                                <p className="text-sm text-muted-foreground mb-2">Danh sách ghế đã đặt</p>
+                                <div className="flex flex-wrap gap-2">
+                                    {booking.tickets?.map((t: any) => (
+                                        <Badge key={t.id} variant="outline" className="text-base px-3 py-1">
+                                            Ghế {t.seat?.seatNumber} ({formatCurrency(t.price)})
+                                        </Badge>
+                                    ))}
                                 </div>
                             </div>
                         </CardContent>
@@ -240,56 +208,21 @@ export default function TicketShowPage() {
                         <CardContent className="space-y-4">
                             <div className="flex justify-between items-center">
                                 <span className="text-muted-foreground">Trạng thái</span>
-                                {getStatusBadge(ticket.status)}
-                            </div>
-                            <Separator />
-                            <div className="flex justify-between items-center">
-                                <span className="text-muted-foreground">Giá vé</span>
-                                <span className="font-medium">{formatCurrency(ticket.price)}</span>
-                            </div>
-                            <div className="flex justify-between items-center">
-                                <span className="text-muted-foreground">Phụ thu</span>
-                                <span className="font-medium">{formatCurrency(ticket.surcharge)}</span>
+                                {getStatusBadge(booking.status)}
                             </div>
                             <Separator />
                             <div className="flex justify-between items-center">
                                 <span className="font-bold text-lg">Tổng cộng</span>
-                                <span className="font-bold text-xl text-primary">{formatCurrency(ticket.totalPrice)}</span>
+                                <span className="font-bold text-xl text-primary">{formatCurrency(booking.totalPrice)}</span>
                             </div>
                             <div className="flex justify-between items-center">
                                 <span className="text-muted-foreground">Phương thức</span>
-                                <span className="font-medium">{ticket.paymentMethod || "Chưa chọn"}</span>
+                                <span className="font-medium">{booking.paymentMethod || "Chưa chọn"}</span>
                             </div>
-                        </CardContent>
-                    </Card>
-
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Hành động</CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-3">
-                            {ticket.status === TicketStatus.BOOKED && (
-                                <Button
-                                    variant="destructive"
-                                    className="w-full"
-                                    onClick={handleCancel}
-                                >
-                                    <Ban className="w-4 h-4 mr-2" />
-                                    Hủy vé
-                                </Button>
-                            )}
-                            {ticket.status === TicketStatus.PAID && (
-                                <div className="p-3 bg-green-50 text-green-700 rounded-md flex items-center justify-center gap-2">
-                                    <CheckCircle className="w-5 h-5" />
-                                    Vé đã hoàn tất
-                                </div>
-                            )}
-                            {ticket.status === TicketStatus.CANCELLED && (
-                                <div className="p-3 bg-red-50 text-red-700 rounded-md flex items-center justify-center gap-2">
-                                    <Ban className="w-5 h-5" />
-                                    Vé đã bị hủy
-                                </div>
-                            )}
+                            <div className="flex justify-between items-center">
+                                <span className="text-muted-foreground">Ngày tạo</span>
+                                <span className="font-medium text-sm">{formatDateTime(booking.createdAt)}</span>
+                            </div>
                         </CardContent>
                     </Card>
                 </div>

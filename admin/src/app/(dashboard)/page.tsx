@@ -5,64 +5,99 @@ import { Ticket, BusFront, Users, DollarSign, TrendingUp, Clock } from "lucide-r
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useList, Authenticated } from "@refinedev/core";
 import { IBus } from "@/interfaces/bus";
-import { ITicket } from "@/interfaces/ticket";
+import { ITicket, TicketStatus } from "@/interfaces/ticket";
 import { IUser } from "@/interfaces/user";
-import { format } from "date-fns";
+import { format, subDays, isSameDay, startOfDay, parseISO } from "date-fns";
 import { vi } from "date-fns/locale";
+import { useRouter } from "next/navigation";
 
-const data = [
-    { name: 'T2', revenue: 4000 },
-    { name: 'T3', revenue: 3000 },
-    { name: 'T4', revenue: 2000 },
-    { name: 'T5', revenue: 2780 },
-    { name: 'T6', revenue: 1890 },
-    { name: 'T7', revenue: 2390 },
-    { name: 'CN', revenue: 3490 },
-];
+import { useEffect, useState } from "react";
+import api from "@/lib/api";
 
 export default function Dashboard() {
-    // Fetch data
-    const { data: ticketData, isLoading: isLoadingTickets, isError: isTicketError } = useList<ITicket>({
+    const router = useRouter();
+    const [bookings, setBookings] = useState<any[]>([]);
+    const [isLoadingBookings, setIsLoadingBookings] = useState(true);
+
+    // Fetch data with safe handling for return structure
+    const ticketListResult = useList<ITicket>({
         resource: "tickets",
-        pagination: { pageSize: 1000 }, // Fetch enough to calculate stats
+        pagination: { pageSize: 1000 },
+        sorters: [{ field: "createdAt", order: "desc" }],
     }) as any;
 
-    const { data: busData, isLoading: isLoadingBuses } = useList<IBus>({
+    const busListResult = useList<IBus>({
         resource: "buses",
         pagination: { pageSize: 100 },
     }) as any;
 
-    const { data: userData, isLoading: isLoadingUsers } = useList<IUser>({
+    const userListResult = useList<IUser>({
         resource: "users",
         pagination: { pageSize: 100 },
     }) as any;
 
-    console.log("Dashboard Debug:", {
-        ticketData,
-        busData,
-        userData,
-        isLoadingTickets,
-        isTicketError
-    });
+    useEffect(() => {
+        const fetchBookings = async () => {
+            try {
+                const { data } = await api.get('/tickets/bookings');
+                setBookings(data);
+            } catch (error) {
+                console.error("Failed to fetch bookings:", error);
+            } finally {
+                setIsLoadingBookings(false);
+            }
+        };
+        fetchBookings();
+    }, []);
 
-    if (isLoadingTickets || isLoadingBuses || isLoadingUsers) {
-        return <div className="p-8">Đang tải dữ liệu...</div>;
+    // Extract data handling both standard and legacy/custom Refine return structures
+    const tickets: ITicket[] = ticketListResult?.data?.data || ticketListResult?.result?.data || [];
+    const buses: IBus[] = busListResult?.data?.data || busListResult?.result?.data || [];
+    const users: IUser[] = userListResult?.data?.data || userListResult?.result?.data || [];
+
+    const isLoadingTickets = ticketListResult?.isLoading || ticketListResult?.query?.isLoading;
+    const isLoadingBuses = busListResult?.isLoading || busListResult?.query?.isLoading;
+    const isLoadingUsers = userListResult?.isLoading || userListResult?.query?.isLoading;
+
+    if (isLoadingTickets || isLoadingBuses || isLoadingUsers || isLoadingBookings) {
+        return (
+            <div className="flex items-center justify-center h-screen">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
+        );
     }
 
     // Calculate Stats
-    const tickets = ticketData?.data || [];
-    const buses = busData?.data || [];
-    const users = userData?.data || [];
+    // 1. Total Revenue (Only PAID tickets)
+    const paidTickets = tickets.filter(t => t.status === TicketStatus.PAID);
+    const totalRevenue = paidTickets.reduce((sum, ticket) => sum + ticket.totalPrice, 0);
 
-    const totalRevenue = tickets.reduce((sum: number, ticket: ITicket) => sum + ticket.totalPrice, 0);
-    const totalTickets = tickets.length;
+    // 2. Total Tickets Sold (Non-cancelled)
+    const validTickets = tickets.filter(t => t.status !== TicketStatus.CANCELLED);
+    const totalTickets = validTickets.length;
+
+    // 3. Total Active Buses
     const totalBuses = buses.length;
-    const totalCustomers = users.filter((u: IUser) => u.role?.name === 'PASSENGER').length;
 
-    // Recent Transactions (Last 5 tickets)
-    const recentTickets = [...tickets]
-        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-        .slice(0, 5);
+    // 4. Total Customers (Role != ADMIN)
+    const totalCustomers = users.filter(u => u.role?.name !== 'ADMIN').length;
+
+    // 5. Chart Data (Last 7 days revenue)
+    const chartData = Array.from({ length: 7 }).map((_, i) => {
+        const date = subDays(new Date(), 6 - i);
+        const dayRevenue = paidTickets
+            .filter(t => isSameDay(parseISO(t.createdAt), date))
+            .reduce((sum, t) => sum + t.totalPrice, 0);
+
+        return {
+            name: format(date, "dd/MM", { locale: vi }),
+            revenue: dayRevenue,
+            fullDate: format(date, "dd/MM/yyyy", { locale: vi }),
+        };
+    });
+
+    // 6. Recent Transactions (Latest 5 bookings)
+    const recentBookings = [...bookings].slice(0, 5);
 
     const formatCurrency = (amount: number) => {
         return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
@@ -97,7 +132,10 @@ export default function Dashboard() {
 
                 {/* Stats Grid */}
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-                    <Card className="border-0 shadow-sm bg-[#96DFD8]/10 hover:bg-[#96DFD8]/20 transition-colors">
+                    <Card
+                        className="border-0 shadow-sm bg-[#96DFD8]/10 hover:bg-[#96DFD8]/20 transition-colors cursor-pointer"
+                        onClick={() => router.push('/tickets')}
+                    >
                         <CardHeader className="flex flex-row items-center justify-between pb-2">
                             <CardTitle className="text-sm font-medium text-[#2c3e50]">Tổng doanh thu</CardTitle>
                             <div className="p-2 bg-[#96DFD8] rounded-full text-white">
@@ -107,12 +145,15 @@ export default function Dashboard() {
                         <CardContent>
                             <div className="text-2xl font-bold text-[#2c3e50]">{formatCurrency(totalRevenue)}</div>
                             <p className="text-xs text-[#96DFD8] font-semibold flex items-center mt-1">
-                                <TrendingUp className="h-3 w-3 mr-1" /> +20.1% so với tháng trước
+                                <TrendingUp className="h-3 w-3 mr-1" /> Doanh thu thực tế
                             </p>
                         </CardContent>
                     </Card>
 
-                    <Card className="border-0 shadow-sm bg-[#85D4BE]/10 hover:bg-[#85D4BE]/20 transition-colors">
+                    <Card
+                        className="border-0 shadow-sm bg-[#85D4BE]/10 hover:bg-[#85D4BE]/20 transition-colors cursor-pointer"
+                        onClick={() => router.push('/tickets')}
+                    >
                         <CardHeader className="flex flex-row items-center justify-between pb-2">
                             <CardTitle className="text-sm font-medium text-[#2c3e50]">Vé đã bán</CardTitle>
                             <div className="p-2 bg-[#85D4BE] rounded-full text-white">
@@ -122,12 +163,15 @@ export default function Dashboard() {
                         <CardContent>
                             <div className="text-2xl font-bold text-[#2c3e50]">{totalTickets}</div>
                             <p className="text-xs text-[#85D4BE] font-semibold flex items-center mt-1">
-                                <TrendingUp className="h-3 w-3 mr-1" /> +12% so với hôm qua
+                                <TrendingUp className="h-3 w-3 mr-1" /> Vé hiệu lực
                             </p>
                         </CardContent>
                     </Card>
 
-                    <Card className="border-0 shadow-sm bg-[#AEE6CB]/10 hover:bg-[#AEE6CB]/20 transition-colors">
+                    <Card
+                        className="border-0 shadow-sm bg-[#AEE6CB]/10 hover:bg-[#AEE6CB]/20 transition-colors cursor-pointer"
+                        onClick={() => router.push('/buses')}
+                    >
                         <CardHeader className="flex flex-row items-center justify-between pb-2">
                             <CardTitle className="text-sm font-medium text-[#2c3e50]">Xe đang hoạt động</CardTitle>
                             <div className="p-2 bg-[#AEE6CB] rounded-full text-white">
@@ -137,12 +181,15 @@ export default function Dashboard() {
                         <CardContent>
                             <div className="text-2xl font-bold text-[#2c3e50]">{totalBuses}</div>
                             <p className="text-xs text-[#AEE6CB] font-semibold flex items-center mt-1">
-                                <TrendingUp className="h-3 w-3 mr-1" /> +5 xe mới
+                                <TrendingUp className="h-3 w-3 mr-1" /> Tổng số xe
                             </p>
                         </CardContent>
                     </Card>
 
-                    <Card className="border-0 shadow-sm bg-[#CDEEF3]/20 hover:bg-[#CDEEF3]/30 transition-colors">
+                    <Card
+                        className="border-0 shadow-sm bg-[#CDEEF3]/20 hover:bg-[#CDEEF3]/30 transition-colors cursor-pointer"
+                        onClick={() => router.push('/users')}
+                    >
                         <CardHeader className="flex flex-row items-center justify-between pb-2">
                             <CardTitle className="text-sm font-medium text-[#2c3e50]">Khách hàng</CardTitle>
                             <div className="p-2 bg-[#CDEEF3] rounded-full text-[#2c3e50]">
@@ -152,7 +199,7 @@ export default function Dashboard() {
                         <CardContent>
                             <div className="text-2xl font-bold text-[#2c3e50]">{totalCustomers}</div>
                             <p className="text-xs text-[#5faeb6] font-semibold flex items-center mt-1">
-                                <TrendingUp className="h-3 w-3 mr-1" /> +180 trong 24h qua
+                                <TrendingUp className="h-3 w-3 mr-1" /> Người dùng
                             </p>
                         </CardContent>
                     </Card>
@@ -163,12 +210,12 @@ export default function Dashboard() {
                     {/* Chart */}
                     <Card className="col-span-4 border-0 shadow-md">
                         <CardHeader>
-                            <CardTitle className="text-[#2c3e50]">Biểu đồ doanh thu</CardTitle>
+                            <CardTitle className="text-[#2c3e50]">Biểu đồ doanh thu (7 ngày qua)</CardTitle>
                         </CardHeader>
                         <CardContent className="pl-2">
                             <div className="h-[350px]">
                                 <ResponsiveContainer width="100%" height="100%">
-                                    <AreaChart data={data} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                                    <AreaChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                                         <defs>
                                             <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
                                                 <stop offset="5%" stopColor="#96DFD8" stopOpacity={0.8} />
@@ -176,11 +223,22 @@ export default function Dashboard() {
                                             </linearGradient>
                                         </defs>
                                         <XAxis dataKey="name" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
-                                        <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `$${value}`} />
+                                        <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `${value / 1000}k`} />
                                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
                                         <Tooltip
-                                            contentStyle={{ backgroundColor: '#fff', borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
-                                            itemStyle={{ color: '#2c3e50' }}
+                                            content={({ active, payload, label }) => {
+                                                if (active && payload && payload.length) {
+                                                    return (
+                                                        <div className="bg-white p-3 border shadow-lg rounded-lg">
+                                                            <p className="text-sm font-medium text-gray-900">{payload[0].payload.fullDate}</p>
+                                                            <p className="text-sm text-[#96DFD8] font-bold">
+                                                                {formatCurrency(payload[0].value as number)}
+                                                            </p>
+                                                        </div>
+                                                    );
+                                                }
+                                                return null;
+                                            }}
                                         />
                                         <Area type="monotone" dataKey="revenue" stroke="#96DFD8" strokeWidth={3} fillOpacity={1} fill="url(#colorRevenue)" />
                                     </AreaChart>
@@ -196,30 +254,39 @@ export default function Dashboard() {
                         </CardHeader>
                         <CardContent>
                             <div className="space-y-8">
-                                {recentTickets.length === 0 ? (
+                                {recentBookings.length === 0 ? (
                                     <div className="text-center text-muted-foreground py-8">
                                         Chưa có giao dịch nào.
                                     </div>
                                 ) : (
-                                    recentTickets.map((ticket) => (
-                                        <div key={ticket.id} className="flex items-center">
+                                    recentBookings.map((booking) => (
+                                        <div
+                                            key={booking.id}
+                                            className="flex items-center cursor-pointer hover:bg-muted/50 p-2 rounded-md transition-colors"
+                                            onClick={() => router.push(`/tickets/show/${booking.id}`)}
+                                        >
                                             <div className="space-y-1 flex-1">
                                                 <p className="text-sm font-medium leading-none text-[#2c3e50]">
-                                                    {ticket.schedule?.route?.name || "Chuyến xe không xác định"}
+                                                    {booking.schedule?.route?.startPoint} - {booking.schedule?.route?.endPoint}
                                                 </p>
-                                                <p className="text-xs text-muted-foreground flex items-center">
-                                                    <Clock className="mr-1 h-3 w-3" /> {formatTimeAgo(ticket.createdAt)}
-                                                </p>
+                                                <div className="flex flex-col gap-1">
+                                                    <p className="text-xs text-muted-foreground flex items-center">
+                                                        <Clock className="mr-1 h-3 w-3" /> {formatTimeAgo(booking.createdAt)}
+                                                    </p>
+                                                    <p className="text-xs text-muted-foreground">
+                                                        {booking.seatCount} vé: {booking.seatList}
+                                                    </p>
+                                                </div>
                                             </div>
                                             <div className="text-right">
                                                 <div className="text-sm font-bold text-[#2c3e50]">
-                                                    {formatCurrency(ticket.totalPrice)}
+                                                    {formatCurrency(booking.totalPrice)}
                                                 </div>
-                                                <div className={`text-xs font-medium ${ticket.status === 'PAID' ? 'text-green-500' :
-                                                    ticket.status === 'PENDING' ? 'text-orange-500' : 'text-red-500'
+                                                <div className={`text-xs font-medium ${booking.status === TicketStatus.PAID ? 'text-green-500' :
+                                                    booking.status === TicketStatus.BOOKED ? 'text-orange-500' : 'text-red-500'
                                                     }`}>
-                                                    {ticket.status === 'PAID' ? 'Thành công' :
-                                                        ticket.status === 'PENDING' ? 'Chờ thanh toán' : 'Đã hủy'}
+                                                    {booking.status === TicketStatus.PAID ? 'Thành công' :
+                                                        booking.status === TicketStatus.BOOKED ? 'Chờ thanh toán' : 'Đã hủy'}
                                                 </div>
                                             </div>
                                         </div>

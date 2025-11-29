@@ -32,11 +32,11 @@ export default function ScheduleListPage() {
     const router = useRouter();
     // useList returns { query, result } in this version
     const hookResult = useList<ISchedule>({
-        resource: "schedules",
+        resource: "admin-schedules",
         sorters: [
             {
-                field: "departureAt",
-                order: "desc",
+                field: "id",
+                order: "asc",
             },
         ],
     });
@@ -159,7 +159,11 @@ export default function ScheduleListPage() {
                         </TableRow>
                     ) : (
                         schedules.map((schedule: ISchedule) => (
-                            <TableRow key={schedule.id} className="hover:bg-muted/50 transition-colors">
+                            <TableRow
+                                key={schedule.id}
+                                className="hover:bg-muted/50 transition-colors cursor-pointer"
+                                onClick={() => router.push(`/schedules/edit/${schedule.id}`)}
+                            >
                                 <TableCell className="font-medium">#{schedule.id}</TableCell>
                                 <TableCell>
                                     <div className="flex flex-col gap-1">
@@ -207,14 +211,14 @@ export default function ScheduleListPage() {
                                         </DropdownMenuTrigger>
                                         <DropdownMenuContent align="end">
                                             <DropdownMenuLabel>Thao tác</DropdownMenuLabel>
-                                            <DropdownMenuItem onClick={() => router.push(`/schedules/edit/${schedule.id}`)}>
+                                            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); router.push(`/schedules/edit/${schedule.id}`); }}>
                                                 <Pencil className="w-4 h-4 mr-2" />
                                                 Chỉnh sửa
                                             </DropdownMenuItem>
                                             <DropdownMenuSeparator />
                                             <DropdownMenuItem
                                                 className="text-destructive focus:text-destructive"
-                                                onClick={() => handleDelete(schedule.id)}
+                                                onClick={(e) => { e.stopPropagation(); handleDelete(schedule.id); }}
                                             >
                                                 <Trash2 className="w-4 h-4 mr-2" />
                                                 Xóa chuyến

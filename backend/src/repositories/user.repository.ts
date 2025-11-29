@@ -3,7 +3,7 @@ import { PrismaService } from '../services/prisma.service';
 
 @Injectable()
 export class UserRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   //Tạo mới người dùng
   async createUser(data: {
@@ -106,7 +106,7 @@ export class UserRepository {
         role: true,
         tickets: true,
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { id: 'asc' },
     });
   }
 }

@@ -36,7 +36,7 @@ export class TicketService {
     @InjectQueue('ticket') private readonly ticketQueue: Queue,
   ) { }
 
-  // ĐẶT VÉ LẺ – ĐÃ SỬA HOÀN HẢO
+  // ĐẶT VÉ LẺ
   async create(dto: CreateTicketDto): Promise<CreateResponse> {
     const { userId, scheduleId, seatId, price, paymentMethod, dropoffPointId, dropoffAddress } = dto;
 
@@ -66,7 +66,7 @@ export class TicketService {
     if (brandTickets >= schedule.bus.brand.dailyTicketLimit)
       throw new BadRequestException('Hãng xe đã đạt giới hạn vé trong ngày');
 
-    // XỬ LÝ ĐIỂM TRẢ + PHỤ THU + LƯU ĐÚNG dropoffAddress
+    // XỬ LÝ ĐIỂM TRẢ + PHỤ THU
     let surcharge = 0;
     let finalDropoffPointId: number | null = null;
     let finalDropoffAddress: string | null = null;
@@ -105,7 +105,7 @@ export class TicketService {
         status: TicketStatus.BOOKED,
         paymentMethod: paymentMethod || AppPaymentMethod.MOMO,
         dropoffPointId: finalDropoffPointId,
-        dropoffAddress: finalDropoffAddress, // ĐÃ LƯU ĐÚNG ĐỊA CHỈ TẬN NƠI
+        dropoffAddress: finalDropoffAddress,
         paymentHistoryId: paymentGroup.id,
       },
     });
@@ -133,7 +133,7 @@ export class TicketService {
     };
   }
 
-  // ĐẶT NHIỀU VÉ – ĐÃ SỬA HOÀN HẢO
+  // ĐẶT NHIỀU VÉ
   async createBulk(
     dtos: CreateTicketDto[],
     totalAmountFromClient: number,
@@ -213,7 +213,7 @@ export class TicketService {
           status: TicketStatus.BOOKED,
           paymentMethod: dto.paymentMethod || AppPaymentMethod.MOMO,
           dropoffPointId: finalDropoffPointId,
-          dropoffAddress: finalDropoffAddress, // ĐÃ LƯU ĐÚNG
+          dropoffAddress: finalDropoffAddress,
           paymentHistoryId: paymentGroup.id,
         },
       });
@@ -242,10 +242,6 @@ export class TicketService {
       payment: momoResponse,
     };
   }
-
-  // === TẤT CẢ CÁC HÀM KHÁC GIỮ NGUYÊN (đã đúng rồi) ===
-  // handleMomoRedirect, handleMomoCallback, payTicket, cancel, getTicketsByUser, ...
-  // getPaymentDetailByHistoryId, formatDropoffInfo → đã hoàn hảo
 
   async handleMomoRedirect(query: any) {
     this.logger.log(`MoMo Redirect: ${JSON.stringify(query)}`);
@@ -530,12 +526,13 @@ export class TicketService {
         schedule: {
           include: {
             route: true,
-            bus: true,
+            bus: { include: { brand: true } },
+            dropoffPoints: true,
           },
         },
         seat: true,
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { id: 'asc' },
     });
     return tickets;
   }
@@ -603,6 +600,88 @@ export class TicketService {
       address: ticket.schedule?.route?.endPoint || 'Bến xe',
       surcharge: 0,
       surchargeText: 'Miễn phí',
+    };
+  }
+
+  async getAllBookingsForAdmin() {
+    const bookings = await this.prism.paymentHistory.findMany({
+      include: {
+        tickets: {
+          include: {
+            user: true,
+            schedule: {
+              include: {
+                route: true,
+                bus: { include: { brand: true } },
+                dropoffPoints: true,
+              },
+            },
+            seat: true,
+            dropoffPoint: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return bookings.map(booking => {
+      const firstTicket = booking.tickets[0];
+      if (!firstTicket) return null;
+
+      return {
+        id: booking.id,
+        ticketCode: `V${String(booking.id).padStart(6, '0')}`,
+        user: firstTicket.user,
+        schedule: firstTicket.schedule,
+        seatCount: booking.tickets.length,
+        seatList: booking.tickets.map(t => t.seat.seatNumber).sort((a, b) => a - b).join(', '),
+        totalPrice: booking.amount,
+        status: booking.status === 'SUCCESS' ? TicketStatus.PAID : (booking.status === 'PENDING' ? TicketStatus.BOOKED : TicketStatus.CANCELLED),
+        createdAt: booking.createdAt,
+        paymentMethod: booking.method,
+        tickets: booking.tickets,
+      };
+    }).filter(Boolean);
+  }
+
+  async getBookingById(id: number) {
+    const booking = await this.prism.paymentHistory.findUnique({
+      where: { id },
+      include: {
+        tickets: {
+          include: {
+            user: true,
+            schedule: {
+              include: {
+                route: true,
+                bus: { include: { brand: true } },
+                dropoffPoints: true,
+              },
+            },
+            seat: true,
+            dropoffPoint: true,
+          },
+        },
+      },
+    });
+
+    if (!booking) throw new NotFoundException('Booking not found');
+
+    const firstTicket = booking.tickets[0];
+    if (!firstTicket) throw new NotFoundException('Booking has no tickets');
+
+    return {
+      id: booking.id,
+      ticketCode: `V${String(booking.id).padStart(6, '0')}`,
+      user: firstTicket.user,
+      schedule: firstTicket.schedule,
+      seatCount: booking.tickets.length,
+      seatList: booking.tickets.map(t => t.seat.seatNumber).sort((a, b) => a - b).join(', '),
+      totalPrice: booking.amount,
+      status: booking.status === 'SUCCESS' ? TicketStatus.PAID : (booking.status === 'PENDING' ? TicketStatus.BOOKED : TicketStatus.CANCELLED),
+      createdAt: booking.createdAt,
+      paymentMethod: booking.method,
+      tickets: booking.tickets,
     };
   }
 }

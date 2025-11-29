@@ -12,14 +12,15 @@ import { CreateScheduleDto } from '../dtos/schedule.dto';
 
 @Controller('schedules')
 export class ScheduleController {
-  constructor(private readonly scheduleService: ScheduleService) {}
+  constructor(private readonly scheduleService: ScheduleService) { }
 
+  // TẠO MỚI MỘT CHUYẾN XE (LỊCH TRÌNH) TRONG HỆ THỐNG
   @Post()
   create(@Body() dto: CreateScheduleDto) {
     return this.scheduleService.createSchedule(dto);
   }
 
-  // TÌM KIẾM THEO NƠI ĐI, NƠI ĐẾN, NGÀY
+  // TÌM KIẾM CHUYẾN XE THEO ĐIỂM ĐI - ĐIỂM ĐẾN - NGÀY (DÙNG CHO KHÁCH HÀNG ĐẶT VÉ)
   @Get()
   findAll(
     @Query('startPoint') startPoint?: string,
@@ -29,14 +30,19 @@ export class ScheduleController {
     return this.scheduleService.getAllSchedules({ startPoint, endPoint, date });
   }
 
+  // LẤY TOÀN BỘ CHUYẾN XE (KHÔNG LỌC) - DÀNH RIÊNG CHO ADMIN QUẢN LÝ
+  @Get('admin')
+  findAllForAdmin() {
+    return this.scheduleService.getAllSchedulesForAdmin();
+  }
+
+  // LẤY THÔNG TIN CHI TIẾT MỘT CHUYẾN XE THEO ID
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.scheduleService.getScheduleById(Number(id));
   }
 
-  // ĐÃ XÓA HOÀN TOÀN ENDPOINT LẤY GHẾ TẠI ĐÂY
-  // → Giờ chỉ dùng: GET /seats/by-schedule/:scheduleId (từ SeatController)
-
+  // XÓA CHUYẾN XE KHỎI HỆ THỐNG (ADMIN ONLY - THƯỜNG LÀ SOFT DELETE)
   @Delete(':id')
   async delete(@Param('id') id: string) {
     const deleted = await this.scheduleService.deleteSchedule(Number(id));

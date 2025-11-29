@@ -4,7 +4,7 @@ import { CreateScheduleDto } from '../dtos/schedule.dto';
 
 @Injectable()
 export class ScheduleService {
-  constructor(private readonly scheduleRepo: ScheduleRepository) {}
+  constructor(private readonly scheduleRepo: ScheduleRepository) { }
 
   async createSchedule(dto: CreateScheduleDto) {
     return this.scheduleRepo.createSchedule(dto);
@@ -18,14 +18,15 @@ export class ScheduleService {
     return this.scheduleRepo.getAllSchedules(query);
   }
 
+  async getAllSchedulesForAdmin() {
+    return this.scheduleRepo.getAllSchedulesForAdmin();
+  }
+
   async getScheduleById(id: number) {
     const schedule = await this.scheduleRepo.getScheduleById(id);
     if (!schedule) throw new NotFoundException('Schedule not found');
     return schedule;
   }
-
-  // ĐÃ XÓA HÀM getSeats() HOÀN TOÀN – KHÔNG DÙNG NỮA!
-  // → Giờ chỉ dùng SeatService.getSeatsBySchedule()
 
   async deleteSchedule(id: number) {
     const schedule = await this.scheduleRepo.getScheduleById(id);

@@ -28,6 +28,8 @@ export const dataProvider: DataProvider = {
         // Map resource names to API endpoints if they differ
         const resourceMap: Record<string, string> = {
             "buses": "bus",
+            "admin-schedules": "schedules/admin",
+            "bookings": "tickets/bookings",
             // Add other mappings here if needed
         };
         const endpoint = resourceMap[resource] || resource;

@@ -4,7 +4,7 @@ import { ScheduleStatus } from '@prisma/client';
 
 @Injectable()
 export class ScheduleRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   async createSchedule(dto: any) {
     return this.prisma.schedule.create({
@@ -80,6 +80,18 @@ export class ScheduleRepository {
     });
   }
 
+  async getAllSchedulesForAdmin() {
+    return this.prisma.schedule.findMany({
+      include: {
+        bus: {
+          include: { brand: true },
+        },
+        route: true,
+      },
+      orderBy: { id: 'asc' },
+    });
+  }
+
   async getScheduleById(id: number) {
     return this.prisma.schedule.findUnique({
       where: { id },
@@ -89,9 +101,6 @@ export class ScheduleRepository {
       },
     });
   }
-
-  // ĐÃ XÓA HOÀN TOÀN HÀM getSeatsBySchedule() – KHÔNG DÙNG NỮA!
-  // → Giờ chỉ dùng SeatRepository.findSeatsByScheduleId()
 
   async deleteTicketsByScheduleId(scheduleId: number) {
     return this.prisma.ticket.deleteMany({
