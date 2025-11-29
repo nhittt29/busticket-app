@@ -23,92 +23,183 @@ class TripCard extends StatelessWidget {
     final canBook = status == 'UPCOMING' || status == 'FULL' || status == 'FEW_SEATS';
     final bool showPrice = trip.price > 0;
 
+    // Calculate duration
+    final departureTime = DateTime.parse(trip.departure).toLocal();
+    final arrivalTime = DateTime.parse(trip.arrival).toLocal();
+    final duration = arrivalTime.difference(departureTime);
+    final durationString = '${duration.inHours}h ${duration.inMinutes % 60}m';
+
+    // Format Date (e.g., 15/11)
+    final dateString = '${departureTime.day}/${departureTime.month}';
+
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6), // Giảm từ 9 → 6
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16), // Giảm từ 20 → 16
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.15),
-            blurRadius: 12,
+            color: Colors.grey.withOpacity(0.1),
+            blurRadius: 10,
             offset: const Offset(0, 4),
           ),
         ],
       ),
       child: Card(
         elevation: 0,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         margin: EdgeInsets.zero,
         child: InkWell(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(20),
           onTap: canBook ? onTap : null,
           child: Stack(
             children: [
               Padding(
-                padding: const EdgeInsets.all(14), // Giảm từ 18 → 14 (tiết kiệm không gian)
+                padding: const EdgeInsets.all(16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Tên xe + trạng thái
+                    // Header: Bus Name + Date + Status
                     Row(
                       children: [
                         Expanded(
-                          child: Text(
-                            trip.busName,
-                            style: const TextStyle(
-                              fontSize: 16.5,           // Giảm nhẹ từ 18
-                              fontWeight: FontWeight.w800,
-                              color: Color(0xFF023E8A),
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                trip.busName,
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w800,
+                                  color: Color(0xFF023E8A),
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 4),
+                              Row(
+                                children: [
+                                  const Icon(Icons.calendar_today, size: 12, color: Colors.grey),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    dateString,
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  if (trip.category != null && trip.category!.isNotEmpty) ...[
+                                    const SizedBox(width: 8),
+                                    Container(
+                                      width: 4,
+                                      height: 4,
+                                      decoration: const BoxDecoration(
+                                        color: Colors.grey,
+                                        shape: BoxShape.circle,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      trip.category!,
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.grey,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ],
                           ),
                         ),
-                        const SizedBox(width: 10),
+                        const SizedBox(width: 8),
                         _buildStatusChip(status),
                       ],
                     ),
-                    const SizedBox(height: 12), // Giảm từ 16
+                    const SizedBox(height: 16),
 
-                    // Giờ đi - đến
+                    // Time & Duration Row
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        _buildTime(trip.departure, 'Khởi hành'),
-                        const Icon(Icons.arrow_forward_ios_rounded, color: Colors.grey, size: 18),
-                        _buildTime(trip.arrival, 'Đến nơi'),
+                        _buildTime(departureTime, 'Khởi hành'),
+                        
+                        // Duration Line
+                        Expanded(
+                          child: Column(
+                            children: [
+                              Text(
+                                durationString,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey[600],
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Row(
+                                children: [
+                                  const Icon(Icons.circle, size: 6, color: Colors.grey),
+                                  Expanded(
+                                    child: Container(
+                                      height: 1,
+                                      color: Colors.grey[300],
+                                    ),
+                                  ),
+                                  const Icon(Icons.circle, size: 6, color: Colors.grey),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        _buildTime(arrivalTime, 'Đến nơi'),
                       ],
                     ),
-                    const SizedBox(height: 14), // Giảm từ 20
+                    const SizedBox(height: 16),
 
-                    // Giá + loại ghế
+                    // Footer: Price + Seat Type
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         if (showPrice)
-                          Text(
-                            '${(trip.price / 1000).toStringAsFixed(0)}k',
-                            style: TextStyle(
-                              fontSize: 24,              // Giảm từ 26 → 24
-                              fontWeight: FontWeight.bold,
-                              color: greenPrice,
+                          RichText(
+                            text: TextSpan(
+                              children: [
+                                TextSpan(
+                                  text: '${(trip.price / 1000).toStringAsFixed(0)}k',
+                                  style: const TextStyle(
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.bold,
+                                    color: greenPrice,
+                                  ),
+                                ),
+                                const TextSpan(
+                                  text: ' /vé',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey,
+                                  ),
+                                ),
+                              ],
                             ),
                           )
                         else
-                          const SizedBox(width: 70), // Giữ chỗ vừa đủ
+                          const SizedBox(),
 
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8), // Thu gọn
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                           decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: trip.seatType == 'SEAT'
-                                  ? [Colors.blue[100]!, Colors.blue[50]!]
-                                  : [Colors.purple[100]!, Colors.purple[50]!],
-                            ),
-                            borderRadius: BorderRadius.circular(30),
+                            color: trip.seatType == 'SEAT' 
+                                ? Colors.blue.withOpacity(0.1) 
+                                : Colors.purple.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(20),
                             border: Border.all(
-                              color: trip.seatType == 'SEAT' ? Colors.blue[300]! : Colors.purple[300]!,
-                              width: 1.4,
+                              color: trip.seatType == 'SEAT' 
+                                  ? Colors.blue.withOpacity(0.3) 
+                                  : Colors.purple.withOpacity(0.3),
                             ),
                           ),
                           child: Row(
@@ -116,15 +207,15 @@ class TripCard extends StatelessWidget {
                             children: [
                               Icon(
                                 trip.seatType == 'SEAT' ? Icons.event_seat : Icons.bed,
-                                size: 18,
+                                size: 16,
                                 color: trip.seatType == 'SEAT' ? Colors.blue[700] : Colors.purple[700],
                               ),
-                              const SizedBox(width: 5),
+                              const SizedBox(width: 4),
                               Text(
                                 trip.seatType == 'SEAT' ? 'Ghế ngồi' : 'Giường nằm',
                                 style: TextStyle(
-                                  fontSize: 13.5,
-                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
                                   color: trip.seatType == 'SEAT' ? Colors.blue[800] : Colors.purple[800],
                                 ),
                               ),
@@ -137,16 +228,29 @@ class TripCard extends StatelessWidget {
                 ),
               ),
 
-              // Lớp mờ khi không đặt được
+              // Disabled Overlay
               if (!canBook)
                 Positioned.fill(
                   child: Container(
                     decoration: BoxDecoration(
-                      color: Colors.grey.withOpacity(0.45),
-                      borderRadius: BorderRadius.circular(16),
+                      color: Colors.white.withOpacity(0.6),
+                      borderRadius: BorderRadius.circular(20),
                     ),
-                    child: const Center(
-                      child: Icon(Icons.lock_outline_rounded, size: 48, color: Colors.grey),
+                    child: Center(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[800],
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: const Text(
+                          'Đã đóng',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
                     ),
                   ),
                 ),
@@ -157,25 +261,34 @@ class TripCard extends StatelessWidget {
     );
   }
 
-  Widget _buildTime(String isoTime, String label) {
-    final time = DateTime.parse(isoTime).toLocal();
-    final hour = time.hour.toString().padLeft(2, '0');
-    final minute = time.minute.toString().padLeft(2, '0');
+  Widget _buildTime(DateTime time, String label) {
+    // Format AM/PM manually
+    int hour = time.hour;
+    final String period = hour >= 12 ? 'PM' : 'AM';
+    hour = hour % 12;
+    if (hour == 0) hour = 12;
+    
+    final String timeString = '$hour:${time.minute.toString().padLeft(2, '0')} $period';
 
     return Column(
+      crossAxisAlignment: label == 'Khởi hành' ? CrossAxisAlignment.start : CrossAxisAlignment.end,
       children: [
         Text(
-          '$hour:$minute',
+          timeString,
           style: const TextStyle(
-            fontSize: 20,                    // Giảm từ 22 → 20
+            fontSize: 20,
             fontWeight: FontWeight.bold,
             color: Color(0xFF023E8A),
           ),
         ),
-        const SizedBox(height: 3),
+        const SizedBox(height: 2),
         Text(
           label,
-          style: const TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w600),
+          style: const TextStyle(
+            fontSize: 12, 
+            color: Colors.grey, 
+            fontWeight: FontWeight.w500
+          ),
         ),
       ],
     );
@@ -184,15 +297,15 @@ class TripCard extends StatelessWidget {
   Widget _buildStatusChip(String status) {
     switch (status) {
       case 'UPCOMING':
-        return _chip('Sắp khởi hành', orangeWarning, Icons.access_time_filled);
+        return _chip('Sắp chạy', orangeWarning, Icons.access_time_filled);
       case 'ONGOING':
         return _chip('Đang chạy', primaryBlue, Icons.directions_bus_filled);
       case 'COMPLETED':
-        return _chip('Hoàn thành', Colors.green, Icons.check_circle);
+        return _chip('Đã xong', Colors.green, Icons.check_circle);
       case 'FULL':
-        return _chip('Hết ghế', redFull, Icons.block);
+        return _chip('Hết vé', redFull, Icons.block);
       case 'FEW_SEATS':
-        return _chip('Còn ít ghế', orangeWarning, Icons.warning_amber_rounded);
+        return _chip('Sắp hết', orangeWarning, Icons.warning_amber_rounded);
       default:
         return const SizedBox();
     }
@@ -200,20 +313,20 @@ class TripCard extends StatelessWidget {
 
   Widget _chip(String label, Color color, IconData icon) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7), // Thu gọn
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.12),
-        borderRadius: BorderRadius.circular(30),
-        border: Border.all(color: color.withOpacity(0.6), width: 1.5),
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withOpacity(0.5), width: 1),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 17, color: color),
-          const SizedBox(width: 6),
+          Icon(icon, size: 12, color: color),
+          const SizedBox(width: 4),
           Text(
             label,
-            style: TextStyle(color: color, fontSize: 12.5, fontWeight: FontWeight.bold),
+            style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.bold),
           ),
         ],
       ),

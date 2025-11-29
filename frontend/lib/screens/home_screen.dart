@@ -4,9 +4,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../bloc/home/home_bloc.dart';
 import '../bloc/home/home_event.dart';
 import '../bloc/home/home_state.dart';
-import '../bloc/notification/notification_bloc.dart';        // ĐÃ CÓ
-import '../bloc/notification/notification_event.dart';       // ĐÃ CÓ
-import '../bloc/notification/notification_state.dart';       // THÊM DÒNG NÀY – QUAN TRỌNG NHẤT!
+import '../bloc/notification/notification_bloc.dart';        
+import '../bloc/notification/notification_event.dart';       
+import '../bloc/notification/notification_state.dart';      
 import '../booking/screens/search_screen.dart';
 import 'package:badges/badges.dart' as badges;
 
@@ -127,6 +127,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final List<Map<String, dynamic>> busFeatures = [
       {"icon": Icons.search, "label": "Tìm chuyến", "route": "/search-trips"},
       {"icon": Icons.confirmation_number, "label": "Vé của tôi", "route": "/my-tickets"},
+      {"icon": Icons.explore, "label": "Khám phá", "route": "/explore-trips"},
       {"icon": Icons.directions_bus, "label": "Xe buýt", "route": "/buses"},
       {"icon": Icons.route, "label": "Tuyến đường", "route": "/routes"},
       {"icon": Icons.schedule, "label": "Lịch trình", "route": "/schedules"},

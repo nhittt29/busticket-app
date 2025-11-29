@@ -2,7 +2,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../services/booking_api_service.dart';
 import 'booking_state.dart';
-import '../models/dropoff_point.dart'; // ← ĐÃ THÊM DÒNG NÀY – SỬA HOÀN TOÀN LỖI
+import '../models/dropoff_point.dart';
 
 class BookingCubit extends Cubit<BookingState> {
   BookingCubit() : super(BookingState.initial());
@@ -29,6 +29,35 @@ class BookingCubit extends Cubit<BookingState> {
                t.status != 'COMPLETED';
       }).toList();
       emit(state.copyWith(trips: filteredTrips, loading: false));
+    } catch (e) {
+      emit(state.copyWith(error: e.toString(), loading: false));
+    }
+  }
+
+  // MỚI: Lấy tất cả chuyến xe (Explore Mode)
+  Future<void> fetchAllSchedules({
+    double? minPrice,
+    double? maxPrice,
+    String? startTime,
+    String? endTime,
+    String? busType,
+    int? brandId,
+    String? dropoffPoint,
+    String? sortBy,
+  }) async {
+    emit(state.copyWith(loading: true, error: null));
+    try {
+      final trips = await BookingApiService.fetchAllSchedules(
+        minPrice: minPrice,
+        maxPrice: maxPrice,
+        startTime: startTime,
+        endTime: endTime,
+        busType: busType,
+        brandId: brandId,
+        dropoffPoint: dropoffPoint,
+        sortBy: sortBy,
+      );
+      emit(state.copyWith(trips: trips, loading: false));
     } catch (e) {
       emit(state.copyWith(error: e.toString(), loading: false));
     }

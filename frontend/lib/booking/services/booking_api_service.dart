@@ -57,6 +57,72 @@ class BookingApiService {
     }
   }
 
+  // Lấy tất cả chuyến xe với bộ lọc nâng cao
+  static Future<List<Trip>> fetchAllSchedules({
+    double? minPrice,
+    double? maxPrice,
+    String? startTime,
+    String? endTime,
+    String? busType,
+    int? brandId,
+    String? dropoffPoint,
+    String? sortBy,
+  }) async {
+    final queryParams = <String, String>{};
+    if (minPrice != null) queryParams['minPrice'] = minPrice.toString();
+    if (maxPrice != null) queryParams['maxPrice'] = maxPrice.toString();
+    if (startTime != null) queryParams['startTime'] = startTime;
+    if (endTime != null) queryParams['endTime'] = endTime;
+    if (busType != null) queryParams['busType'] = busType;
+    if (brandId != null) queryParams['brandId'] = brandId.toString();
+    if (dropoffPoint != null) queryParams['dropoffPoint'] = dropoffPoint;
+    if (sortBy != null) queryParams['sortBy'] = sortBy;
+
+    final uri = Uri.parse('$baseUrl/schedules').replace(queryParameters: queryParams);
+
+    try {
+      final response = await http.get(uri);
+      if (kDebugMode) {
+        debugPrint('EXPLORE URL: $uri');
+        debugPrint('RESPONSE: ${response.statusCode}');
+      }
+      if (response.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(response.body);
+        final trips = data.map((json) => Trip.fromJson(json)).toList();
+        
+        // Map to Trip model logic (similar to searchTrips)
+        final now = DateTime.now();
+        return trips.map((trip) {
+          final departureUtc = DateTime.parse(trip.departure).toLocal();
+          final arrivalUtc = DateTime.parse(trip.arrival).toLocal();
+          final timeLeft = departureUtc.difference(now);
+          final isNear = timeLeft.inMinutes > 0 && timeLeft.inMinutes < 60;
+
+          return Trip(
+            id: trip.id,
+            busName: trip.busName,
+            departure: departureUtc.toIso8601String(),
+            arrival: arrivalUtc.toIso8601String(),
+            price: trip.price,
+            category: trip.category,
+            seatType: trip.seatType,
+            status: isNear
+                ? 'NEAR_DEPARTURE'
+                : trip.status == 'FULL'
+                    ? 'FULL'
+                    : trip.status == 'FEW_SEATS'
+                        ? 'FEW_SEATS'
+                        : 'UPCOMING',
+          );
+        }).toList();
+      } else {
+        throw Exception('Lỗi tải danh sách chuyến: ${response.body}');
+      }
+    } catch (e) {
+      throw Exception('Lỗi kết nối: $e');
+    }
+  }
+
   // Lấy danh sách ghế theo lịch trình
   static Future<List<Seat>> getSeats(int scheduleId) async {
     final url = Uri.parse('$baseUrl/seats/by-schedule/$scheduleId');
