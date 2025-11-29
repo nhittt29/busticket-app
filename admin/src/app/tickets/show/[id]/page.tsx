@@ -1,6 +1,7 @@
 "use client";
 
-import { useOne, useUpdate } from "@refinedev/core";
+
+import { useUpdate } from "@refinedev/core";
 import { ListLayout } from "@/components/common/ListLayout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -13,14 +14,33 @@ import { format } from "date-fns";
 import { vi } from "date-fns/locale";
 import { toast } from "sonner";
 
-export default function TicketShowPage({ params }: { params: { id: string } }) {
-    const router = useRouter();
-    const { data, isLoading } = useOne<ITicket>({
-        resource: "tickets",
-        id: params.id,
-    }) as any;
+import { useParams } from "next/navigation";
 
-    const ticket = data?.data;
+import { useState, useEffect } from "react";
+import api from "@/lib/api";
+
+export default function TicketShowPage() {
+    const router = useRouter();
+    const params = useParams<{ id: string }>();
+    const [ticket, setTicket] = useState<ITicket | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<any>(null);
+
+    useEffect(() => {
+        if (params?.id) {
+            setIsLoading(true);
+            api.get(`/tickets/${params.id}`)
+                .then((res) => {
+                    setTicket(res.data);
+                    setIsLoading(false);
+                })
+                .catch((err) => {
+                    console.error("Error fetching ticket:", err);
+                    setError(err);
+                    setIsLoading(false);
+                });
+        }
+    }, [params?.id]);
 
     const { mutate: updateTicket } = useUpdate();
 
@@ -29,7 +49,7 @@ export default function TicketShowPage({ params }: { params: { id: string } }) {
             updateTicket(
                 {
                     resource: "tickets",
-                    id: params.id,
+                    id: params?.id,
                     values: {
                         status: TicketStatus.CANCELLED,
                     },
@@ -81,8 +101,34 @@ export default function TicketShowPage({ params }: { params: { id: string } }) {
         return <div className="p-8 text-center">Đang tải thông tin vé...</div>;
     }
 
+    if (error) {
+        return (
+            <div className="p-8 text-center text-red-500">
+                <p>Đã xảy ra lỗi khi tải vé.</p>
+                <p className="text-sm text-muted-foreground">{error?.message || JSON.stringify(error)}</p>
+                <Button variant="outline" onClick={() => router.back()} className="mt-4">
+                    Quay lại
+                </Button>
+            </div>
+        );
+    }
+
     if (!ticket) {
-        return <div className="p-8 text-center">Không tìm thấy vé.</div>;
+        return (
+            <div className="p-8 text-center">
+                <p>Không tìm thấy vé #{params?.id}.</p>
+                <div className="mt-4 p-4 bg-gray-100 rounded text-left text-xs font-mono overflow-auto max-w-lg mx-auto">
+                    <p>DEBUG INFO:</p>
+                    <p>Params: {JSON.stringify(params)}</p>
+                    <p>Ticket State: {JSON.stringify(ticket)}</p>
+                    <p>IsLoading: {isLoading ? 'true' : 'false'}</p>
+                    <p>Error: {error ? JSON.stringify(error) : 'null'}</p>
+                </div>
+                <Button variant="outline" onClick={() => router.back()} className="mt-4">
+                    Quay lại
+                </Button>
+            </div>
+        );
     }
 
     return (

@@ -160,21 +160,32 @@ export default function TicketListPage() {
                                     {formatDateTime(ticket.createdAt)}
                                 </TableCell>
                                 <TableCell className="text-right">
-                                    <DropdownMenu>
-                                        <DropdownMenuTrigger asChild>
-                                            <Button variant="ghost" className="h-8 w-8 p-0">
-                                                <span className="sr-only">Open menu</span>
-                                                <MoreHorizontal className="h-4 w-4" />
-                                            </Button>
-                                        </DropdownMenuTrigger>
-                                        <DropdownMenuContent align="end">
-                                            <DropdownMenuLabel>Thao tác</DropdownMenuLabel>
-                                            <DropdownMenuItem onClick={() => router.push(`/tickets/show/${ticket.id}`)}>
-                                                <Eye className="w-4 h-4 mr-2" />
-                                                Xem chi tiết
-                                            </DropdownMenuItem>
-                                        </DropdownMenuContent>
-                                    </DropdownMenu>
+                                    <div className="flex justify-end gap-2">
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-8 w-8 text-muted-foreground hover:text-primary"
+                                            onClick={() => router.push(`/tickets/show/${ticket.id}`)}
+                                            title="Xem chi tiết"
+                                        >
+                                            <Eye className="h-4 w-4" />
+                                        </Button>
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <Button variant="ghost" className="h-8 w-8 p-0">
+                                                    <span className="sr-only">Open menu</span>
+                                                    <MoreHorizontal className="h-4 w-4" />
+                                                </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="end">
+                                                <DropdownMenuLabel>Thao tác</DropdownMenuLabel>
+                                                <DropdownMenuItem onClick={() => router.push(`/tickets/show/${ticket.id}`)}>
+                                                    <Eye className="w-4 h-4 mr-2" />
+                                                    Xem chi tiết
+                                                </DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+                                    </div>
                                 </TableCell>
                             </TableRow>
                         ))
