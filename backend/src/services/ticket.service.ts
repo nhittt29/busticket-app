@@ -126,6 +126,13 @@ export class TicketService {
       `Thanh toán vé xe #${ticket.id}${surcharge > 0 ? ' + trả khách' : ''}`,
     );
 
+    if (momoResponse && momoResponse.payUrl) {
+      await this.prism.paymentHistory.update({
+        where: { id: paymentGroup.id },
+        data: { payUrl: momoResponse.payUrl },
+      });
+    }
+
     return {
       message: 'Đặt vé thành công. Vui lòng thanh toán trong 15 phút.',
       ticket,
@@ -137,6 +144,8 @@ export class TicketService {
   async createBulk(
     dtos: CreateTicketDto[],
     totalAmountFromClient: number,
+    promotionId?: number,
+    discountAmount?: number,
   ): Promise<BulkCreateResponse> {
     if (dtos.length === 0) throw new BadRequestException('Danh sách vé trống');
 
@@ -170,7 +179,13 @@ export class TicketService {
       finalDropoffPointId = defaultPoint?.id ?? null;
     }
 
-    const calculatedTotal = dtos.reduce((sum, d) => sum + d.price, 0) + (surchargePerTicket * dtos.length);
+    let calculatedTotal = dtos.reduce((sum, d) => sum + d.price, 0) + (surchargePerTicket * dtos.length);
+
+    // Áp dụng giảm giá nếu có
+    if (discountAmount && discountAmount > 0) {
+      calculatedTotal -= discountAmount;
+      if (calculatedTotal < 0) calculatedTotal = 0;
+    }
 
     const paymentGroup = await this.prism.paymentHistory.create({
       data: {
@@ -236,6 +251,13 @@ export class TicketService {
       calculatedTotal,
       `Thanh toán ${dtos.length} vé${surchargePerTicket > 0 ? ' + trả khách' : ''} - ${calculatedTotal.toLocaleString('vi-VN')}đ`,
     );
+
+    if (momoResponse && momoResponse.payUrl) {
+      await this.prism.paymentHistory.update({
+        where: { id: paymentGroup.id },
+        data: { payUrl: momoResponse.payUrl },
+      });
+    }
 
     return {
       tickets: createdTickets,
@@ -537,6 +559,7 @@ export class TicketService {
             route: true,
             bus: { include: { brand: true } },
             dropoffPoints: true,
+            // ĐÃ XÓA bulkTicketId
           },
         },
         seat: true,

@@ -6,6 +6,7 @@ import 'bloc/auth/auth_bloc.dart';
 import 'bloc/home/home_bloc.dart';
 import 'bloc/notification/notification_bloc.dart'; 
 import 'booking/cubit/booking_cubit.dart';
+import 'review/cubit/review_cubit.dart';
 import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
 import 'screens/forgot_password_screen.dart';
@@ -26,6 +27,8 @@ import 'ticket/screens/ticket_history_screen.dart';
 import 'ticket/screens/group_ticket_qr_screen.dart';
 import 'ticket/screens/ticket_detail_screen.dart';
 import 'screens/notification_screen.dart';
+import 'promotions/screens/promotions_screen.dart';
+import 'payment/screens/payment_success_screen.dart';
 import 'payment/services/deep_link_service.dart';
 import 'theme/app_theme.dart';
 import 'services/reminder_service.dart';
@@ -58,11 +61,11 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiBlocProvider(
       providers: [
-        // ĐÃ SỬA LẠI ĐỂ KHÔNG BỊ LỖI – KHÔNG GỌI EVENT NÀO Ở ĐÂY
         BlocProvider(create: (context) => AuthBloc()),
         BlocProvider(create: (context) => HomeBloc()),
         BlocProvider(create: (context) => BookingCubit()),
-        BlocProvider(create: (context) => NotificationBloc()), // THÊM DÒNG NÀY – QUAN TRỌNG NHẤT!
+        BlocProvider(create: (context) => NotificationBloc()),
+        BlocProvider(create: (context) => ReviewCubit()),
       ],
       child: MaterialApp(
         title: 'Vé Xe Việt',
@@ -122,6 +125,14 @@ class MyApp extends StatelessWidget {
             return GroupTicketQRScreen(paymentHistoryId: args);
           },
           '/notifications': (context) => const NotificationScreen(),
+          '/promotions': (context) => const PromotionsScreen(),
+          '/payment-success': (context) {
+             final args = ModalRoute.of(context)!.settings.arguments as int?;
+             if (args == null) {
+               return const Scaffold(body: Center(child: Text('Missing payment ID')));
+             }
+             return PaymentSuccessScreen(paymentHistoryId: args);
+          },
         },
         onUnknownRoute: (settings) => MaterialPageRoute(
           builder: (context) => Scaffold(

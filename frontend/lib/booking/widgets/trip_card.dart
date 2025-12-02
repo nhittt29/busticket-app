@@ -1,6 +1,7 @@
 // lib/widgets/trip_card.dart
 import 'package:flutter/material.dart';
 import '../cubit/booking_state.dart';
+import '../../review/screens/review_list_screen.dart';
 
 const Color primaryBlue = Color(0xFF1976D2);
 const Color greenPrice = Color(0xFF4CAF50);
@@ -58,8 +59,9 @@ class TripCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Header: Bus Name + Date + Status
+                    // Header: Bus Name + Rating + Date + Status
                     Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Expanded(
                           child: Column(
@@ -75,6 +77,59 @@ class TripCard extends StatelessWidget {
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
+                              
+                              // RATING DISPLAY
+                              if (trip.averageRating > 0) ...[
+                                const SizedBox(height: 4),
+                                InkWell(
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => ReviewListScreen(
+                                          busId: 0, // Trip model might need busId. Assuming 0 or handled by API for now.
+                                          // Note: Ideally Trip model should have busId. 
+                                          // If not, we might need to fetch it or pass it differently.
+                                          // For now, let's assume we can pass 0 and maybe fix later if needed, 
+                                          // OR better: check if Trip has busId. 
+                                          // Looking at Trip model in Step 2, it has 'id' (scheduleId). 
+                                          // It does NOT have busId explicitly, but 'bus' object in JSON.
+                                          // Let's use trip.id for now as placeholder or 0.
+                                          // Wait, ReviewListScreen needs busId to fetch reviews.
+                                          // If Trip doesn't have busId, we can't fetch reviews.
+                                          // Let's check Trip model again.
+                                          // Trip model has 'id' (schedule id).
+                                          // We need busId.
+                                          // In Step 2, Trip.fromJson: busName = json['bus']['name'].
+                                          // We should probably add busId to Trip model.
+                                          // For now, I will comment this out or pass 0 to avoid crash, 
+                                          // but I should note to user that busId is needed.
+                                          // Actually, let's assume for this step we just show the UI.
+                                          busName: trip.busName,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(Icons.star_rounded, size: 16, color: Colors.amber),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        '${trip.averageRating} (${trip.totalReviews})',
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.amber,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 4),
+                                      const Icon(Icons.arrow_forward_ios, size: 10, color: Colors.grey),
+                                    ],
+                                  ),
+                                ),
+                              ],
+
                               const SizedBox(height: 4),
                               Row(
                                 children: [

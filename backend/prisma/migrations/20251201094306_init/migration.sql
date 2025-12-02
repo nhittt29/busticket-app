@@ -185,6 +185,20 @@ CREATE TABLE "TicketPayment" (
     CONSTRAINT "TicketPayment_pkey" PRIMARY KEY ("id")
 );
 
+-- CreateTable
+CREATE TABLE "Review" (
+    "id" SERIAL NOT NULL,
+    "rating" INTEGER NOT NULL,
+    "comment" TEXT,
+    "userId" INTEGER NOT NULL,
+    "busId" INTEGER NOT NULL,
+    "ticketId" INTEGER NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Review_pkey" PRIMARY KEY ("id")
+);
+
 -- CreateIndex
 CREATE UNIQUE INDEX "User_uid_key" ON "User"("uid");
 
@@ -278,6 +292,15 @@ CREATE INDEX "TicketPayment_paymentId_idx" ON "TicketPayment"("paymentId");
 -- CreateIndex
 CREATE UNIQUE INDEX "TicketPayment_ticketId_paymentId_key" ON "TicketPayment"("ticketId", "paymentId");
 
+-- CreateIndex
+CREATE UNIQUE INDEX "Review_ticketId_key" ON "Review"("ticketId");
+
+-- CreateIndex
+CREATE INDEX "Review_busId_idx" ON "Review"("busId");
+
+-- CreateIndex
+CREATE INDEX "Review_userId_idx" ON "Review"("userId");
+
 -- AddForeignKey
 ALTER TABLE "User" ADD CONSTRAINT "User_roleId_fkey" FOREIGN KEY ("roleId") REFERENCES "Role"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
@@ -319,3 +342,12 @@ ALTER TABLE "TicketPayment" ADD CONSTRAINT "TicketPayment_ticketId_fkey" FOREIGN
 
 -- AddForeignKey
 ALTER TABLE "TicketPayment" ADD CONSTRAINT "TicketPayment_paymentId_fkey" FOREIGN KEY ("paymentId") REFERENCES "payment_history"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Review" ADD CONSTRAINT "Review_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Review" ADD CONSTRAINT "Review_busId_fkey" FOREIGN KEY ("busId") REFERENCES "Bus"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Review" ADD CONSTRAINT "Review_ticketId_fkey" FOREIGN KEY ("ticketId") REFERENCES "Ticket"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

@@ -10,6 +10,10 @@ import '../cubit/payment_cubit.dart';
 import '../cubit/payment_state.dart';
 import '../widgets/payment_method_tile.dart';
 
+import '../../booking/cubit/booking_state.dart' as bs;
+import '../../promotions/models/promotion.dart';
+
+
 const Color primaryBlue = Color(0xFF6AB7F5);
 const Color accentBlue = Color(0xFF4A9EFF);
 const Color deepBlue = Color(0xFF1976D2);
@@ -22,16 +26,12 @@ class PaymentScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bookingState = context.read<BookingCubit>().state;
     final authState = context.read<AuthBloc>().state;
 
-    final selectedSeats = bookingState.selectedSeats;
-    final scheduleId = bookingState.selectedTrip?.id;
     final userMap = authState.user;
     final userId = userMap?['id'] as int?;
     final userName = userMap?['name'] as String? ?? 'Chưa cập nhật';
     final userPhone = userMap?['phone'] as String? ?? 'Chưa cập nhật số điện thoại';
-    final double amountToPay = bookingState.finalTotalPrice;
 
     if (userId == null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -79,150 +79,301 @@ class PaymentScreen extends StatelessWidget {
             ),
           ),
         ),
-        body: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 30),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(24),
-                  border: Border.all(color: pastelBlue.withAlpha(178), width: 1.8),
-                  boxShadow: [
-                    BoxShadow(color: Colors.grey.withAlpha(70), blurRadius: 16, offset: const Offset(0, 8)),
-                  ],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
+        body: BlocBuilder<BookingCubit, bs.BookingState>(
+          builder: (context, bookingState) {
+            final selectedSeats = bookingState.selectedSeats;
+            final double amountToPay = bookingState.finalTotalPrice;
+
+            return SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 30),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(color: pastelBlue.withAlpha(178), width: 1.8),
+                      boxShadow: [
+                        BoxShadow(color: Colors.grey.withAlpha(70), blurRadius: 16, offset: const Offset(0, 8)),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Container(
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            color: pastelBlue.withAlpha(77),
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          child: const Icon(Icons.person_outline_rounded, color: deepBlue, size: 28),
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: pastelBlue.withAlpha(77),
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              child: const Icon(Icons.person_outline_rounded, color: deepBlue, size: 28),
+                            ),
+                            const SizedBox(width: 14),
+                            const Text(
+                              'Thông tin người đặt vé',
+                              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF023E8A)),
+                            ),
+                          ],
                         ),
-                        const SizedBox(width: 14),
-                        const Text(
-                          'Thông tin người đặt vé',
-                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF023E8A)),
+                        const SizedBox(height: 18),
+                        _buildInfoRow(Icons.account_circle_outlined, 'Họ và tên', userName),
+                        const SizedBox(height: 14),
+                        _buildInfoRow(Icons.phone_android_outlined, 'Số điện thoại', userPhone),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  // --- SEATS SECTION ---
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(color: pastelBlue.withAlpha(153), width: 1.5),
+                      boxShadow: [
+                        BoxShadow(color: Colors.grey.withAlpha(70), blurRadius: 16, offset: const Offset(0, 8)),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Ghế đã chọn', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF023E8A))),
+                        const SizedBox(height: 14),
+                        Wrap(
+                          spacing: 10,
+                          runSpacing: 10,
+                          children: selectedSeats.map((seat) => Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(colors: [primaryBlue, accentBlue]),
+                              borderRadius: BorderRadius.circular(30),
+                              boxShadow: [BoxShadow(color: primaryBlue.withAlpha(102), blurRadius: 6, offset: const Offset(0, 3))],
+                            ),
+                            child: Text(seat.seatNumber, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white)),
+                          )).toList(),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 18),
-                    _buildInfoRow(Icons.account_circle_outlined, 'Họ và tên', userName),
-                    const SizedBox(height: 14),
-                    _buildInfoRow(Icons.phone_android_outlined, 'Số điện thoại', userPhone),
-                  ],
-                ),
-              ),
+                  ),
 
-              const SizedBox(height: 20),
+                  const SizedBox(height: 20),
 
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(24),
-                  border: Border.all(color: pastelBlue.withAlpha(153), width: 1.5),
-                  boxShadow: [
-                    BoxShadow(color: Colors.grey.withAlpha(70), blurRadius: 16, offset: const Offset(0, 8)),
-                  ],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('Ghế đã chọn', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF023E8A))),
-                    const SizedBox(height: 14),
-                    Wrap(
-                      spacing: 10,
-                      runSpacing: 10,
-                      children: selectedSeats.map((seat) => Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(colors: [primaryBlue, accentBlue]),
-                          borderRadius: BorderRadius.circular(30),
-                          boxShadow: [BoxShadow(color: primaryBlue.withAlpha(102), blurRadius: 6, offset: const Offset(0, 3))],
-                        ),
-                        child: Text(seat.seatNumber, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white)),
-                      )).toList(),
+                  // --- PROMOTION SECTION ---
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(color: pastelBlue.withAlpha(153), width: 1.5),
+                      boxShadow: [
+                        BoxShadow(color: Colors.grey.withAlpha(70), blurRadius: 16, offset: const Offset(0, 8)),
+                      ],
                     ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text('Mã khuyến mãi', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF023E8A))),
+                            TextButton(
+                              onPressed: () async {
+                                final result = await Navigator.pushNamed(context, '/promotions');
+                                if (result != null && result is Promotion && context.mounted) {
+                                  // Calculate discount
+                                  final totalBeforeDiscount = (selectedSeats.length * (bookingState.selectedTrip?.price ?? 0)) + 
+                                                            (bookingState.surcharge * selectedSeats.length);
+                                  
+                                  double discount = 0;
+                                  if (result.discountType == 'PERCENTAGE') {
+                                    discount = totalBeforeDiscount * (result.discountValue / 100);
+                                    if (result.maxDiscount != null && discount > result.maxDiscount!) {
+                                      discount = result.maxDiscount!;
+                                    }
+                                  } else {
+                                    discount = result.discountValue;
+                                  }
 
-                    if (bookingState.surcharge > 0) ...[
-                      const Divider(height: 32),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              bookingState.dropoffAddress != null ? 'Phụ thu trả tận nơi' : 'Phụ thu điểm trả',
-                              style: const TextStyle(fontSize: 15.5, color: Colors.orange, fontWeight: FontWeight.w600),
+                                  // Ensure discount doesn't exceed total
+                                  if (discount > totalBeforeDiscount) {
+                                    discount = totalBeforeDiscount;
+                                  }
+
+                                  context.read<BookingCubit>().applyPromotion(result, discount);
+                                  
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Áp dụng mã khuyến mãi thành công!'),
+                                      backgroundColor: successGreen,
+                                      behavior: SnackBarBehavior.floating,
+                                    ),
+                                  );
+                                }
+                              },
+                              child: const Text('Chọn mã', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: primaryBlue)),
+                            ),
+                          ],
+                        ),
+                        if (bookingState.selectedPromotion != null) ...[
+                          const SizedBox(height: 10),
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: successGreen.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: successGreen.withValues(alpha: 0.3)),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.local_offer_rounded, color: successGreen),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        bookingState.selectedPromotion!.code,
+                                        style: const TextStyle(fontWeight: FontWeight.bold, color: successGreen),
+                                      ),
+                                      Text(
+                                        bookingState.selectedPromotion!.description,
+                                        style: const TextStyle(fontSize: 12, color: Colors.black54),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.close, size: 20, color: Colors.grey),
+                                  onPressed: () {
+                                    context.read<BookingCubit>().removePromotion();
+                                  },
+                                )
+                              ],
                             ),
                           ),
-                          Text(
-                            '+${(bookingState.surcharge * selectedSeats.length).toInt().toString().replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.')}đ',
-                            style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: Colors.orange),
+                        ],
+                      ],
+                    ),
+                  ),
+                  // --- END PROMOTION SECTION ---
+
+                  const SizedBox(height: 20),
+
+                  // --- PAYMENT DETAILS SECTION ---
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(color: pastelBlue.withAlpha(153), width: 1.5),
+                      boxShadow: [
+                        BoxShadow(color: Colors.grey.withAlpha(70), blurRadius: 16, offset: const Offset(0, 8)),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Chi tiết thanh toán', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF023E8A))),
+                        const SizedBox(height: 14),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text('Giá vé (${selectedSeats.length} ghế)', style: const TextStyle(fontSize: 16, color: Colors.black87)),
+                            Text(
+                              '${bookingState.totalPrice.toInt().toString().replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.')}đ',
+                              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                        if (bookingState.surcharge > 0) ...[
+                          const SizedBox(height: 10),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text('Phụ thu', style: TextStyle(fontSize: 16, color: Colors.black87)),
+                              Text(
+                                '+${(bookingState.surcharge * selectedSeats.length).toInt().toString().replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.')}đ',
+                                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.orange),
+                              ),
+                            ],
                           ),
                         ],
-                      ),
-                    ],
-
-                    const Divider(height: 32),
-
-                    Row(
-                      children: [
-                        const Expanded(
-                          child: Text(
-                            'Tổng thanh toán',
-                            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF023E8A)),
+                        if (bookingState.discountAmount > 0) ...[
+                          const SizedBox(height: 10),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text('Khuyến mãi', style: TextStyle(fontSize: 16, color: successGreen, fontWeight: FontWeight.bold)),
+                              Text(
+                                '-${bookingState.discountAmount.toInt().toString().replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.')}đ',
+                                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: successGreen),
+                              ),
+                            ],
                           ),
-                        ),
-                        Text(
-                          '${amountToPay.toInt().toString().replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.')}đ',
-                          style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: successGreen),
+                        ],
+                        const Divider(height: 32),
+                        Row(
+                          children: [
+                            const Expanded(
+                              child: Text(
+                                'Tổng thanh toán',
+                                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF023E8A)),
+                              ),
+                            ),
+                            Text(
+                              '${amountToPay.toInt().toString().replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.')}đ',
+                              style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: successGreen),
+                            ),
+                          ],
                         ),
                       ],
                     ),
-                  ],
-                ),
+                  ),
+
+                  const SizedBox(height: 28),
+                  const Text('Chọn phương thức thanh toán', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF023E8A))),
+                  const SizedBox(height: 14),
+
+                  BlocBuilder<PaymentCubit, PaymentState>(
+                    builder: (context, state) {
+                      final method = state is PaymentInitial ? state.method : PaymentMethod.momo;
+                      return Column(
+                        children: [
+                          PaymentMethodTile(
+                            icon: Icons.account_balance_wallet_rounded,
+                            title: 'Ví MoMo',
+                            isSelected: method == PaymentMethod.momo,
+                            onTap: () => context.read<PaymentCubit>().selectMethod(PaymentMethod.momo),
+                          ),
+                          const SizedBox(height: 14),
+                          PaymentMethodTile(
+                            icon: Icons.payments_rounded,
+                            title: 'Tiền mặt (Thanh toán tại quầy)',
+                            isSelected: method == PaymentMethod.cash,
+                            onTap: () => context.read<PaymentCubit>().selectMethod(PaymentMethod.cash),
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+
+                  const SizedBox(height: 100),
+                ],
               ),
-
-              const SizedBox(height: 28),
-              const Text('Chọn phương thức thanh toán', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF023E8A))),
-              const SizedBox(height: 14),
-
-              BlocBuilder<PaymentCubit, PaymentState>(
-                builder: (context, state) {
-                  final method = state is PaymentInitial ? state.method : PaymentMethod.momo;
-                  return Column(
-                    children: [
-                      PaymentMethodTile(
-                        icon: Icons.account_balance_wallet_rounded,
-                        title: 'Ví MoMo',
-                        isSelected: method == PaymentMethod.momo,
-                        onTap: () => context.read<PaymentCubit>().selectMethod(PaymentMethod.momo),
-                      ),
-                      const SizedBox(height: 14),
-                      PaymentMethodTile(
-                        icon: Icons.payments_rounded,
-                        title: 'Tiền mặt (Thanh toán tại quầy)',
-                        isSelected: method == PaymentMethod.cash,
-                        onTap: () => context.read<PaymentCubit>().selectMethod(PaymentMethod.cash),
-                      ),
-                    ],
-                  );
-                },
-              ),
-
-              const SizedBox(height: 100),
-            ],
-          ),
+            );
+          },
         ),
 
         bottomNavigationBar: Container(
@@ -257,16 +408,25 @@ class PaymentScreen extends StatelessWidget {
               },
               builder: (context, state) {
                 final isLoading = state is PaymentLoading;
+                // We need amountToPay here, but it's inside the BlocBuilder above.
+                // We should read it from the cubit directly or restructure.
+                // Reading from cubit directly is fine for the button action, but for display (if needed) we'd need builder.
+                // Here we just need it for the onPressed action.
+                final currentBookingState = context.read<BookingCubit>().state;
+                final amountToPay = currentBookingState.finalTotalPrice;
+                final selectedSeats = currentBookingState.selectedSeats;
+                final scheduleId = currentBookingState.selectedTrip?.id;
+
                 return SizedBox(
                   height: 64,
                   child: ElevatedButton.icon(
-                    onPressed: isLoading || selectedSeats.isEmpty
+                    onPressed: isLoading || selectedSeats.isEmpty || scheduleId == null
                         ? null
                         : () {
                             context.read<PaymentCubit>().pay(
                               context: context,
                               userId: userId,
-                              scheduleId: scheduleId!,
+                              scheduleId: scheduleId,
                               seatIds: selectedSeats.map((s) => s.id).toList(),
                               totalPrice: amountToPay,
                             );

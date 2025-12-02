@@ -16,6 +16,8 @@ class PaymentApiService {
     required List<int> seatIds,
     required double totalPrice, // Đây chính là finalTotalPrice (đã bao gồm phụ thu nếu có)
     required String paymentMethod,
+    int? promotionId,
+    double? discountAmount,
   }) async {
     final bookingState = context.read<BookingCubit>().state;
 
@@ -55,6 +57,8 @@ class PaymentApiService {
         body: jsonEncode({
           'tickets': tickets,
           'totalAmount': totalPrice, // Gửi đúng tổng tiền người dùng phải trả
+          if (promotionId != null) 'promotionId': promotionId,
+          if (discountAmount != null) 'discountAmount': discountAmount,
         }),
       );
 

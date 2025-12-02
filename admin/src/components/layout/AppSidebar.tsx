@@ -26,6 +26,7 @@ import {
   Calendar,
   ChevronsUpDown,
   User,
+  Star,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -63,6 +64,8 @@ const menuGroups = [
     label: "Quản trị",
     items: [
       { title: "Người dùng", icon: Users, href: "/users" },
+      { title: "Khuyến mãi", icon: Ticket, href: "/promotions" },
+      { title: "Đánh giá", icon: Star, href: "/reviews" },
       { title: "Thông báo", icon: BellRing, href: "/notifications" },
       { title: "Cài đặt", icon: Settings, href: "/settings" },
     ],

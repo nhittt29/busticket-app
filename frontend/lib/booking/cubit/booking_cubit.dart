@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../services/booking_api_service.dart';
 import 'booking_state.dart';
 import '../models/dropoff_point.dart';
+import '../../promotions/models/promotion.dart';
 
 class BookingCubit extends Cubit<BookingState> {
   BookingCubit() : super(BookingState.initial());
@@ -86,7 +87,9 @@ class BookingCubit extends Cubit<BookingState> {
 
     // Tính lại finalTotalPrice khi thay đổi số ghế
     final totalSurcharge = state.surcharge * selected.length;
-    final newFinalTotalPrice = total + totalSurcharge;
+    
+    double newFinalTotalPrice = total + totalSurcharge - state.discountAmount;
+    if (newFinalTotalPrice < 0) newFinalTotalPrice = 0;
 
     emit(state.copyWith(
       selectedSeats: selected,
@@ -139,7 +142,8 @@ class BookingCubit extends Cubit<BookingState> {
   // ================== MỚI: ĐIỂM TRẢ KHÁCH ==================
   void selectDropoffPoint(DropoffPoint point) {
     final totalSurcharge = point.surcharge * state.selectedSeats.length;
-    final newFinalTotalPrice = state.totalPrice + totalSurcharge;
+    double newFinalTotalPrice = state.totalPrice + totalSurcharge - state.discountAmount;
+    if (newFinalTotalPrice < 0) newFinalTotalPrice = 0;
 
     emit(state.copyWith(
       selectedDropoffPoint: point,
@@ -152,7 +156,8 @@ class BookingCubit extends Cubit<BookingState> {
   void selectDropoffAddress(String address) {
     const deliveryFee = 150000.0; // phụ thu tận nơi
     final totalSurcharge = deliveryFee * state.selectedSeats.length;
-    final newFinalTotalPrice = state.totalPrice + totalSurcharge;
+    double newFinalTotalPrice = state.totalPrice + totalSurcharge - state.discountAmount;
+    if (newFinalTotalPrice < 0) newFinalTotalPrice = 0;
 
     emit(state.copyWith(
       selectedDropoffPoint: null,
@@ -167,7 +172,35 @@ class BookingCubit extends Cubit<BookingState> {
       selectedDropoffPoint: null,
       dropoffAddress: null,
       surcharge: 0.0,
-      finalTotalPrice: state.totalPrice,
+      finalTotalPrice: state.totalPrice - state.discountAmount, // Vẫn giữ discount nếu có
+    ));
+  }
+
+  // ================== MỚI: KHUYẾN MÃI ==================
+  void applyPromotion(Promotion promotion, double discountAmount) {
+    // Tính lại tổng tiền
+    final totalSurcharge = state.surcharge * state.selectedSeats.length;
+    final totalBeforeDiscount = state.totalPrice + totalSurcharge;
+    
+    double newFinalTotalPrice = totalBeforeDiscount - discountAmount;
+    if (newFinalTotalPrice < 0) newFinalTotalPrice = 0;
+
+    emit(state.copyWith(
+      selectedPromotion: promotion,
+      discountAmount: discountAmount,
+      finalTotalPrice: newFinalTotalPrice,
+    ));
+  }
+
+  void removePromotion() {
+    // Tính lại tổng tiền (bỏ discount)
+    final totalSurcharge = state.surcharge * state.selectedSeats.length;
+    final newFinalTotalPrice = state.totalPrice + totalSurcharge;
+
+    emit(state.copyWith(
+      clearPromotion: true,
+      discountAmount: 0.0,
+      finalTotalPrice: newFinalTotalPrice,
     ));
   }
 }

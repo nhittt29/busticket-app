@@ -60,6 +60,19 @@ export function RefineProvider({ children }: { children: React.ReactNode }) {
                     show: "/tickets/show/:id",
                     meta: { label: "Vé xe" },
                 },
+                {
+                    name: "promotions",
+                    list: "/promotions",
+                    create: "/promotions/create",
+                    edit: "/promotions/edit/:id",
+                    show: "/promotions/show/:id",
+                    meta: { label: "Khuyến mãi" },
+                },
+                {
+                    name: "stats",
+                    list: "/stats",
+                    meta: { label: "Thống kê" },
+                },
             ]}
             options={{
                 syncWithLocation: true,
