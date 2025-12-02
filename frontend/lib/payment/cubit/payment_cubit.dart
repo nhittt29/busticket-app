@@ -78,13 +78,17 @@ class PaymentCubit extends Cubit<PaymentState> {
         return;
       }
 
+      final bookingState = context.read<BookingCubit>().state;
+
       final data = await PaymentApiService.createBulkTickets(
         context: context,
         userId: userId,
         scheduleId: scheduleId,
         seatIds: seatIds,
-        totalPrice: context.read<BookingCubit>().state.finalTotalPrice,
+        totalPrice: bookingState.finalTotalPrice,
         paymentMethod: currentMethod.name.toUpperCase(),
+        promotionId: bookingState.selectedPromotion?.id,
+        discountAmount: bookingState.discountAmount,
       );
 
       final paymentHistoryId = data['tickets'][0]['paymentHistoryId'] as int;

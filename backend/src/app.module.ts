@@ -1,4 +1,3 @@
-// src/app.module.ts
 import { Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bull';
 import { ScheduleModule as NestScheduleModule } from '@nestjs/schedule';
@@ -19,10 +18,13 @@ import { DropoffPointModule } from './modules/dropoff-point.module';
 import { TicketQueueModule } from './queues/ticket-queue.module';
 import { ScheduleQueueModule } from './queues/schedule-queue.module';
 import { UserModule } from './modules/user.module';
+import { ReviewsModule } from './modules/reviews.module';
+import { PromotionsModule } from './modules/promotions.module';
+import { StatsModule } from './stats/stats.module';
 
 @Module({
   imports: [
-    // Kết nối Redis cho tất cả Bull queues (giữ nguyên như cũ)
+    // Kết nối Redis cho tất cả Bull queues
     BullModule.forRoot({
       redis: {
         host: '127.0.0.1',
@@ -30,10 +32,10 @@ import { UserModule } from './modules/user.module';
       },
     }),
 
-    // NestJS Schedule (nếu bạn vẫn muốn dùng Cron truyền thống – giữ nguyên)
+    // NestJS Schedule
     NestScheduleModule.forRoot(),
 
-    // CÁC MODULE NGHIỆP VỤ (giữ nguyên thứ tự cũ)
+    // CÁC MODULE NGHIỆP VỤ
     BusModule,
     BrandModule,
     RouteModule,
@@ -43,10 +45,12 @@ import { UserModule } from './modules/user.module';
     BookingModule,
     DropoffPointModule,
 
-    // QUEUE MODULES – CHỈ THÊM 2 DÒNG NÀY VÀO CUỐI → HOÀN HẢO
-    TicketQueueModule,      // Đã có sẵn – giữ nguyên
-    ScheduleQueueModule,    // MỚI THÊM – TỰ ĐỘNG CẬP NHẬT TRẠNG THÁI CHUYẾN XE
+    // QUEUE MODULES
+    TicketQueueModule,
+    ScheduleQueueModule,
     UserModule,
+    ReviewsModule,
+    PromotionsModule,
   ],
   controllers: [AuthController],
   providers: [AuthService, PrismaService, UserRepository],

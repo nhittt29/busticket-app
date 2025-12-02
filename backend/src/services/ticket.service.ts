@@ -126,6 +126,13 @@ export class TicketService {
       `Thanh toán vé xe #${ticket.id}${surcharge > 0 ? ' + trả khách' : ''}`,
     );
 
+    if (momoResponse && momoResponse.payUrl) {
+      await this.prism.paymentHistory.update({
+        where: { id: paymentGroup.id },
+        data: { payUrl: momoResponse.payUrl },
+      });
+    }
+
     return {
       message: 'Đặt vé thành công. Vui lòng thanh toán trong 15 phút.',
       ticket,
@@ -137,6 +144,8 @@ export class TicketService {
   async createBulk(
     dtos: CreateTicketDto[],
     totalAmountFromClient: number,
+    promotionId?: number,
+    discountAmount?: number,
   ): Promise<BulkCreateResponse> {
     if (dtos.length === 0) throw new BadRequestException('Danh sách vé trống');
 
@@ -170,7 +179,13 @@ export class TicketService {
       finalDropoffPointId = defaultPoint?.id ?? null;
     }
 
-    const calculatedTotal = dtos.reduce((sum, d) => sum + d.price, 0) + (surchargePerTicket * dtos.length);
+    let calculatedTotal = dtos.reduce((sum, d) => sum + d.price, 0) + (surchargePerTicket * dtos.length);
+
+    // Áp dụng giảm giá nếu có
+    if (discountAmount && discountAmount > 0) {
+      calculatedTotal -= discountAmount;
+      if (calculatedTotal < 0) calculatedTotal = 0;
+    }
 
     const paymentGroup = await this.prism.paymentHistory.create({
       data: {
@@ -236,6 +251,13 @@ export class TicketService {
       calculatedTotal,
       `Thanh toán ${dtos.length} vé${surchargePerTicket > 0 ? ' + trả khách' : ''} - ${calculatedTotal.toLocaleString('vi-VN')}đ`,
     );
+
+    if (momoResponse && momoResponse.payUrl) {
+      await this.prism.paymentHistory.update({
+        where: { id: paymentGroup.id },
+        data: { payUrl: momoResponse.payUrl },
+      });
+    }
 
     return {
       tickets: createdTickets,
@@ -420,7 +442,7 @@ export class TicketService {
   }
 
   // LẤY THÔNG TIN THANH TOÁN + VÉ (DÙNG CHO TRANG CHI TIẾT VÉ)
-  async getPaymentHistory(ticketId: number): Promise<PaymentHistoryResponse> {
+  async getPaymentHistory(ticketId: number): Promise<any> {
     const payment = await this.prism.paymentHistory.findFirst({
       where: { ticketPayments: { some: { ticketId } } },
       include: {
@@ -448,12 +470,18 @@ export class TicketService {
     const ticketsInGroup = payment.ticketPayments.map(tp => tp.ticket);
     const departure = new Date(ticketsInGroup[0].schedule.departureAt);
 
+    // Tính toán giá gốc và giảm giá
+    const originalPrice = ticketsInGroup.reduce((sum, t) => sum + t.totalPrice, 0);
+    const discountAmount = Math.max(0, originalPrice - payment.amount);
+
     return {
       ticketCode: `V${String(payment.id).padStart(6, '0')}`,
       route: `${ticketsInGroup[0].schedule.route.startPoint} to ${ticketsInGroup[0].schedule.route.endPoint}`,
       departureTime: `${String(departure.getHours()).padStart(2, '0')}:${String(departure.getMinutes()).padStart(2, '0')}, ${departure.toLocaleDateString('vi-VN')}`,
       seatNumber: ticketsInGroup.length === 1 ? String(ticketsInGroup[0].seat.seatNumber) : `${ticketsInGroup.length} ghế`,
       price: `${payment.amount.toLocaleString('vi-VN')}đ`,
+      originalPrice: originalPrice, // Giá gốc
+      discountAmount: discountAmount, // Số tiền giảm
       paymentMethod: this.formatPaymentMethod(payment.method),
       status: payment.status === 'SUCCESS' ? 'Đã thanh toán' : 'Thất bại',
       paidAt: payment.paidAt
@@ -503,11 +531,17 @@ export class TicketService {
 
     const dropoffInfo = this.formatDropoffInfo(firstTicket);
 
+    // Tính toán giá gốc và giảm giá
+    const originalPrice = ticketsInGroup.reduce((sum, t) => sum + t.totalPrice, 0);
+    const discountAmount = Math.max(0, originalPrice - payment.amount);
+
     return {
       startPoint: firstTicket.schedule.route.startPoint,
       endPoint: firstTicket.schedule.route.endPoint,
       departureTime: departure.toISOString(),
       price: payment.amount.toString(),
+      originalPrice: originalPrice, // Giá gốc
+      discountAmount: discountAmount, // Số tiền giảm
       qrCode: payment.qrCode,
       status: payment.status === 'SUCCESS' ? 'Đã thanh toán' : 'Chưa thanh toán',
       paidAt: payment.paidAt?.toISOString() || null,
@@ -537,6 +571,7 @@ export class TicketService {
             route: true,
             bus: { include: { brand: true } },
             dropoffPoints: true,
+            // ĐÃ XÓA bulkTicketId
           },
         },
         seat: true,

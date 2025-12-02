@@ -39,8 +39,13 @@ export class TicketController {
 
   // TẠO NHIỀU VÉ CÙNG LÚC (ĐẶT NHIỀU GHẾ TRONG 1 LẦN - CHÍNH CHO ĐẶT VÉ ONLINE)
   @Post('bulk')
-  async createBulk(@Body() dto: { tickets: CreateTicketDto[]; totalAmount: number }): Promise<BulkCreateResponse> {
-    return this.ticketService.createBulk(dto.tickets, dto.totalAmount);
+  async createBulk(@Body() dto: {
+    tickets: CreateTicketDto[];
+    totalAmount: number;
+    promotionId?: number;
+    discountAmount?: number;
+  }): Promise<BulkCreateResponse> {
+    return this.ticketService.createBulk(dto.tickets, dto.totalAmount, dto.promotionId, dto.discountAmount);
   }
 
   // LẤY THÔNG TIN CHI TIẾT MỘT VÉ THEO ID
@@ -55,9 +60,9 @@ export class TicketController {
   async momoRedirect(@Query() query: any) {
     const result = await this.ticketService.handleMomoRedirect(query);
     if (!result.success) {
-      return { url: `${process.env.FRONTEND_URL}/payment-failed` };
+      return { url: `busticket://payment-failed` };
     }
-    return { url: `${process.env.FRONTEND_URL}/payment-success?paymentId=${result.paymentHistoryId}` };
+    return { url: `busticket://payment-success?paymentId=${result.paymentHistoryId}` };
   }
 
   // NHẬN CALLBACK TỪ MOMO (IPN - XÁC NHẬN THANH TOÁN TỪ SERVER MOMO)

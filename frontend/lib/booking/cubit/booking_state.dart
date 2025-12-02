@@ -1,6 +1,7 @@
 // lib/cubit/booking_state.dart
 import 'package:equatable/equatable.dart';
-import '../../booking/models/dropoff_point.dart'; // <-- IMPORT ĐÚNG TỪ MODELS
+import '../../booking/models/dropoff_point.dart';
+import '../../promotions/models/promotion.dart';
 
 class BookingState extends Equatable {
   final String from;
@@ -19,7 +20,11 @@ class BookingState extends Equatable {
   final DropoffPoint? selectedDropoffPoint; // điểm cố định (VP, bến xe…)
   final String? dropoffAddress;             // nếu chọn tận nơi
   final double surcharge;                   // phụ thu mỗi người (0, 50k, 100k, 150k…)
-  final double finalTotalPrice;              // totalPrice + (surcharge × số ghế)
+  final double finalTotalPrice;              // totalPrice + (surcharge × số ghế) - discount
+
+  // ==== MỚI THÊM: KHUYẾN MÃI ====
+  final Promotion? selectedPromotion;
+  final double discountAmount;
 
   const BookingState({
     required this.from,
@@ -37,6 +42,8 @@ class BookingState extends Equatable {
     this.dropoffAddress,
     required this.surcharge,
     required this.finalTotalPrice,
+    this.selectedPromotion,
+    this.discountAmount = 0.0,
   });
 
   factory BookingState.initial() => BookingState(
@@ -55,6 +62,8 @@ class BookingState extends Equatable {
         dropoffAddress: null,
         surcharge: 0.0,
         finalTotalPrice: 0.0,
+        selectedPromotion: null,
+        discountAmount: 0.0,
       );
 
   BookingState copyWith({
@@ -73,6 +82,9 @@ class BookingState extends Equatable {
     String? dropoffAddress,
     double? surcharge,
     double? finalTotalPrice,
+    Promotion? selectedPromotion,
+    double? discountAmount,
+    bool clearPromotion = false,
   }) {
     return BookingState(
       from: from ?? this.from,
@@ -90,6 +102,8 @@ class BookingState extends Equatable {
       dropoffAddress: dropoffAddress ?? this.dropoffAddress,
       surcharge: surcharge ?? this.surcharge,
       finalTotalPrice: finalTotalPrice ?? this.finalTotalPrice,
+      selectedPromotion: clearPromotion ? null : (selectedPromotion ?? this.selectedPromotion),
+      discountAmount: discountAmount ?? this.discountAmount,
     );
   }
 
@@ -110,10 +124,12 @@ class BookingState extends Equatable {
         dropoffAddress,
         surcharge,
         finalTotalPrice,
+        selectedPromotion,
+        discountAmount,
       ];
 }
 
-// MODEL: Chuyến xe (giữ nguyên – bạn có thể tách riêng nếu muốn)
+// MODEL: Chuyến xe
 class Trip {
   final int id;
   final String busName;
@@ -123,6 +139,8 @@ class Trip {
   final String category;
   final String seatType;
   final String status;
+  final double averageRating;
+  final int totalReviews;
 
   const Trip({
     required this.id,
@@ -133,6 +151,8 @@ class Trip {
     required this.category,
     required this.seatType,
     required this.status,
+    this.averageRating = 0.0,
+    this.totalReviews = 0,
   });
 
   factory Trip.fromJson(Map<String, dynamic> json) {
@@ -145,6 +165,8 @@ class Trip {
       category: (json['bus']?['category'] as String?) ?? 'Standard',
       seatType: (json['bus']?['seatType'] as String?) ?? 'SEAT',
       status: (json['status'] as String?) ?? 'UPCOMING',
+      averageRating: _safeToDouble(json['bus']?['averageRating'] ?? 0),
+      totalReviews: (json['bus']?['totalReviews'] as int?) ?? 0,
     );
   }
 
@@ -163,7 +185,7 @@ class Trip {
   bool get isNearDeparture => timeUntilDeparture.inMinutes < 60 && timeUntilDeparture.isNegative == false;
 }
 
-// MODEL: Ghế (giữ nguyên – bạn có thể tách riêng nếu muốn)
+// MODEL: Ghế
 class Seat {
   final int id;
   final String seatNumber;

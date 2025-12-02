@@ -1,5 +1,7 @@
 // lib/ticket/widgets/ticket_card.dart
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../../review/screens/write_review_screen.dart';
 
 class TicketCard extends StatelessWidget {
   final Map<String, dynamic> ticket;
@@ -103,6 +105,62 @@ class TicketCard extends StatelessWidget {
                 _status(ticket['status']),
                 style: TextStyle(color: _color(ticket['status']), fontSize: 11),
               ),
+              if (ticket['status'] == 'COMPLETED')
+                InkWell(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => WriteReviewScreen(
+                          ticketId: ticket['id'],
+                          busId: ticket['schedule']['busId'],
+                        ),
+                      ),
+                    );
+                  },
+                  child: Container(
+                    margin: const EdgeInsets.only(top: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.amber,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: const Text(
+                      'Đánh giá',
+                      style: TextStyle(fontSize: 10, color: Colors.white, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
+              if ((ticket['status'] == 'BOOKED' || ticket['status'] == 'Đang chờ') &&
+                  ticket['paymentHistory']?['payUrl'] != null)
+                InkWell(
+                  onTap: () async {
+                    final url = ticket['paymentHistory']!['payUrl'] as String;
+                    final uri = Uri.parse(url);
+                    try {
+                      if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+                        await launchUrl(uri, mode: LaunchMode.platformDefault);
+                      }
+                    } catch (e) {
+                      debugPrint('Could not launch payment URL: $e');
+                    }
+                  },
+                  child: Container(
+                    margin: const EdgeInsets.only(top: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFA50064), // MoMo brand color
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: const Text(
+                      'Thanh toán ngay',
+                      style: TextStyle(
+                          fontSize: 10,
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
             ],
           ),
         ),

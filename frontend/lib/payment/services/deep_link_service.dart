@@ -30,7 +30,9 @@ class DeepLinkService {
 
   Future<void> _handleLink(Uri? uri) async {
     if (uri == null || _isProcessing) return;
-    if (!uri.path.contains('payment-success')) return;
+    
+    // Check host for custom scheme deep links (busticket://payment-success)
+    if (uri.host != 'payment-success' && !uri.path.contains('payment-success')) return;
 
     _isProcessing = true;
 
@@ -94,7 +96,7 @@ class DeepLinkService {
       navigator.pushNamedAndRemoveUntil('/home', (route) => false);
 
       // Đợi UI ổn định
-      await Future.delayed(const Duration(milliseconds: 800));
+      await Future.delayed(const Duration(milliseconds: 500));
 
       if (!context.mounted) {
         _isProcessing = false;
@@ -141,9 +143,9 @@ class DeepLinkService {
         debugPrint('Lỗi hiển thị thông báo deep link: $e');
       }
 
-      // Mở màn hình QR nhóm vé
+      // Mở màn hình Payment Success
       if (context.mounted) {
-        Navigator.pushNamed(context, '/group-qr', arguments: paymentHistoryId);
+        Navigator.pushNamed(context, '/payment-success', arguments: paymentHistoryId);
         homeBloc.add(RefreshNotificationsEvent());
       }
     } catch (e) {
