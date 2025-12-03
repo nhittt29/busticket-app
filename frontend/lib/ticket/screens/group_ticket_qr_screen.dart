@@ -118,6 +118,8 @@ class _GroupTicketQRScreenState extends State<GroupTicketQRScreen>
         final seatCount = payment['seatCount'] as int? ?? 0;
         final seatDisplay = seatCount > 1 ? '$seatList ($seatCount ghế)' : seatList;
         final formattedPrice = _formatPrice(payment['price']?.toString() ?? '0');
+        final discountAmount = payment['discountAmount'] as num? ?? 0;
+        final formattedDiscount = _formatPrice(discountAmount.toString());
 
         final dropoffInfo = payment['dropoffInfo'] as Map<String, dynamic>?;
         final dropoffAddress = payment['dropoffAddress']?.toString();
@@ -329,6 +331,14 @@ class _GroupTicketQRScreenState extends State<GroupTicketQRScreen>
                           _infoRow('Mã thanh toán', payment['ticketCode']?.toString() ?? '—', icon: Icons.confirmation_number),
                           _infoRow('Phương thức', payment['paymentMethod']?.toString() ?? '—', icon: Icons.payment),
                           _infoRow('Số tiền', formattedPrice, icon: Icons.attach_money, valueColor: const Color(0xFF1976D2), valueSize: 19),
+                          if (discountAmount > 0)
+                            _infoRow(
+                              'Giảm giá',
+                              '-$formattedDiscount',
+                              icon: Icons.discount,
+                              valueColor: Colors.red,
+                              valueSize: 17,
+                            ),
                           _infoRow(
                             'Thời gian thanh toán',
                             _formatPaidAt(payment['paidAt']?.toString()),

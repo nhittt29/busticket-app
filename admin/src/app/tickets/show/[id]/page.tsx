@@ -211,10 +211,30 @@ export default function TicketShowPage() {
                                 {getStatusBadge(booking.status)}
                             </div>
                             <Separator />
-                            <div className="flex justify-between items-center">
-                                <span className="font-bold text-lg">Tổng cộng</span>
-                                <span className="font-bold text-xl text-primary">{formatCurrency(booking.totalPrice)}</span>
-                            </div>
+                            {booking.discountAmount > 0 ? (
+                                <>
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-muted-foreground">Tạm tính</span>
+                                        <span className="font-medium text-muted-foreground line-through">
+                                            {formatCurrency(booking.totalPrice + booking.discountAmount)}
+                                        </span>
+                                    </div>
+                                    <div className="flex justify-between items-center text-red-500">
+                                        <span>Giảm giá</span>
+                                        <span>- {formatCurrency(booking.discountAmount)}</span>
+                                    </div>
+                                    <Separator className="my-2" />
+                                    <div className="flex justify-between items-center">
+                                        <span className="font-bold text-lg">Tổng cộng</span>
+                                        <span className="font-bold text-xl text-primary">{formatCurrency(booking.totalPrice)}</span>
+                                    </div>
+                                </>
+                            ) : (
+                                <div className="flex justify-between items-center">
+                                    <span className="font-bold text-lg">Tổng cộng</span>
+                                    <span className="font-bold text-xl text-primary">{formatCurrency(booking.totalPrice)}</span>
+                                </div>
+                            )}
                             <div className="flex justify-between items-center">
                                 <span className="text-muted-foreground">Phương thức</span>
                                 <span className="font-medium">{booking.paymentMethod || "Chưa chọn"}</span>

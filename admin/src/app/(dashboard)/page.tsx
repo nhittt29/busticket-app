@@ -279,7 +279,12 @@ export default function Dashboard() {
                                                 </div>
                                             </div>
                                             <div className="text-right">
-                                                <div className="text-sm font-bold text-[#2c3e50]">
+                                                {booking.discountAmount > 0 && (
+                                                    <div className="text-[10px] text-muted-foreground line-through">
+                                                        {formatCurrency(booking.totalPrice + booking.discountAmount)}
+                                                    </div>
+                                                )}
+                                                <div className={`text-sm font-bold ${booking.discountAmount > 0 ? 'text-red-600' : 'text-[#2c3e50]'}`}>
                                                     {formatCurrency(booking.totalPrice)}
                                                 </div>
                                                 <div className={`text-xs font-medium ${booking.status === TicketStatus.PAID ? 'text-green-500' :

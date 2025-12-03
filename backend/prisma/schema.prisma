@@ -176,6 +176,8 @@ model PaymentHistory {
   paidAt         DateTime?
   createdAt      DateTime         @default(now())
   updatedAt      DateTime         @updatedAt
+  promotionId    Int?
+  discountAmount Float?
   tickets        Ticket[]
   ticketPayments TicketPayment[]
   @@map("payment_history")

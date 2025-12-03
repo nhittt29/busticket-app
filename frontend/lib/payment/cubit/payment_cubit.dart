@@ -145,7 +145,7 @@ class PaymentCubit extends Cubit<PaymentState> {
         debugPrint('PaymentCubit Error: $e');
         debugPrint(stackTrace.toString());
       }
-      emit(const PaymentFailure('Thanh toán thất bại. Vui lòng thử lại.'));
+      emit(const PaymentFailure('Bạn đã đạt giới hạn đặt vé tối đa 8 vé/ngày.'));
     }
   }
 }

@@ -195,6 +195,8 @@ class _TicketHistoryScreenState extends State<TicketHistoryScreen>
                     dropoffAddressLine: dropoffAddressLine,
                     surchargeText: surchargeText,
                     hasSurcharge: hasSurcharge,
+                    discountAmount: (firstTicket['payment'] as Map<String, dynamic>?)?['discountAmount'] as int? ?? 
+                                    (group.first['payment'] as Map<String, dynamic>?)?['discountAmount'] as int? ?? 0,
                   ),
                 );
               },
@@ -217,6 +219,7 @@ class _TicketHistoryScreenState extends State<TicketHistoryScreen>
     required String dropoffAddressLine,
     required String surchargeText,
     required bool hasSurcharge,
+    required int discountAmount,
   }) {
     final route = firstTicket['schedule']?['route'] as Map<String, dynamic>?;
     final startPoint = route?['startPoint']?.toString() ?? '—';
@@ -238,7 +241,15 @@ class _TicketHistoryScreenState extends State<TicketHistoryScreen>
                 s['seatNumber']?.toString() ?? s['code']?.toString()) ??
             '—';
 
-    final formattedPrice = totalPrice.toString().replaceAllMapped(
+    final originalPrice = totalPrice;
+    final finalPrice = totalPrice - discountAmount;
+
+    final formattedOriginalPrice = originalPrice.toString().replaceAllMapped(
+          RegExp(r'(\d)(?=(\d{3})+(?!\d))'),
+          (m) => '${m[1]}.',
+        );
+    
+    final formattedFinalPrice = finalPrice.toString().replaceAllMapped(
           RegExp(r'(\d)(?=(\d{3})+(?!\d))'),
           (m) => '${m[1]}.',
         );
@@ -383,10 +394,33 @@ class _TicketHistoryScreenState extends State<TicketHistoryScreen>
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    '$formattedPriceđ',
-                    style: const TextStyle(fontSize: 19, fontWeight: FontWeight.bold, color: Color(0xFF1976D2)),
-                  ),
+                  if (discountAmount > 0)
+                    Row(
+                      children: [
+                        Text(
+                          '${formattedOriginalPrice}đ',
+                          style: const TextStyle(
+                            fontSize: 15,
+                            color: Colors.grey,
+                            decoration: TextDecoration.lineThrough,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          '${formattedFinalPrice}đ',
+                          style: const TextStyle(
+                            fontSize: 19,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFFFF5722), // Red/Orange color
+                          ),
+                        ),
+                      ],
+                    )
+                  else
+                    Text(
+                      '${formattedOriginalPrice}đ',
+                      style: const TextStyle(fontSize: 19, fontWeight: FontWeight.bold, color: Color(0xFF1976D2)),
+                    ),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                     decoration: BoxDecoration(

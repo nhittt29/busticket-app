@@ -331,6 +331,9 @@ class _TicketDetailScreenState extends State<TicketDetailScreen>
     final amount = (payment['amount'] as num?)?.toInt() ?? 0;
     final formattedAmount = amount.toString().replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.');
 
+    final discountAmount = (payment['discountAmount'] as num?)?.toInt() ?? 0;
+    final formattedDiscount = discountAmount.toString().replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.');
+
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(18, 20, 18, 40),
       child: Container(
@@ -346,6 +349,9 @@ class _TicketDetailScreenState extends State<TicketDetailScreen>
             _infoRow('Mã thanh toán', 'V${(payment['id'] as int?)?.toString().padLeft(6, '0') ?? '000000'}', icon: Icons.confirmation_number),
             _infoRow('Phương thức', payment['method']?.toString() ?? '—', icon: Icons.payment),
             _infoRow('Số tiền', '$formattedAmountđ', icon: Icons.attach_money, valueColor: const Color(0xFF1976D2), valueSize: 20),
+            if (discountAmount > 0)
+              _infoRow('Giảm giá', '-$formattedDiscountđ',
+                  icon: Icons.discount, valueColor: Colors.red, valueSize: 18),
             _infoRow('Thời gian', _formatDateTime(payment['paidAt']?.toString()), icon: Icons.schedule, valueColor: const Color(0xFF4CAF50)),
             _infoRow('Mã giao dịch', payment['transactionId']?.toString() ?? '—', icon: Icons.receipt_long),
           ],

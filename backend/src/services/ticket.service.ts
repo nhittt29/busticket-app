@@ -192,6 +192,8 @@ export class TicketService {
         method: firstDto.paymentMethod || AppPaymentMethod.MOMO,
         amount: calculatedTotal,
         status: 'PENDING',
+        promotionId: promotionId || null,
+        discountAmount: discountAmount || 0,
       },
     });
 
@@ -485,6 +487,7 @@ export class TicketService {
       qrCode: payment.qrCode ?? null,
       paymentHistoryId: payment.id,
       ticketIds: ticketsInGroup.map(t => t.id),
+      discountAmount: payment.discountAmount || 0,
     };
   }
 
@@ -546,6 +549,8 @@ export class TicketService {
         surcharge: dropoffInfo.surcharge,
         surchargeText: dropoffInfo.surchargeText,
       },
+      promotionId: payment.promotionId,
+      discountAmount: payment.discountAmount,
     };
   }
 
@@ -676,6 +681,8 @@ export class TicketService {
         createdAt: booking.createdAt,
         paymentMethod: booking.method,
         tickets: booking.tickets,
+        promotionId: booking.promotionId,
+        discountAmount: booking.discountAmount,
       };
     }).filter(Boolean);
   }
@@ -719,6 +726,8 @@ export class TicketService {
       createdAt: booking.createdAt,
       paymentMethod: booking.method,
       tickets: booking.tickets,
+      promotionId: booking.promotionId,
+      discountAmount: booking.discountAmount,
     };
   }
 }
