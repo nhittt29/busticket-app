@@ -69,6 +69,7 @@ export class TicketRepository {
         seat: true,
         paymentHistory: true,
         dropoffPoint: true,
+        review: true,
       },
       orderBy: { id: 'asc' },
     });

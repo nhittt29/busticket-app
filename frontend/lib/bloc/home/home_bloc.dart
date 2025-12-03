@@ -4,6 +4,7 @@ import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'home_event.dart';
 import 'home_state.dart';
 import '../../repositories/user_repository.dart';
+import '../../ticket/services/ticket_api_service.dart';
 
 class HomeBloc extends Bloc<HomeEvent, HomeState> {
   final UserRepository _userRepository = UserRepository();
@@ -14,7 +15,8 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
     on<ClearTicketIdEvent>(_onClearTicketId);
     on<SetTicketIdEvent>(_onSetTicketId);
     on<SetNewTicketEvent>(_onSetNewTicket);
-    on<RefreshNotificationsEvent>(_onRefreshNotifications); // ĐÃ THÊM DÒNG NÀY
+    on<RefreshNotificationsEvent>(_onRefreshNotifications);
+    on<LoadUpcomingTripEvent>(_onLoadUpcomingTrip);
   }
 
   Future<void> _onLoadUser(LoadUserEvent event, Emitter<HomeState> emit) async {
@@ -66,9 +68,46 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
     emit(state.copyWith(newTicketData: event.ticketData));
   }
 
-  // ĐÃ THÊM HÀM XỬ LÝ – KHI NHẬN EVENT THÌ TỰ ĐỘNG RELOAD THÔNG BÁO
   void _onRefreshNotifications(RefreshNotificationsEvent event, Emitter<HomeState> emit) {
-    // Chỉ cần emit một state mới là đủ → NotificationScreen sẽ tự reload nhờ BlocListener
     emit(state.copyWith());
+  }
+
+  Future<void> _onLoadUpcomingTrip(LoadUpcomingTripEvent event, Emitter<HomeState> emit) async {
+    try {
+      final userData = await _userRepository.loadUser();
+      if (userData == null) return;
+
+      final userId = userData['id'];
+      final tickets = await TicketApiService.getUserTickets(userId);
+
+      // Filter for upcoming trips (BOOKED or PAID, and future date)
+      final now = DateTime.now();
+      Map<String, dynamic>? nextTrip;
+
+      // Sort tickets by departure time
+      tickets.sort((a, b) {
+        final dateA = DateTime.parse(a['schedule']['departureTime']);
+        final dateB = DateTime.parse(b['schedule']['departureTime']);
+        return dateA.compareTo(dateB);
+      });
+
+      for (var ticket in tickets) {
+        final status = ticket['status'];
+        final scheduleStatus = ticket['schedule']['status'];
+        final departureTime = DateTime.parse(ticket['schedule']['departureTime']);
+
+        if ((status == 'BOOKED' || status == 'PAID') &&
+            scheduleStatus != 'COMPLETED' &&
+            scheduleStatus != 'CANCELLED' &&
+            departureTime.isAfter(now)) {
+          nextTrip = ticket;
+          break; // Found the earliest upcoming trip
+        }
+      }
+
+      emit(state.copyWith(upcomingTrip: nextTrip));
+    } catch (e) {
+      print('Error loading upcoming trip: $e');
+    }
   }
 }

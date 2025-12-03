@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../review/screens/write_review_screen.dart';
+import '../../review/models/review.dart';
 
 class TicketCard extends StatelessWidget {
   final Map<String, dynamic> ticket;
@@ -98,14 +99,15 @@ class TicketCard extends StatelessWidget {
           ),
           trailing: Column(
             mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
             children: [
               if (ticket['status'] == 'PAID' || ticket['status'] == 'Đã thanh toán')
-                const Icon(Icons.qr_code_scanner, color: Color(0xFF66BB6A)),
+                const Icon(Icons.qr_code_scanner, color: Color(0xFF66BB6A), size: 18),
               Text(
                 _status(ticket['status']),
-                style: TextStyle(color: _color(ticket['status']), fontSize: 11),
+                style: TextStyle(color: _color(ticket['status']), fontSize: 10),
               ),
-              if (ticket['status'] == 'COMPLETED')
+              if (ticket['status'] == 'PAID' && ticket['schedule']?['status'] == 'COMPLETED')
                 InkWell(
                   onTap: () {
                     Navigator.push(
@@ -114,20 +116,21 @@ class TicketCard extends StatelessWidget {
                         builder: (_) => WriteReviewScreen(
                           ticketId: ticket['id'],
                           busId: ticket['schedule']['busId'],
+                          existingReview: ticket['review'] != null ? Review.fromJson(ticket['review']) : null,
                         ),
                       ),
                     );
                   },
                   child: Container(
-                    margin: const EdgeInsets.only(top: 4),
+                    margin: const EdgeInsets.only(top: 2),
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     decoration: BoxDecoration(
-                      color: Colors.amber,
+                      color: ticket['review'] != null ? Colors.blue : Colors.amber,
                       borderRadius: BorderRadius.circular(4),
                     ),
-                    child: const Text(
-                      'Đánh giá',
-                      style: TextStyle(fontSize: 10, color: Colors.white, fontWeight: FontWeight.bold),
+                    child: Text(
+                      ticket['review'] != null ? 'Sửa' : 'Đánh giá',
+                      style: const TextStyle(fontSize: 10, color: Colors.white, fontWeight: FontWeight.bold),
                     ),
                   ),
                 ),
@@ -146,14 +149,14 @@ class TicketCard extends StatelessWidget {
                     }
                   },
                   child: Container(
-                    margin: const EdgeInsets.only(top: 4),
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    margin: const EdgeInsets.only(top: 2),
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
                       color: const Color(0xFFA50064), // MoMo brand color
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: const Text(
-                      'Thanh toán ngay',
+                      'Thanh toán',
                       style: TextStyle(
                           fontSize: 10,
                           color: Colors.white,

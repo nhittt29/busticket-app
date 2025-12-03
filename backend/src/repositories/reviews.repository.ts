@@ -12,6 +12,27 @@ export class ReviewsRepository {
         });
     }
 
+    async findAll(): Promise<Review[]> {
+        return this.prisma.review.findMany({
+            include: {
+                user: {
+                    select: {
+                        id: true,
+                        name: true,
+                        avatar: true,
+                    },
+                },
+                bus: {
+                    select: {
+                        id: true,
+                        name: true,
+                    },
+                },
+            },
+            orderBy: { createdAt: 'desc' },
+        });
+    }
+
     async findByBusId(busId: number): Promise<Review[]> {
         return this.prisma.review.findMany({
             where: { busId },

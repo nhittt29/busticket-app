@@ -34,3 +34,5 @@ class RefreshNotificationsEvent extends HomeEvent {
   @override
   List<Object?> get props => [];
 }
+
+class LoadUpcomingTripEvent extends HomeEvent {}

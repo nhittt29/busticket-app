@@ -2,6 +2,7 @@ import { Injectable, BadRequestException, NotFoundException } from '@nestjs/comm
 import { ReviewsRepository } from '../repositories/reviews.repository';
 import { PrismaService } from './prisma.service';
 import { CreateReviewDto } from '../dtos/create-review.dto';
+import { UpdateReviewDto } from '../dtos/update-review.dto';
 
 @Injectable()
 export class ReviewsService {
@@ -46,6 +47,10 @@ export class ReviewsService {
         });
     }
 
+    async findAll() {
+        return this.reviewsRepository.findAll();
+    }
+
     async findByBusId(busId: number) {
         return this.reviewsRepository.findByBusId(busId);
     }
@@ -54,7 +59,7 @@ export class ReviewsService {
         return this.reviewsRepository.getStats(busId);
     }
 
-    async update(userId: number, reviewId: number, dto: CreateReviewDto) {
+    async update(userId: number, reviewId: number, dto: UpdateReviewDto) {
         const review = await this.reviewsRepository.findById(reviewId);
         if (!review) {
             throw new NotFoundException('Đánh giá không tồn tại');
