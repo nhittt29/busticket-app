@@ -5,6 +5,7 @@ import '../../bloc/auth/auth_bloc.dart';
 import '../services/ticket_api_service.dart';
 import 'group_ticket_qr_screen.dart';
 import 'ticket_detail_screen.dart';
+import '../../review/screens/write_review_screen.dart';
 
 class TicketHistoryScreen extends StatefulWidget {
   const TicketHistoryScreen({super.key});
@@ -440,6 +441,37 @@ class _TicketHistoryScreenState extends State<TicketHistoryScreen>
                   ),
                 ],
               ),
+
+              // NÚT ĐÁNH GIÁ - CHỈ HIỆN KHI ĐÃ THANH TOÁN VÀ CHUYẾN ĐI ĐÃ QUA
+              if (status == 'PAID' && _isTripCompleted(departureAt)) ...[
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => WriteReviewScreen(
+                            ticketId: firstTicket['id'] as int,
+                            busId: firstTicket['schedule']['busId'] as int,
+                          ),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.rate_review_outlined, size: 18),
+                    label: const Text('Đánh giá chuyến đi'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFF1976D2),
+                      side: const BorderSide(color: Color(0xFF1976D2)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
         ),
@@ -507,6 +539,18 @@ class _TicketHistoryScreenState extends State<TicketHistoryScreen>
       return '${date.day}/${date.month} • ${date.hour}h${date.minute.toString().padLeft(2, '0')}';
     } catch (_) {
       return '—';
+    }
+  }
+
+  bool _isTripCompleted(String iso) {
+    if (iso.isEmpty) return false;
+    try {
+      final departure = DateTime.parse(iso).toLocal();
+      // Giả sử chuyến đi hoàn thành sau giờ khởi hành (đơn giản hóa)
+      // Thực tế nên cộng thêm duration của route
+      return DateTime.now().isAfter(departure);
+    } catch (_) {
+      return false;
     }
   }
 }

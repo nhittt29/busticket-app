@@ -211,6 +211,19 @@ export default function TicketShowPage() {
                                 {getStatusBadge(booking.status)}
                             </div>
                             <Separator />
+                            {booking.discountAmount > 0 && (
+                                <>
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-muted-foreground">Giá gốc</span>
+                                        <span className="text-muted-foreground line-through">{formatCurrency(booking.originalPrice)}</span>
+                                    </div>
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-muted-foreground">Giảm giá</span>
+                                        <span className="text-red-500 font-medium">-{formatCurrency(booking.discountAmount)}</span>
+                                    </div>
+                                    <Separator />
+                                </>
+                            )}
                             <div className="flex justify-between items-center">
                                 <span className="font-bold text-lg">Tổng cộng</span>
                                 <span className="font-bold text-xl text-primary">{formatCurrency(booking.totalPrice)}</span>
