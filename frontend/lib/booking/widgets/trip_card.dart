@@ -83,7 +83,8 @@ class TripCard extends StatelessWidget {
                                 const SizedBox(height: 4),
                                 InkWell(
                                   onTap: () {
-                                    Navigator.push(
+                                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Tính năng đang phát triển')));
+                                    /* Navigator.push(
                                       context,
                                       MaterialPageRoute(
                                         builder: (_) => ReviewListScreen(
@@ -108,7 +109,7 @@ class TripCard extends StatelessWidget {
                                           busName: trip.busName,
                                         ),
                                       ),
-                                    );
+                                    ); */
                                   },
                                   child: Row(
                                     mainAxisSize: MainAxisSize.min,

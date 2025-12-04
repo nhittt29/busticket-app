@@ -1,258 +1,225 @@
+// lib/review/screens/review_list_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:intl/intl.dart';
-import '../cubit/review_cubit.dart';
-import '../cubit/review_state.dart';
-import '../models/review.dart';
+import '../bloc/review_bloc.dart';
+import '../bloc/review_event.dart';
+import '../bloc/review_state.dart';
+import '../widgets/review_card.dart';
+import 'write_review_screen.dart';
+
+const Color primaryBlue = Color(0xFF6AB7F5);
+const Color accentBlue = Color(0xFF4A9EFF);
+const Color deepBlue = Color(0xFF1976D2);
+const Color pastelBlue = Color(0xFFA0D8F1);
+const Color backgroundLight = Color(0xFFEAF6FF);
+const Color successGreen = Color(0xFF4CAF50);
 
 class ReviewListScreen extends StatefulWidget {
-  final int busId;
-  final String busName;
+  final int userId;
 
-  const ReviewListScreen({
-    super.key,
-    required this.busId,
-    required this.busName,
-  });
+  const ReviewListScreen({super.key, required this.userId});
 
   @override
   State<ReviewListScreen> createState() => _ReviewListScreenState();
 }
 
-class _ReviewListScreenState extends State<ReviewListScreen> {
+class _ReviewListScreenState extends State<ReviewListScreen> with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+
   @override
   void initState() {
     super.initState();
-    context.read<ReviewCubit>().loadReviews(widget.busId);
+    _tabController = TabController(length: 2, vsync: this);
+    context.read<ReviewBloc>().add(LoadReviewsEvent(widget.userId));
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: backgroundLight,
       appBar: AppBar(
-        title: const Text(
-          'Đánh giá & Nhận xét',
-          style: TextStyle(fontWeight: FontWeight.bold),
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [primaryBlue, accentBlue],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
         ),
-        centerTitle: true,
         elevation: 0,
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
+        centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, size: 20),
+          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
+        title: const Text(
+          'Đánh giá của tôi',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 23,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 0.5,
+          ),
+        ),
+        bottom: TabBar(
+          controller: _tabController,
+          labelColor: Colors.white,
+          unselectedLabelColor: Colors.white70,
+          indicatorColor: Colors.white,
+          indicatorWeight: 3,
+          labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          tabs: const [
+            Tab(text: 'Chưa đánh giá'),
+            Tab(text: 'Lịch sử đánh giá'),
+          ],
+        ),
       ),
-      body: BlocBuilder<ReviewCubit, ReviewState>(
+      body: BlocBuilder<ReviewBloc, ReviewState>(
         builder: (context, state) {
-          if (state is ReviewLoading) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          if (state is ReviewError) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.error_outline, size: 48, color: Colors.red),
-                  const SizedBox(height: 16),
-                  Text(state.message),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: () => context.read<ReviewCubit>().loadReviews(widget.busId),
-                    child: const Text('Thử lại'),
-                  ),
-                ],
-              ),
+          // Loading toàn bộ lần đầu
+          if (state.loading && state.pendingReviews.isEmpty && state.historyReviews.isEmpty) {
+            return const Center(
+              child: CircularProgressIndicator(color: primaryBlue, strokeWidth: 3),
             );
           }
 
-          if (state is ReviewLoaded) {
-            return Column(
-              children: [
-                _buildSummaryHeader(state.averageRating, state.totalReviews),
-                const Divider(height: 1, thickness: 1),
-                Expanded(
-                  child: state.reviews.isEmpty
-                      ? _buildEmptyState()
-                      : ListView.separated(
-                          padding: const EdgeInsets.all(16),
-                          itemCount: state.reviews.length,
-                          separatorBuilder: (context, index) => const Divider(height: 32),
-                          itemBuilder: (context, index) {
-                            return _buildReviewItem(state.reviews[index]);
-                          },
-                        ),
-                ),
-              ],
-            );
-          }
+          return TabBarView(
+            controller: _tabController,
+            children: [
+              // TAB 1: CHƯA ĐÁNH GIÁ
+              state.pendingReviews.isEmpty
+                  ? _buildEmptyState(
+                      icon: Icons.rate_review_outlined,
+                      title: 'Chưa có chuyến nào cần đánh giá',
+                      subtitle: 'Khi bạn hoàn thành chuyến đi, bạn sẽ được mời đánh giá ở đây',
+                    )
+                  : ListView.builder(
+                      padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
+                      itemCount: state.pendingReviews.length,
+                      itemBuilder: (context, index) {
+                        final ticket = state.pendingReviews[index];
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 16),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(24),
+                            border: Border.all(color: pastelBlue.withAlpha(150), width: 1.5),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.grey.withAlpha(60),
+                                blurRadius: 14,
+                                offset: const Offset(0, 6),
+                              ),
+                            ],
+                          ),
+                          child: ReviewCard(
+                            ticketData: ticket,
+                            isHistory: false,
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => WriteReviewScreen(
+                                    ticketId: ticket['id'],
+                                    userId: widget.userId,
+                                    ticketData: ticket,
+                                  ),
+                                ),
+                              ).then((_) {
+                                // Không cần reload thủ công vì ReviewBloc đã tự reload khi submit thành công
+                              });
+                            },
+                          ),
+                        );
+                      },
+                    ),
 
-          return const SizedBox.shrink();
+              // TAB 2: LỊCH SỬ ĐÁNH GIÁ
+              state.historyReviews.isEmpty
+                  ? _buildEmptyState(
+                      icon: Icons.history_rounded,
+                      title: 'Chưa có đánh giá nào',
+                      subtitle: 'Các đánh giá bạn đã gửi sẽ xuất hiện tại đây',
+                    )
+                  : ListView.builder(
+                      padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
+                      itemCount: state.historyReviews.length,
+                      itemBuilder: (context, index) {
+                        final review = state.historyReviews[index];
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 16),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(24),
+                            border: Border.all(color: pastelBlue.withAlpha(150), width: 1.5),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.grey.withAlpha(60),
+                                blurRadius: 14,
+                                offset: const Offset(0, 6),
+                              ),
+                            ],
+                          ),
+                          child: ReviewCard(
+                            reviewData: review,
+                            isHistory: true,
+                          ),
+                        );
+                      },
+                    ),
+            ],
+          );
         },
       ),
     );
   }
 
-  Widget _buildSummaryHeader(double average, int count) {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      color: Colors.white,
-      child: Row(
-        children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                average.toStringAsFixed(1),
-                style: const TextStyle(
-                  fontSize: 48,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF1976D2),
-                  height: 1,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Row(
-                children: List.generate(5, (index) {
-                  return Icon(
-                    index < average.round() ? Icons.star_rounded : Icons.star_outline_rounded,
-                    color: Colors.amber,
-                    size: 20,
-                  );
-                }),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                '$count đánh giá',
-                style: TextStyle(color: Colors.grey[600], fontSize: 14),
-              ),
-            ],
-          ),
-          const SizedBox(width: 24),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  widget.busName,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+  }) {
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.rate_review_outlined, size: 64, color: Colors.grey[300]),
-          const SizedBox(height: 16),
-          Text(
-            'Chưa có đánh giá nào',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-              color: Colors.grey[600],
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Hãy là người đầu tiên đánh giá chuyến đi này!',
-            style: TextStyle(color: Colors.grey[500]),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildReviewItem(Review review) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            CircleAvatar(
-              radius: 20,
-              backgroundImage: review.userAvatar != null
-                  ? NetworkImage(review.userAvatar!)
-                  : null,
-              backgroundColor: Colors.grey[200],
-              child: review.userAvatar == null
-                  ? Text(
-                      (review.userName ?? 'U')[0].toUpperCase(),
-                      style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.grey),
-                    )
-                  : null,
+            Icon(
+              icon,
+              size: 100,
+              color: Colors.grey[400],
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    review.userName ?? 'Người dùng ẩn danh',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 15,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    DateFormat('dd/MM/yyyy HH:mm').format(review.createdAt),
-                    style: TextStyle(
-                      color: Colors.grey[500],
-                      fontSize: 12,
-                    ),
-                  ),
-                ],
+            const SizedBox(height: 24),
+            Text(
+              title,
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Colors.grey[700],
               ),
+              textAlign: TextAlign.center,
             ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: Colors.amber.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
+            const SizedBox(height: 12),
+            Text(
+              subtitle,
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.grey[600],
+                height: 1.5,
               ),
-              child: Row(
-                children: [
-                  const Icon(Icons.star_rounded, size: 16, color: Colors.amber),
-                  const SizedBox(width: 4),
-                  Text(
-                    review.rating.toString(),
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.amber,
-                    ),
-                  ),
-                ],
-              ),
+              textAlign: TextAlign.center,
             ),
           ],
         ),
-        if (review.comment != null && review.comment!.isNotEmpty) ...[
-          const SizedBox(height: 12),
-          Text(
-            review.comment!,
-            style: const TextStyle(
-              fontSize: 15,
-              height: 1.4,
-              color: Color(0xFF333333),
-            ),
-          ),
-        ],
-      ],
+      ),
     );
   }
 }

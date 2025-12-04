@@ -1,95 +1,50 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
-import '../models/review.dart';
+import '../models/review_model.dart';
 
 class ReviewApiService {
-  static const String baseUrl = 'http://10.0.2.2:3000/api/reviews';
+  static const String baseUrl = 'http://10.0.2.2:3000/api';
 
-  static Future<String?> _getToken() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString('idToken');
+  static Future<List<dynamic>> getPendingReviews(int userId) async {
+    final response = await http.get(Uri.parse('$baseUrl/reviews/pending/$userId'));
+
+    if (response.statusCode == 200) {
+      return json.decode(response.body);
+    } else {
+      throw Exception('Failed to load pending reviews');
+    }
   }
 
-  static Future<List<Review>> getReviewsByBus(int busId) async {
-    final response = await http.get(Uri.parse('$baseUrl/bus/$busId'));
+  static Future<List<Review>> getUserReviews(int userId) async {
+    final response = await http.get(Uri.parse('$baseUrl/reviews/user/$userId'));
+
     if (response.statusCode == 200) {
-      final List<dynamic> data = jsonDecode(response.body);
+      final List<dynamic> data = json.decode(response.body);
       return data.map((json) => Review.fromJson(json)).toList();
     } else {
-      throw Exception('Failed to load reviews');
+      throw Exception('Failed to load user reviews');
     }
   }
 
-  static Future<Map<String, dynamic>> getStats(int busId) async {
-    final response = await http.get(Uri.parse('$baseUrl/stats/$busId'));
-    if (response.statusCode == 200) {
-      return jsonDecode(response.body);
-    } else {
-      throw Exception('Failed to load stats');
-    }
-  }
-
-  static Future<Review> createReview(int ticketId, int rating, String comment) async {
-    final token = await _getToken();
-    if (token == null) throw Exception('Unauthorized');
-
+  static Future<void> createReview({
+    required int userId,
+    required int ticketId,
+    required int rating,
+    String? comment,
+  }) async {
     final response = await http.post(
-      Uri.parse(baseUrl),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
-      body: jsonEncode({
+      Uri.parse('$baseUrl/reviews'),
+      headers: {'Content-Type': 'application/json'},
+      body: json.encode({
+        'userId': userId,
         'ticketId': ticketId,
         'rating': rating,
         'comment': comment,
       }),
     );
 
-    if (response.statusCode == 201) {
-      return Review.fromJson(jsonDecode(response.body));
-    } else {
-      throw Exception(jsonDecode(response.body)['message'] ?? 'Failed to create review');
-    }
-  }
-
-  static Future<Review> updateReview(int id, int rating, String comment) async {
-    final token = await _getToken();
-    if (token == null) throw Exception('Unauthorized');
-
-    final response = await http.put(
-      Uri.parse('$baseUrl/$id'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
-      body: jsonEncode({
-        'rating': rating,
-        'comment': comment,
-      }),
-    );
-
-    if (response.statusCode == 200) {
-      return Review.fromJson(jsonDecode(response.body));
-    } else {
-      throw Exception(jsonDecode(response.body)['message'] ?? 'Failed to update review');
-    }
-  }
-
-  static Future<void> deleteReview(int id) async {
-    final token = await _getToken();
-    if (token == null) throw Exception('Unauthorized');
-
-    final response = await http.delete(
-      Uri.parse('$baseUrl/$id'),
-      headers: {
-        'Authorization': 'Bearer $token',
-      },
-    );
-
-    if (response.statusCode != 200) {
-      throw Exception(jsonDecode(response.body)['message'] ?? 'Failed to delete review');
+    if (response.statusCode != 201) {
+      throw Exception('Failed to submit review: ${response.body}');
     }
   }
 }

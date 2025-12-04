@@ -9,6 +9,7 @@ class TicketCard extends StatelessWidget {
   final List<Map<String, dynamic>>? groupTickets;
   final VoidCallback onTap;
   final bool isHighlighted;
+  final int userId;
 
   const TicketCard({
     super.key,
@@ -16,6 +17,7 @@ class TicketCard extends StatelessWidget {
     this.groupTickets,
     required this.onTap,
     this.isHighlighted = false,
+    required this.userId,
   });
 
   String _status(String? s) => s == 'PAID' || s == 'Đã thanh toán'
@@ -115,8 +117,8 @@ class TicketCard extends StatelessWidget {
                       MaterialPageRoute(
                         builder: (_) => WriteReviewScreen(
                           ticketId: ticket['id'],
-                          busId: ticket['schedule']['busId'],
-                          existingReview: ticket['review'] != null ? Review.fromJson(ticket['review']) : null,
+                          userId: userId,
+                          ticketData: ticket,
                         ),
                       ),
                     );

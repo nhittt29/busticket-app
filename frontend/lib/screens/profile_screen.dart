@@ -196,6 +196,19 @@ class ProfileScreen extends StatelessWidget {
                       onTap: () => Navigator.pushNamed(context, '/ticket-history'),
                     ),
 
+                    _buildMenuItem(
+                      icon: Icons.star_outline,
+                      label: "Đánh giá của tôi",
+                      onTap: () {
+                        if (user['id'] != null) {
+                          Navigator.pushNamed(
+                            context,
+                            '/reviews',
+                            arguments: user['id'],
+                          );
+                        }
+                      },
+                    ),
                     const SizedBox(height: 20),
 
                     _buildSectionHeader("Thông tin chung"),

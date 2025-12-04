@@ -1,0 +1,45 @@
+Starting debug script...
+Checking tickets: 9, 10, 12
+Found 3 tickets.
+
+Ticket #9:
+  User ID: 4
+  Status: PAID
+  Schedule Status: COMPLETED
+  Departure: Wed Dec 03 2025 17:30:00 GMT+0700 (Indochina Time)
+  Review: NO
+  Logic Check:
+    isPaid: true
+    isCompleted: true
+    isPast: true (Now: 2025-12-04T14:55:41.320Z)
+    isCancelled: false
+    noReview: true
+  -> Should show in Pending? true
+
+Ticket #10:
+  User ID: 4
+  Status: PAID
+  Schedule Status: COMPLETED
+  Departure: Wed Dec 03 2025 17:30:00 GMT+0700 (Indochina Time)
+  Review: NO
+  Logic Check:
+    isPaid: true
+    isCompleted: true
+    isPast: true (Now: 2025-12-04T14:55:41.322Z)
+    isCancelled: false
+    noReview: true
+  -> Should show in Pending? true
+
+Ticket #12:
+  User ID: 4
+  Status: PAID
+  Schedule Status: COMPLETED
+  Departure: Wed Dec 03 2025 17:30:00 GMT+0700 (Indochina Time)
+  Review: NO
+  Logic Check:
+    isPaid: true
+    isCompleted: true
+    isPast: true (Now: 2025-12-04T14:55:41.326Z)
+    isCancelled: false
+    noReview: true
+  -> Should show in Pending? true

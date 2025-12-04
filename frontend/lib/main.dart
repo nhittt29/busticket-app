@@ -6,7 +6,7 @@ import 'bloc/auth/auth_bloc.dart';
 import 'bloc/home/home_bloc.dart';
 import 'bloc/notification/notification_bloc.dart'; 
 import 'booking/cubit/booking_cubit.dart';
-import 'review/cubit/review_cubit.dart';
+import 'review/bloc/review_bloc.dart';
 import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
 import 'screens/forgot_password_screen.dart';
@@ -32,6 +32,7 @@ import 'payment/screens/payment_success_screen.dart';
 import 'payment/services/deep_link_service.dart';
 import 'theme/app_theme.dart';
 import 'services/reminder_service.dart';
+import 'review/screens/review_list_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -65,7 +66,7 @@ class MyApp extends StatelessWidget {
         BlocProvider(create: (context) => HomeBloc()),
         BlocProvider(create: (context) => BookingCubit()),
         BlocProvider(create: (context) => NotificationBloc()),
-        BlocProvider(create: (context) => ReviewCubit()),
+        BlocProvider(create: (context) => ReviewBloc()),
       ],
       child: MaterialApp(
         title: 'Vé Xe Việt',
@@ -132,6 +133,13 @@ class MyApp extends StatelessWidget {
                return const Scaffold(body: Center(child: Text('Missing payment ID')));
              }
              return PaymentSuccessScreen(paymentHistoryId: args);
+          },
+          '/reviews': (context) {
+             final args = ModalRoute.of(context)!.settings.arguments as int?;
+             if (args == null) {
+               return const Scaffold(body: Center(child: Text('Missing user ID')));
+             }
+             return ReviewListScreen(userId: args);
           },
         },
         onUnknownRoute: (settings) => MaterialPageRoute(

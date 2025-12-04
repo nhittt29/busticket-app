@@ -227,6 +227,7 @@ class _MyTicketsScreenState extends State<MyTicketsScreen> {
                         ticket: first,
                         groupTickets: isGroup ? group : null,
                         isHighlighted: highlighted,
+                        userId: userId!,
                         onTap: () {
                           if (phId != null) {
                             Navigator.push(
