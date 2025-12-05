@@ -7,6 +7,8 @@ class HomeState extends Equatable {
   final String? error;
   final int? ticketId;
   final Map<String, dynamic>? newTicketData;
+  final Map<String, dynamic>? upcomingTrip;
+  final List<Map<String, dynamic>>? promotions;
 
   const HomeState({
     this.loading = false,
@@ -14,6 +16,8 @@ class HomeState extends Equatable {
     this.error,
     this.ticketId,
     this.newTicketData,
+    this.upcomingTrip,
+    this.promotions,
   });
 
   HomeState copyWith({
@@ -22,6 +26,8 @@ class HomeState extends Equatable {
     String? error,
     int? ticketId,
     Map<String, dynamic>? newTicketData,
+    Map<String, dynamic>? upcomingTrip,
+    List<Map<String, dynamic>>? promotions,
   }) {
     return HomeState(
       loading: loading ?? this.loading,
@@ -29,9 +35,11 @@ class HomeState extends Equatable {
       error: error ?? this.error,
       ticketId: ticketId ?? this.ticketId,
       newTicketData: newTicketData ?? this.newTicketData,
+      upcomingTrip: upcomingTrip ?? this.upcomingTrip,
+      promotions: promotions ?? this.promotions,
     );
   }
 
   @override
-  List<Object?> get props => [loading, user, error, ticketId, newTicketData];
+  List<Object?> get props => [loading, user, error, ticketId, newTicketData, upcomingTrip, promotions];
 }
