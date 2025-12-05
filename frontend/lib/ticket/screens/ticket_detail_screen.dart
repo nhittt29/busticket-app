@@ -348,10 +348,25 @@ class _TicketDetailScreenState extends State<TicketDetailScreen>
           children: [
             _infoRow('Mã thanh toán', 'V${(payment['id'] as int?)?.toString().padLeft(6, '0') ?? '000000'}', icon: Icons.confirmation_number),
             _infoRow('Phương thức', payment['method']?.toString() ?? '—', icon: Icons.payment),
-            _infoRow('Số tiền', '$formattedAmountđ', icon: Icons.attach_money, valueColor: const Color(0xFF1976D2), valueSize: 20),
-            if (discountAmount > 0)
+            
+            if (discountAmount > 0) ...[
+              _infoRow(
+                'Giá gốc',
+                '${(amount + discountAmount).toString().replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.')}đ',
+                icon: Icons.price_change,
+                valueColor: Colors.grey,
+                decoration: TextDecoration.lineThrough,
+              ),
+              _infoRow('Thành tiền', '$formattedAmountđ', icon: Icons.attach_money, valueColor: const Color(0xFF1976D2), valueSize: 20),
               _infoRow('Giảm giá', '-$formattedDiscountđ',
                   icon: Icons.discount, valueColor: Colors.red, valueSize: 18),
+              if (payment['promotionCode'] != null)
+                _infoRow('Mã khuyến mãi', payment['promotionCode'], icon: Icons.local_offer, valueColor: Colors.purple),
+              if (payment['promotionDescription'] != null)
+                _infoRow('Chi tiết KM', payment['promotionDescription'], icon: Icons.info_outline, valueSize: 14),
+            ] else
+              _infoRow('Số tiền', '$formattedAmountđ', icon: Icons.attach_money, valueColor: const Color(0xFF1976D2), valueSize: 20),
+
             _infoRow('Thời gian', _formatDateTime(payment['paidAt']?.toString()), icon: Icons.schedule, valueColor: const Color(0xFF4CAF50)),
             _infoRow('Mã giao dịch', payment['transactionId']?.toString() ?? '—', icon: Icons.receipt_long),
           ],
@@ -367,6 +382,7 @@ class _TicketDetailScreenState extends State<TicketDetailScreen>
     Color? valueColor,
     double? valueSize,
     FontWeight? fontWeight,
+    TextDecoration? decoration,
   }) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 12),
@@ -392,6 +408,7 @@ class _TicketDetailScreenState extends State<TicketDetailScreen>
                 fontWeight: fontWeight ?? FontWeight.bold,
                 fontSize: valueSize ?? 16.2,
                 color: valueColor ?? Colors.black87,
+                decoration: decoration,
               ),
             ),
           ),

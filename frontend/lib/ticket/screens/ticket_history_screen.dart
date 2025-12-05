@@ -197,6 +197,10 @@ class _TicketHistoryScreenState extends State<TicketHistoryScreen>
                     hasSurcharge: hasSurcharge,
                     discountAmount: (firstTicket['payment'] as Map<String, dynamic>?)?['discountAmount'] as int? ?? 
                                     (group.first['payment'] as Map<String, dynamic>?)?['discountAmount'] as int? ?? 0,
+                    promotionCode: (firstTicket['payment'] as Map<String, dynamic>?)?['promotionCode']?.toString() ??
+                                   (group.first['payment'] as Map<String, dynamic>?)?['promotionCode']?.toString(),
+                    promotionDescription: (firstTicket['payment'] as Map<String, dynamic>?)?['promotionDescription']?.toString() ??
+                                          (group.first['payment'] as Map<String, dynamic>?)?['promotionDescription']?.toString(),
                   ),
                 );
               },
@@ -220,6 +224,8 @@ class _TicketHistoryScreenState extends State<TicketHistoryScreen>
     required String surchargeText,
     required bool hasSurcharge,
     required int discountAmount,
+    String? promotionCode,
+    String? promotionDescription,
   }) {
     final route = firstTicket['schedule']?['route'] as Map<String, dynamic>?;
     final startPoint = route?['startPoint']?.toString() ?? '—';
@@ -397,13 +403,32 @@ class _TicketHistoryScreenState extends State<TicketHistoryScreen>
                   if (discountAmount > 0)
                     Row(
                       children: [
-                        Text(
-                          '${formattedOriginalPrice}đ',
-                          style: const TextStyle(
-                            fontSize: 15,
-                            color: Colors.grey,
-                            decoration: TextDecoration.lineThrough,
-                          ),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(
+                              '${formattedOriginalPrice}đ',
+                              style: const TextStyle(
+                                fontSize: 13,
+                                color: Colors.grey,
+                                decoration: TextDecoration.lineThrough,
+                              ),
+                            ),
+                            if (promotionCode != null)
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                margin: const EdgeInsets.only(top: 2),
+                                decoration: BoxDecoration(
+                                  color: Colors.purple.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(4),
+                                  border: Border.all(color: Colors.purple.withOpacity(0.3)),
+                                ),
+                                child: Text(
+                                  promotionCode,
+                                  style: const TextStyle(fontSize: 10, color: Colors.purple, fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                          ],
                         ),
                         const SizedBox(width: 8),
                         Text(
