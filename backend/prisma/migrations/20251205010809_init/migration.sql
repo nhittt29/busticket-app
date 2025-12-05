@@ -175,6 +175,8 @@ CREATE TABLE "payment_history" (
     "paidAt" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
+    "promotionId" INTEGER,
+    "discountAmount" DOUBLE PRECISION,
 
     CONSTRAINT "payment_history_pkey" PRIMARY KEY ("id")
 );

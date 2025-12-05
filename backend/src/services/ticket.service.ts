@@ -528,6 +528,10 @@ export class TicketService {
 
     const dropoffInfo = this.formatDropoffInfo(firstTicket);
 
+    const promotion = payment.promotionId
+      ? await this.prism.promotion.findUnique({ where: { id: payment.promotionId } })
+      : null;
+
     return {
       startPoint: firstTicket.schedule.route.startPoint,
       endPoint: firstTicket.schedule.route.endPoint,
@@ -551,6 +555,8 @@ export class TicketService {
       },
       promotionId: payment.promotionId,
       discountAmount: payment.discountAmount,
+      promotionCode: promotion?.code,
+      promotionDescription: promotion?.description,
     };
   }
 
@@ -592,7 +598,9 @@ export class TicketService {
       include: {
         schedule: {
           include: {
-            route: true,
+            route: {
+              include: { brand: true },
+            },
             bus: { include: { brand: true } },
             dropoffPoints: true,
           },

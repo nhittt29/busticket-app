@@ -120,6 +120,11 @@ class _GroupTicketQRScreenState extends State<GroupTicketQRScreen>
         final formattedPrice = _formatPrice(payment['price']?.toString() ?? '0');
         final discountAmount = payment['discountAmount'] as num? ?? 0;
         final formattedDiscount = _formatPrice(discountAmount.toString());
+        final finalPriceVal = num.tryParse(payment['price']?.toString() ?? '0') ?? 0;
+        final originalPrice = finalPriceVal + discountAmount;
+        final formattedOriginalPrice = _formatPrice(originalPrice.toString());
+        final promotionCode = payment['promotionCode']?.toString();
+        final promotionDescription = payment['promotionDescription']?.toString();
 
         final dropoffInfo = payment['dropoffInfo'] as Map<String, dynamic>?;
         final dropoffAddress = payment['dropoffAddress']?.toString();
@@ -330,7 +335,15 @@ class _GroupTicketQRScreenState extends State<GroupTicketQRScreen>
                         children: [
                           _infoRow('Mã thanh toán', payment['ticketCode']?.toString() ?? '—', icon: Icons.confirmation_number),
                           _infoRow('Phương thức', payment['paymentMethod']?.toString() ?? '—', icon: Icons.payment),
-                          _infoRow('Số tiền', formattedPrice, icon: Icons.attach_money, valueColor: const Color(0xFF1976D2), valueSize: 19),
+                          if (discountAmount > 0)
+                            _infoRow(
+                              'Giá gốc',
+                              formattedOriginalPrice,
+                              icon: Icons.price_change,
+                              valueColor: Colors.grey,
+                              decoration: TextDecoration.lineThrough,
+                            ),
+                          _infoRow(discountAmount > 0 ? 'Thành tiền' : 'Số tiền', formattedPrice, icon: Icons.attach_money, valueColor: const Color(0xFF1976D2), valueSize: 19),
                           if (discountAmount > 0)
                             _infoRow(
                               'Giảm giá',
@@ -338,6 +351,20 @@ class _GroupTicketQRScreenState extends State<GroupTicketQRScreen>
                               icon: Icons.discount,
                               valueColor: Colors.red,
                               valueSize: 17,
+                            ),
+                          if (promotionCode != null)
+                            _infoRow(
+                              'Mã khuyến mãi',
+                              promotionCode,
+                              icon: Icons.local_offer,
+                              valueColor: Colors.purple,
+                            ),
+                          if (promotionDescription != null)
+                            _infoRow(
+                              'Chi tiết KM',
+                              promotionDescription,
+                              icon: Icons.info_outline,
+                              valueSize: 14,
                             ),
                           _infoRow(
                             'Thời gian thanh toán',
@@ -412,6 +439,7 @@ class _GroupTicketQRScreenState extends State<GroupTicketQRScreen>
     Color? valueColor,
     double? valueSize,
     FontWeight? fontWeight,
+    TextDecoration? decoration,
   }) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 12),
@@ -441,6 +469,7 @@ class _GroupTicketQRScreenState extends State<GroupTicketQRScreen>
                 fontWeight: fontWeight ?? FontWeight.bold,
                 fontSize: valueSize ?? 16,
                 color: valueColor ?? Colors.black87,
+                decoration: decoration,
               ),
             ),
           ),
