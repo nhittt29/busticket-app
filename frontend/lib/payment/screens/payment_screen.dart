@@ -9,6 +9,7 @@ import '../../booking/cubit/booking_cubit.dart';
 import '../cubit/payment_cubit.dart';
 import '../cubit/payment_state.dart';
 import '../widgets/payment_method_tile.dart';
+import 'momo_webview_screen.dart';
 
 import '../../booking/cubit/booking_state.dart' as bs;
 import '../../promotions/models/promotion.dart';
@@ -386,11 +387,21 @@ class PaymentScreen extends StatelessWidget {
             child: BlocConsumer<PaymentCubit, PaymentState>(
               listener: (context, state) {
                 if (state is PaymentSuccess) {
-                  // Cập nhật badge thông báo realtime
                   context.read<NotificationBloc>().add(LoadNotificationsEvent());
-
+                  
                   if (state.momoPayUrl != null && state.momoPayUrl!.isNotEmpty) {
-                    launchUrl(Uri.parse(state.momoPayUrl!), mode: LaunchMode.externalApplication);
+                    // Sử dụng WebView tích hợp để chặn redirect
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => MomoWebViewScreen(paymentUrl: state.momoPayUrl!),
+                      ),
+                    ).then((result) {
+                      // Nếu trả về true (thanh toán thành công & redirect đúng)
+                      if (result == true) {
+                         Navigator.pushReplacementNamed(context, '/payment-success', arguments: state.paymentHistoryId);
+                      }
+                    });
                   } else {
                     Navigator.pushNamed(context, '/group-qr', arguments: state.paymentHistoryId);
                   }
