@@ -37,6 +37,23 @@ export class ReviewsController {
         return this.reviewsService.create(userId, dto);
     }
 
+    @Get('my-reviews')
+    async getMyReviews(@Headers('Authorization') authHeader: string) {
+        const userId = await this.getUserIdFromToken(authHeader);
+        return this.reviewsService.findByUserId(userId);
+    }
+
+    @Get()
+    async findAll() {
+        return this.reviewsService.findAll();
+    }
+
+    @Get('unreviewed')
+    async getUnreviewed(@Headers('Authorization') authHeader: string) {
+        const userId = await this.getUserIdFromToken(authHeader);
+        return this.reviewsService.findUnreviewedTickets(userId);
+    }
+
     @Get('bus/:busId')
     async findByBusId(@Param('busId', ParseIntPipe) busId: number) {
         return this.reviewsService.findByBusId(busId);

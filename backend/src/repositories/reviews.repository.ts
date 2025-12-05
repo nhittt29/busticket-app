@@ -28,6 +28,52 @@ export class ReviewsRepository {
         });
     }
 
+    async findByUserId(userId: number): Promise<Review[]> {
+        return this.prisma.review.findMany({
+            where: { userId },
+            include: {
+                bus: {
+                    select: {
+                        name: true,
+                        brand: { select: { name: true } },
+                    },
+                },
+                ticket: {
+                    include: {
+                        schedule: {
+                            include: {
+                                route: { select: { startPoint: true, endPoint: true } },
+                            },
+                        },
+                    },
+                },
+            },
+            orderBy: { createdAt: 'desc' },
+        });
+    }
+
+    async findAll(): Promise<Review[]> {
+        return this.prisma.review.findMany({
+            include: {
+                user: {
+                    select: {
+                        id: true,
+                        name: true,
+                        avatar: true,
+                    },
+                },
+                bus: {
+                    select: {
+                        id: true,
+                        name: true,
+                        brand: { select: { name: true } },
+                    },
+                },
+            },
+            orderBy: { createdAt: 'desc' },
+        });
+    }
+
     async findByTicketId(ticketId: number): Promise<Review | null> {
         return this.prisma.review.findUnique({
             where: { ticketId },

@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../bloc/home/home_bloc.dart';
 import '../bloc/home/home_state.dart';
 import '../bloc/home/home_event.dart';
+import 'my_reviews_screen.dart';
 import 'profile_detail_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
@@ -195,6 +196,14 @@ class ProfileScreen extends StatelessWidget {
                       label: "Lịch sử đặt vé",
                       onTap: () => Navigator.pushNamed(context, '/ticket-history'),
                     ),
+                    _buildMenuItem(
+                      icon: Icons.rate_review_outlined,
+                      label: "Đánh giá của tôi",
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const MyReviewsScreen()),
+                      ),
+                    ),
 
                     const SizedBox(height: 20),
 
@@ -294,6 +303,7 @@ class ProfileScreen extends StatelessWidget {
             fontSize: 16,
             color: textColor,
             fontWeight: FontWeight.w600,
+            
           ),
         ),
         trailing: Icon(Icons.chevron_right, color: trailingColor ?? const Color(0xFF1976D2).withOpacity(0.7), size: 26),

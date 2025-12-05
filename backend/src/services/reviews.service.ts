@@ -37,17 +37,57 @@ export class ReviewsService {
         }
 
         // 4. Create
-        return this.reviewsRepository.create({
+        console.log(`Creating review for ticket ${ticket.id}, user ${userId}, bus ${ticket.schedule.busId}`);
+        const review = await this.reviewsRepository.create({
             rating: dto.rating,
             comment: dto.comment,
             user: { connect: { id: userId } },
             bus: { connect: { id: ticket.schedule.busId } },
             ticket: { connect: { id: ticket.id } },
         });
+        console.log('Review created:', review);
+        return review;
     }
 
     async findByBusId(busId: number) {
         return this.reviewsRepository.findByBusId(busId);
+    }
+
+    async findByUserId(userId: number) {
+        return this.reviewsRepository.findByUserId(userId);
+    }
+
+    async findUnreviewedTickets(userId: number) {
+        console.log(`Finding unreviewed tickets for user ${userId}`);
+        const tickets = await this.prisma.ticket.findMany({
+            where: {
+                userId,
+                status: 'PAID',
+                schedule: {
+                    // Cho phép đánh giá sau khi chuyến đi kết thúc (thời gian đến < hiện tại)
+                    arrivalAt: { lt: new Date() },
+                },
+                review: null, // Chưa có đánh giá nào
+            },
+            include: {
+                schedule: {
+                    include: {
+                        route: true,
+                        bus: { include: { brand: true } },
+                    },
+                },
+                seat: true,
+            },
+            orderBy: {
+                schedule: { departureAt: 'desc' },
+            },
+        });
+        console.log(`Found ${tickets.length} unreviewed tickets`);
+        return tickets;
+    }
+
+    async findAll() {
+        return this.reviewsRepository.findAll();
     }
 
     async getStats(busId: number) {
