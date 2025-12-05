@@ -1,32 +1,18 @@
-// src/services/ticket.service.ts
-import {
-  Injectable,
-  BadRequestException,
-  NotFoundException,
-  Logger,
-} from '@nestjs/common';
-import { InjectQueue } from '@nestjs/bull';
-import type { Queue } from 'bull';
-import { TicketRepository } from '../repositories/ticket.repository';
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { PrismaService } from './prisma.service';
 import { CreateTicketDto } from '../dtos/ticket.dto';
-import { PrismaService } from '../services/prisma.service';
-import {
-  TicketStatus,
-  PaymentMethod as AppPaymentMethod,
-} from '../models/Ticket';
+import { TicketStatus, PaymentMethod } from '../models/Ticket';
 import { MomoService } from './momo.service';
-import { EmailService } from './email.service';
-import { QrService } from './qr.service';
-import {
-  CreateResponse,
-  BulkCreateResponse,
-  PaymentHistoryResponse,
-} from '../dtos/ticket.response.dto';
+import { BulkCreateResponse } from '../dtos/ticket.response.dto';
 
 @Injectable()
 export class TicketService {
-  private readonly logger = new Logger(TicketService.name);
+    constructor(
+        private prism: PrismaService,
+        private momoService: MomoService,
+    ) { }
 
+<<<<<<< HEAD
   constructor(
     private readonly ticketRepo: TicketRepository,
     private readonly prism: PrismaService,
@@ -324,154 +310,142 @@ export class TicketService {
             ticket: {
               include: {
                 seat: true,
+=======
+    async getAllTickets() {
+        return this.prism.ticket.findMany({
+            include: {
+>>>>>>> c9cddcb477d486f593c5a5c3fb56875c99670747
                 user: true,
-                schedule: { include: { route: true, bus: true } },
-              },
-            },
-          },
-        },
-      },
-    });
-    if (!paymentHistory) throw new NotFoundException('Không tìm thấy đơn thanh toán');
-    if (paymentHistory.status === 'SUCCESS')
-      throw new BadRequestException('Đơn đã được thanh toán');
-
-    const groupTickets = paymentHistory.ticketPayments.map(tp => tp.ticket);
-    if (groupTickets.length === 0)
-      throw new NotFoundException('Không có vé trong nhóm');
-
-    const firstTicket = groupTickets[0];
-    const diffHours = (new Date(firstTicket.schedule.departureAt).getTime() - Date.now()) / 3600000;
-    if (diffHours < 1)
-      throw new BadRequestException('Chỉ được thanh toán trước 1 giờ khởi hành');
-
-    const qrCodeUrl = await this.qrService.generateSecureTicketQR(paymentHistoryId);
-
-    await this.prism.paymentHistory.update({
-      where: { id: paymentHistoryId },
-      data: {
-        method,
-        transactionId: transId,
-        status: 'SUCCESS',
-        qrCode: qrCodeUrl,
-        paidAt: new Date(),
-      },
-    });
-
-    const ticketIds = groupTickets.map(t => t.id);
-    await this.prism.$transaction([
-      ...ticketIds.map(id =>
-        this.prism.ticket.update({
-          where: { id },
-          data: { status: TicketStatus.PAID },
-        })
-      ),
-      ...groupTickets.map(t =>
-        this.prism.seat.update({
-          where: { id: t.seatId },
-          data: { isAvailable: false },
-        })
-      ),
-    ]);
-
-    const jobs = await this.ticketQueue.getDelayed();
-    for (const job of jobs) {
-      if (ticketIds.includes(job.data.ticketId)) await job.remove();
-    }
-
-    if (firstTicket.user?.email) {
-      try {
-        await this.emailService.sendUnifiedTicketEmail(
-          firstTicket.user.email,
-          groupTickets,
-          paymentHistoryId,
-          qrCodeUrl,
-        );
-      } catch (error) {
-        this.logger.error('Gửi email thất bại:', error);
-      }
-    }
-
-    return {
-      message: `Thanh toán thành công ${groupTickets.length} vé!`,
-      paymentHistoryId,
-      qrCode: qrCodeUrl,
-    };
-  }
-
-  // HỦY VÉ ĐANG CHỜ THANH TOÁN – CHỈ CHO PHÉP TRƯỚC 2 GIỜ KHỞI HÀNH
-  async cancel(id: number) {
-    const ticket = await this.prism.ticket.findUnique({
-      where: { id },
-      include: { schedule: true, paymentHistory: true },
-    });
-    if (!ticket) throw new NotFoundException('Vé không tồn tại');
-    if (ticket.status !== TicketStatus.BOOKED)
-      throw new BadRequestException('Chỉ được hủy vé đang chờ thanh toán');
-    const diffHours = (new Date(ticket.schedule.departureAt).getTime() - Date.now()) / 3600000;
-    if (diffHours < 2)
-      throw new BadRequestException('Chỉ được hủy trước 2 giờ');
-    await this.prism.$transaction([
-      this.prism.ticket.update({
-        where: { id },
-        data: { status: TicketStatus.CANCELLED },
-      }),
-      this.prism.seat.update({
-        where: { id: ticket.seatId },
-        data: { isAvailable: true },
-      }),
-    ]);
-    return { message: 'Hủy vé thành công', ticketId: id };
-  }
-
-  // LẤY DANH SÁCH VÉ CỦA NGƯỜI DÙNG – TRANG "VÉ CỦA TÔI" TRÊN APP/WEB
-  async getTicketsByUser(userId: number) {
-    const tickets = await this.ticketRepo.getTicketsByUser(userId);
-    return tickets.map(ticket => ({
-      ...ticket,
-      dropoffInfo: this.formatDropoffInfo(ticket),
-    }));
-  }
-
-  // LẤY TRẠNG THÁI HIỆN TẠI CỦA MỘT VÉ (BOOKED / PAID / CANCELLED...)
-  async getStatus(id: number) {
-    const ticket = await this.prism.ticket.findUnique({
-      where: { id },
-      select: { id: true, status: true, createdAt: true },
-    });
-    if (!ticket) throw new NotFoundException('Vé không tồn tại');
-    return ticket;
-  }
-
-  // LẤY THÔNG TIN THANH TOÁN + VÉ (DÙNG CHO TRANG CHI TIẾT VÉ)
-  async getPaymentHistory(ticketId: number): Promise<PaymentHistoryResponse> {
-    const payment = await this.prism.paymentHistory.findFirst({
-      where: { ticketPayments: { some: { ticketId } } },
-      include: {
-        ticketPayments: {
-          include: {
-            ticket: {
-              include: {
-                user: { select: { name: true, phone: true } },
-                seat: { select: { seatNumber: true } },
                 schedule: {
-                  include: {
-                    route: { select: { startPoint: true, endPoint: true } },
-                    bus: { select: { name: true } },
-                  },
+                    include: {
+                        route: true,
+                        bus: { include: { brand: true } },
+                    },
                 },
-              },
+                seat: true,
             },
-          },
-        },
-      },
-    });
-    if (!payment || payment.ticketPayments.length === 0)
-      throw new NotFoundException('Không tìm thấy lịch sử thanh toán');
+        });
+    }
 
-    const ticketsInGroup = payment.ticketPayments.map(tp => tp.ticket);
-    const departure = new Date(ticketsInGroup[0].schedule.departureAt);
+    async create(dto: CreateTicketDto) {
+        // 1. Kiểm tra ghế đã được đặt chưa
+        const existingTicket = await this.prism.ticket.findFirst({
+            where: {
+                scheduleId: dto.scheduleId,
+                seatId: dto.seatId,
+                status: { not: TicketStatus.CANCELLED },
+            },
+        });
 
+        if (existingTicket) {
+            throw new Error('Ghế này đã được đặt');
+        }
+
+        // 2. Lấy thông tin lịch trình để tính giá
+        const schedule = await this.prism.schedule.findUnique({
+            where: { id: dto.scheduleId },
+            include: { route: true },
+        });
+
+        if (!schedule) {
+            throw new Error('Lịch trình không tồn tại');
+        }
+
+        // 3. Tạo nhóm thanh toán (PaymentHistory)
+        const paymentGroup = await this.prism.paymentHistory.create({
+            data: {
+                method: PaymentMethod.MOMO,
+                amount: 0, // Sẽ cập nhật sau
+                status: 'PENDING',
+                ticketCode: `V${Date.now()}`, // Mã tạm
+                seatCount: 1,
+                seatList: '', // Sẽ cập nhật
+            },
+        });
+
+        // 4. Tính phụ thu điểm trả (nếu có)
+        let surcharge = 0;
+        let dropoffAddress: string | undefined = dto.dropoffAddress;
+        let dropoffPointId = dto.dropoffPointId;
+
+        if (dropoffPointId) {
+            const point = await this.prism.dropoffPoint.findUnique({ where: { id: dropoffPointId } });
+            if (point) {
+                surcharge = point.surcharge;
+                dropoffAddress = point.address || undefined;
+            }
+        }
+
+        const totalAmount = schedule.route.lowestPrice + surcharge;
+
+        // 5. Tạo vé
+        const ticket = await this.prism.ticket.create({
+            data: {
+                userId: dto.userId,
+                scheduleId: dto.scheduleId,
+                seatId: dto.seatId,
+                price: schedule.route.lowestPrice,
+                surcharge: surcharge,
+                totalPrice: totalAmount,
+                status: TicketStatus.BOOKED,
+                paymentMethod: PaymentMethod.MOMO,
+                dropoffPointId: dropoffPointId,
+                dropoffAddress: dropoffAddress,
+                paymentHistoryId: paymentGroup.id,
+            },
+            include: { seat: true },
+        });
+
+        // 6. Cập nhật PaymentHistory
+        await this.prism.paymentHistory.update({
+            where: { id: paymentGroup.id },
+            data: {
+                amount: totalAmount,
+                seatList: ticket.seat.seatNumber.toString(),
+            },
+        });
+
+        // 7. Tạo link thanh toán MoMo
+        const momoResponse = await this.momoService.createPayment(
+            paymentGroup.id,
+            totalAmount,
+            `Thanh toán vé xe #${ticket.id}${surcharge > 0 ? ' + trả khách' : ''}`,
+        );
+
+        if (momoResponse && momoResponse.payUrl) {
+            await this.prism.paymentHistory.update({
+                where: { id: paymentGroup.id },
+                data: { payUrl: momoResponse.payUrl },
+            });
+        }
+
+        return {
+            ticket,
+            payUrl: momoResponse?.payUrl,
+        };
+    }
+
+    async createBulk(dtos: CreateTicketDto[], totalAmount: number, promotionId?: number, discountAmount: number = 0): Promise<BulkCreateResponse> {
+        if (dtos.length === 0) throw new Error('Danh sách vé trống');
+
+        const scheduleId = dtos[0].scheduleId;
+        const userId = dtos[0].userId;
+
+        // 1. Kiểm tra tất cả ghế
+        const seatIds = dtos.map(d => d.seatId);
+        const existingTickets = await this.prism.ticket.findMany({
+            where: {
+                scheduleId: scheduleId,
+                seatId: { in: seatIds },
+                status: { not: TicketStatus.CANCELLED },
+            },
+        });
+
+        if (existingTickets.length > 0) {
+            throw new Error('Một số ghế đã được đặt');
+        }
+
+<<<<<<< HEAD
     return {
       ticketCode: `V${String(payment.id).padStart(6, '0')}`,
       route: `${ticketsInGroup[0].schedule.route.startPoint} to ${ticketsInGroup[0].schedule.route.endPoint}`,
@@ -490,30 +464,126 @@ export class TicketService {
       discountAmount: payment.discountAmount || 0,
     };
   }
+=======
+        // 2. Lấy thông tin lịch trình
+        const schedule = await this.prism.schedule.findUnique({
+            where: { id: scheduleId },
+            include: { route: true },
+        });
+>>>>>>> c9cddcb477d486f593c5a5c3fb56875c99670747
 
-  // LẤY CHI TIẾT THANH TOÁN THEO PAYMENT HISTORY ID (DÙNG CHO QR, XÁC NHẬN, IN VÉ)
-  async getPaymentDetailByHistoryId(paymentHistoryId: number): Promise<any> {
-    const payment = await this.prism.paymentHistory.findUnique({
-      where: { id: paymentHistoryId },
-      include: {
-        ticketPayments: {
-          include: {
-            ticket: {
-              include: {
-                seat: { select: { seatNumber: true } },
-                schedule: {
-                  include: {
-                    route: { select: { startPoint: true, endPoint: true } },
-                  },
-                },
-                dropoffPoint: true,
-              },
+        if (!schedule) throw new Error('Lịch trình không tồn tại');
+
+        // 3. Tạo PaymentHistory group
+        const paymentGroup = await this.prism.paymentHistory.create({
+            data: {
+                method: PaymentMethod.MOMO,
+                amount: 0, // Update sau
+                status: 'PENDING',
+                ticketCode: `GRP${Date.now()}`,
+                seatCount: dtos.length,
+                seatList: '', // Update sau
             },
-          },
-        },
-      },
-    });
+        });
 
+        // 4. Tạo từng vé
+        let calculatedTotal = 0;
+        const createdTickets: any[] = [];
+        const seatNumbers: number[] = [];
+        let surchargePerTicket = 0;
+
+        for (const dto of dtos) {
+            // Xử lý điểm trả khách
+            let surcharge = 0;
+            let dropoffAddress: string | undefined = dto.dropoffAddress;
+            let dropoffPointId = dto.dropoffPointId;
+
+            if (dropoffPointId) {
+                const point = await this.prism.dropoffPoint.findUnique({ where: { id: dropoffPointId } });
+                if (point) {
+                    surcharge = point.surcharge;
+                    dropoffAddress = point.address || undefined;
+                }
+            }
+            surchargePerTicket = surcharge; // Giả sử giống nhau
+
+            const ticketPrice = schedule.route.lowestPrice + surcharge;
+            calculatedTotal += ticketPrice;
+
+            const seat = await this.prism.seat.findUnique({ where: { id: dto.seatId } });
+            if (!seat) throw new Error('Ghế không tồn tại');
+            seatNumbers.push(seat.seatNumber);
+
+            const ticket = await this.prism.ticket.create({
+                data: {
+                    userId: userId,
+                    scheduleId: scheduleId,
+                    seatId: dto.seatId,
+                    price: schedule.route.lowestPrice,
+                    surcharge: surcharge,
+                    totalPrice: ticketPrice,
+                    status: TicketStatus.BOOKED,
+                    paymentMethod: PaymentMethod.MOMO,
+                    dropoffPointId: dropoffPointId,
+                    dropoffAddress: dropoffAddress,
+                    paymentHistoryId: paymentGroup.id,
+                },
+            });
+            createdTickets.push(ticket);
+        }
+
+        // Áp dụng giảm giá (nếu có)
+        if (discountAmount > 0) {
+            calculatedTotal = Math.max(0, calculatedTotal - discountAmount);
+        }
+
+        // 5. Cập nhật PaymentHistory
+        await this.prism.paymentHistory.update({
+            where: { id: paymentGroup.id },
+            data: {
+                amount: calculatedTotal,
+                seatList: seatNumbers.join(', '),
+            },
+        });
+
+        // 6. Tạo link thanh toán MoMo cho cả nhóm
+        const momoResponse = await this.momoService.createPayment(
+            paymentGroup.id,
+            calculatedTotal,
+            `Thanh toán ${dtos.length} vé${surchargePerTicket > 0 ? ' + trả khách' : ''} - ${calculatedTotal.toLocaleString('vi-VN')}đ`,
+        );
+
+        if (momoResponse && momoResponse.payUrl) {
+            await this.prism.paymentHistory.update({
+                where: { id: paymentGroup.id },
+                data: { payUrl: momoResponse.payUrl },
+            });
+        }
+
+        return {
+            tickets: createdTickets,
+            paymentHistoryId: paymentGroup.id,
+            payUrl: momoResponse?.payUrl,
+        };
+    }
+
+    async getTicketById(id: number) {
+        const ticket = await this.prism.ticket.findUnique({
+            where: { id },
+            include: {
+                user: true,
+                schedule: {
+                    include: {
+                        route: true,
+                        bus: { include: { brand: true } },
+                    },
+                },
+                seat: true,
+                dropoffPoint: true,
+            },
+        });
+
+<<<<<<< HEAD
     if (!payment || payment.ticketPayments.length === 0)
       throw new NotFoundException('Không tìm thấy thông tin thanh toán theo paymentHistoryId');
 
@@ -629,50 +699,88 @@ export class TicketService {
         surcharge: ticket.surcharge || 150000,
         surchargeText: '+150.000đ',
       };
+=======
+        if (!ticket) throw new NotFoundException('Vé không tồn tại');
+        return ticket;
+>>>>>>> c9cddcb477d486f593c5a5c3fb56875c99670747
     }
 
-    if (ticket.dropoffPoint) {
-      const point = ticket.dropoffPoint;
-      return {
-        type: 'diemtra',
-        display: point.name,
-        address: point.address || point.name,
-        surcharge: point.surcharge || 0,
-        surchargeText: point.surcharge > 0 ? `+${(point.surcharge / 1000).toFixed(0)}k` : 'Miễn phí',
-      };
+    async handleMomoRedirect(query: any) {
+        // query: { partnerCode, orderId, requestId, amount, orderInfo, orderType, transId, resultCode, message, payType, responseTime, extraData, signature }
+        const paymentHistoryId = Number(query.orderId.split('_')[0]); // orderId format: ID_timestamp
+        const resultCode = Number(query.resultCode);
+
+        if (resultCode === 0) {
+            // Thành công
+            await this.prism.paymentHistory.update({
+                where: { id: paymentHistoryId },
+                data: {
+                    status: 'SUCCESS',
+                    transactionId: query.transId,
+                    paidAt: new Date(),
+                },
+            });
+
+            // Cập nhật trạng thái các vé con
+            await this.prism.ticket.updateMany({
+                where: { paymentHistoryId: paymentHistoryId },
+                data: { status: TicketStatus.PAID },
+            });
+
+            return { success: true, paymentHistoryId };
+        } else {
+            // Thất bại
+            await this.prism.paymentHistory.update({
+                where: { id: paymentHistoryId },
+                data: { status: 'FAILED' },
+            });
+            return { success: false };
+        }
     }
 
-    return {
-      type: 'default',
-      display: 'Bến xe đích',
-      address: ticket.schedule?.route?.endPoint || 'Bến xe',
-      surcharge: 0,
-      surchargeText: 'Miễn phí',
-    };
-  }
+    async handleMomoCallback(data: any) {
+        // Xử lý IPN từ MoMo (tương tự redirect nhưng bảo mật hơn)
+        console.log('Momo Callback:', data);
+        // Cần verify signature ở đây (bỏ qua cho demo)
+        const paymentHistoryId = Number(data.orderId.split('_')[0]);
+        const resultCode = Number(data.resultCode);
 
-  // LẤY DANH SÁCH BOOKING CHO ADMIN – HIỂN THỊ THEO NHÓM THANH TOÁN
-  async getAllBookingsForAdmin() {
-    const bookings = await this.prism.paymentHistory.findMany({
-      include: {
-        tickets: {
-          include: {
-            user: true,
-            schedule: {
-              include: {
-                route: true,
-                bus: { include: { brand: true } },
-                dropoffPoints: true,
-              },
+        if (resultCode === 0) {
+            await this.prism.paymentHistory.update({
+                where: { id: paymentHistoryId },
+                data: {
+                    status: 'SUCCESS',
+                    transactionId: data.transId,
+                    paidAt: new Date(),
+                },
+            });
+
+            await this.prism.ticket.updateMany({
+                where: { paymentHistoryId: paymentHistoryId },
+                data: { status: TicketStatus.PAID },
+            });
+        }
+        return { message: 'Received' };
+    }
+
+    async cancel(id: number) {
+        return this.prism.ticket.update({
+            where: { id },
+            data: { status: TicketStatus.CANCELLED },
+        });
+    }
+
+    async payTicket(id: number, method: PaymentMethod) {
+        return this.prism.ticket.update({
+            where: { id },
+            data: {
+                status: TicketStatus.PAID,
+                paymentMethod: method,
             },
-            seat: true,
-            dropoffPoint: true,
-          },
-        },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
+        });
+    }
 
+<<<<<<< HEAD
     return bookings.map(booking => {
       const firstTicket = booking.tickets[0];
       if (!firstTicket) return null;
@@ -709,19 +817,39 @@ export class TicketService {
                 bus: { include: { brand: true } },
                 dropoffPoints: true,
               },
+=======
+    async getTicketsByUser(userId: number) {
+        return this.prism.ticket.findMany({
+            where: { userId },
+            include: {
+                schedule: {
+                    include: {
+                        route: true,
+                        bus: { include: { brand: true } },
+                    },
+                },
+                seat: true,
+                dropoffPoint: true,
+>>>>>>> c9cddcb477d486f593c5a5c3fb56875c99670747
             },
-            seat: true,
-            dropoffPoint: true,
-          },
-        },
-      },
-    });
+            orderBy: { createdAt: 'desc' },
+        });
+    }
 
-    if (!booking) throw new NotFoundException('Booking not found');
+    async getStatus(id: number) {
+        const ticket = await this.prism.ticket.findUnique({
+            where: { id },
+            select: { status: true },
+        });
+        return { status: ticket?.status };
+    }
 
-    const firstTicket = booking.tickets[0];
-    if (!firstTicket) throw new NotFoundException('Booking has no tickets');
+    async getPaymentHistory(ticketId: number) {
+        const ticket = await this.prism.ticket.findUnique({
+            where: { id: ticketId },
+        });
 
+<<<<<<< HEAD
     return {
       id: booking.id,
       ticketCode: `V${String(booking.id).padStart(6, '0')}`,
@@ -738,4 +866,186 @@ export class TicketService {
       discountAmount: booking.discountAmount,
     };
   }
+=======
+        if (!ticket || !ticket.paymentHistoryId) return null;
+
+        const payment = await this.prism.paymentHistory.findUnique({
+            where: { id: ticket.paymentHistoryId },
+            include: {
+                tickets: {
+                    include: { seat: true }
+                }
+            }
+        });
+
+        if (!payment) return null;
+
+        // Tính toán thông tin khuyến mãi
+        const ticketsInGroup = payment.tickets;
+        const originalPrice = ticketsInGroup.reduce((sum, t) => sum + t.totalPrice, 0);
+        const discountAmount = Math.max(0, originalPrice - payment.amount);
+
+        return {
+            id: payment.id,
+            amount: payment.amount,
+            status: payment.status,
+            qrCode: payment.qrCode,
+            ticketCode: payment.ticketCode,
+            seatList: payment.seatList,
+            createdAt: payment.createdAt,
+            method: payment.method,
+            originalPrice: originalPrice, // Giá gốc
+            discountAmount: discountAmount, // Số tiền giảm
+            tickets: payment.tickets.map(t => ({
+                id: t.id,
+                seatNumber: t.seat.seatNumber,
+                price: t.totalPrice,
+            })),
+        };
+    }
+
+    async getPaymentDetailByHistoryId(id: number) {
+        const payment = await this.prism.paymentHistory.findUnique({
+            where: { id },
+            include: {
+                tickets: {
+                    include: {
+                        seat: true,
+                        schedule: {
+                            include: {
+                                route: true,
+                                bus: { include: { brand: true } }
+                            }
+                        },
+                        dropoffPoint: true,
+                    }
+                }
+            }
+        });
+
+        if (!payment) throw new NotFoundException('Payment not found');
+
+        // Tính toán thông tin khuyến mãi
+        const ticketsInGroup = payment.tickets;
+        const originalPrice = ticketsInGroup.reduce((sum, t) => sum + t.totalPrice, 0);
+        const discountAmount = Math.max(0, originalPrice - payment.amount);
+
+        return {
+            id: payment.id,
+            amount: payment.amount,
+            status: payment.status,
+            qrCode: payment.qrCode,
+            ticketCode: payment.ticketCode,
+            seatList: payment.seatList,
+            createdAt: payment.createdAt,
+            method: payment.method,
+            payUrl: payment.payUrl,
+            originalPrice: originalPrice, // Giá gốc
+            discountAmount: discountAmount, // Số tiền giảm
+            tickets: payment.tickets.map(t => ({
+                id: t.id,
+                seatNumber: t.seat.seatNumber,
+                price: t.totalPrice,
+                schedule: t.schedule,
+                dropoffPoint: t.dropoffPoint,
+                dropoffAddress: t.dropoffAddress,
+                surcharge: t.surcharge,
+            })),
+        };
+    }
+
+    // LẤY DANH SÁCH BOOKING CHO ADMIN – HIỂN THỊ THEO NHÓM THANH TOÁN
+    async getAllBookingsForAdmin() {
+        const bookings = await this.prism.paymentHistory.findMany({
+            include: {
+                tickets: {
+                    include: {
+                        user: true,
+                        schedule: {
+                            include: {
+                                route: true,
+                                bus: { include: { brand: true } },
+                                dropoffPoints: true,
+                            },
+                        },
+                        seat: true,
+                        dropoffPoint: true,
+                    },
+                },
+            },
+            orderBy: { createdAt: 'desc' },
+        });
+
+        return bookings.map(booking => {
+            const firstTicket = booking.tickets[0];
+            if (!firstTicket) return null;
+
+            const originalPrice = booking.tickets.reduce((sum, t) => sum + t.totalPrice, 0);
+            const discountAmount = Math.max(0, originalPrice - booking.amount);
+
+            return {
+                id: booking.id,
+                ticketCode: `V${String(booking.id).padStart(6, '0')}`,
+                user: firstTicket.user,
+                schedule: firstTicket.schedule,
+                seatCount: booking.tickets.length,
+                seatList: booking.tickets.map(t => t.seat.seatNumber).sort((a, b) => a - b).join(', '),
+                totalPrice: booking.amount,
+                originalPrice: originalPrice,
+                discountAmount: discountAmount,
+                status: booking.status === 'SUCCESS' ? TicketStatus.PAID : (booking.status === 'PENDING' ? TicketStatus.BOOKED : TicketStatus.CANCELLED),
+                createdAt: booking.createdAt,
+                paymentMethod: booking.method,
+                tickets: booking.tickets,
+            };
+        }).filter(Boolean);
+    }
+
+    // LẤY CHI TIẾT MỘT BOOKING THEO ID – DÀNH CHO ADMIN XEM ĐƠN
+    async getBookingById(id: number) {
+        const booking = await this.prism.paymentHistory.findUnique({
+            where: { id },
+            include: {
+                tickets: {
+                    include: {
+                        user: true,
+                        schedule: {
+                            include: {
+                                route: true,
+                                bus: { include: { brand: true } },
+                                dropoffPoints: true,
+                            },
+                        },
+                        seat: true,
+                        dropoffPoint: true,
+                    },
+                },
+            },
+        });
+
+        if (!booking) throw new NotFoundException('Booking not found');
+
+        const firstTicket = booking.tickets[0];
+        if (!firstTicket) throw new NotFoundException('Booking has no tickets');
+
+        const originalPrice = booking.tickets.reduce((sum, t) => sum + t.totalPrice, 0);
+        const discountAmount = Math.max(0, originalPrice - booking.amount);
+
+        return {
+            id: booking.id,
+            ticketCode: `V${String(booking.id).padStart(6, '0')}`,
+            user: firstTicket.user,
+            schedule: firstTicket.schedule,
+            seatCount: booking.tickets.length,
+            seatList: booking.tickets.map(t => t.seat.seatNumber).sort((a, b) => a - b).join(', '),
+            totalPrice: booking.amount,
+            originalPrice: originalPrice,
+            discountAmount: discountAmount,
+            status: booking.status === 'SUCCESS' ? TicketStatus.PAID : (booking.status === 'PENDING' ? TicketStatus.BOOKED : TicketStatus.CANCELLED),
+            createdAt: booking.createdAt,
+            paymentMethod: booking.method,
+            tickets: booking.tickets,
+        };
+    }
+>>>>>>> c9cddcb477d486f593c5a5c3fb56875c99670747
 }

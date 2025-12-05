@@ -61,3 +61,23 @@ export interface ITicketCreate {
 export interface ITicketUpdate {
     status?: TicketStatus;
 }
+
+export interface IBooking {
+    id: number;
+    ticketCode: string;
+    user?: {
+        name: string;
+        phone?: string;
+        email: string;
+    };
+    schedule?: ISchedule;
+    seatCount: number;
+    seatList: string;
+    totalPrice: number;
+    originalPrice: number;
+    discountAmount: number;
+    status: TicketStatus;
+    createdAt: string;
+    paymentMethod: string;
+    tickets: ITicket[];
+}

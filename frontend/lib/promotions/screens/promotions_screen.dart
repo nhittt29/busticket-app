@@ -1,9 +1,13 @@
+<<<<<<< HEAD
 // lib/promotion/screens/promotions_screen.dart
+=======
+>>>>>>> c9cddcb477d486f593c5a5c3fb56875c99670747
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import '../cubit/promotion_cubit.dart';
 import '../cubit/promotion_state.dart';
+<<<<<<< HEAD
 
 const Color primaryBlue = Color(0xFF6AB7F5);
 const Color accentBlue = Color(0xFF4A9EFF);
@@ -16,6 +20,9 @@ const Color successGreen = Color(0xFF4CAF50);
 const Color voucherStart = Color(0xFFFF6B6B); // Cam hồng
 const Color voucherEnd = Color(0xFFFF8E8E);
 const Color voucherButton = Color(0xFFFE5F5F);
+=======
+import '../models/promotion.dart';
+>>>>>>> c9cddcb477d486f593c5a5c3fb56875c99670747
 
 class PromotionsScreen extends StatelessWidget {
   const PromotionsScreen({super.key});
@@ -23,6 +30,7 @@ class PromotionsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
+<<<<<<< HEAD
       create: (_) => PromotionCubit()..loadPromotions(),
       child: Scaffold(
         backgroundColor: backgroundLight,
@@ -51,17 +59,32 @@ class PromotionsScreen extends StatelessWidget {
               letterSpacing: 0.5,
             ),
           ),
+=======
+      create: (context) => PromotionCubit()..loadPromotions(),
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Mã khuyến mãi'),
+          centerTitle: true,
+          backgroundColor: Colors.white,
+          foregroundColor: Colors.black,
+          elevation: 0,
+>>>>>>> c9cddcb477d486f593c5a5c3fb56875c99670747
         ),
         body: BlocBuilder<PromotionCubit, PromotionState>(
           builder: (context, state) {
             if (state.loading) {
+<<<<<<< HEAD
               return const Center(
                 child: CircularProgressIndicator(color: primaryBlue, strokeWidth: 3),
               );
+=======
+              return const Center(child: CircularProgressIndicator());
+>>>>>>> c9cddcb477d486f593c5a5c3fb56875c99670747
             }
 
             if (state.error != null) {
               return Center(
+<<<<<<< HEAD
                 child: Padding(
                   padding: const EdgeInsets.all(32),
                   child: Column(
@@ -90,11 +113,26 @@ class PromotionsScreen extends StatelessWidget {
                       ),
                     ],
                   ),
+=======
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                    const SizedBox(height: 16),
+                    Text(state.error!, style: const TextStyle(color: Colors.red)),
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: () => context.read<PromotionCubit>().loadPromotions(),
+                      child: const Text('Thử lại'),
+                    ),
+                  ],
+>>>>>>> c9cddcb477d486f593c5a5c3fb56875c99670747
                 ),
               );
             }
 
             if (state.promotions.isEmpty) {
+<<<<<<< HEAD
               return Center(
                 child: Padding(
                   padding: const EdgeInsets.all(40),
@@ -116,10 +154,15 @@ class PromotionsScreen extends StatelessWidget {
                     ],
                   ),
                 ),
+=======
+              return const Center(
+                child: Text('Hiện không có mã khuyến mãi nào.'),
+>>>>>>> c9cddcb477d486f593c5a5c3fb56875c99670747
               );
             }
 
             return ListView.separated(
+<<<<<<< HEAD
               padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
               itemCount: state.promotions.length,
               separatorBuilder: (_, __) => const SizedBox(height: 16),
@@ -266,6 +309,14 @@ class PromotionsScreen extends StatelessWidget {
                     ),
                   ),
                 );
+=======
+              padding: const EdgeInsets.all(16),
+              itemCount: state.promotions.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 12),
+              itemBuilder: (context, index) {
+                final promo = state.promotions[index];
+                return _buildPromotionCard(context, promo);
+>>>>>>> c9cddcb477d486f593c5a5c3fb56875c99670747
               },
             );
           },
@@ -273,4 +324,73 @@ class PromotionsScreen extends StatelessWidget {
       ),
     );
   }
+<<<<<<< HEAD
 }
+=======
+
+  Widget _buildPromotionCard(BuildContext context, Promotion promo) {
+    final dateFormat = DateFormat('dd/MM/yyyy');
+    
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            Container(
+              width: 60,
+              height: 60,
+              decoration: BoxDecoration(
+                color: Colors.orange.shade100,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.local_offer, color: Colors.orange, size: 30),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    promo.code,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    promo.description,
+                    style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'HSD: ${dateFormat.format(promo.endDate)}',
+                    style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
+                  ),
+                ],
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                // Trả về promotion đã chọn
+                Navigator.pop(context, promo);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              ),
+              child: const Text('Dùng ngay'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+>>>>>>> c9cddcb477d486f593c5a5c3fb56875c99670747

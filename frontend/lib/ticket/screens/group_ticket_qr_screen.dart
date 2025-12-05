@@ -118,6 +118,7 @@ class _GroupTicketQRScreenState extends State<GroupTicketQRScreen>
         final seatCount = payment['seatCount'] as int? ?? 0;
         final seatDisplay = seatCount > 1 ? '$seatList ($seatCount ghế)' : seatList;
         final formattedPrice = _formatPrice(payment['price']?.toString() ?? '0');
+<<<<<<< HEAD
         final discountAmount = payment['discountAmount'] as num? ?? 0;
         final formattedDiscount = _formatPrice(discountAmount.toString());
         final finalPriceVal = num.tryParse(payment['price']?.toString() ?? '0') ?? 0;
@@ -125,6 +126,13 @@ class _GroupTicketQRScreenState extends State<GroupTicketQRScreen>
         final formattedOriginalPrice = _formatPrice(originalPrice.toString());
         final promotionCode = payment['promotionCode']?.toString();
         final promotionDescription = payment['promotionDescription']?.toString();
+=======
+        final originalPrice = payment['originalPrice'] as num?;
+        final discountAmount = payment['discountAmount'] as num?;
+        final hasDiscount = discountAmount != null && discountAmount > 0;
+        final formattedOriginalPrice = hasDiscount ? _formatPrice(originalPrice.toString()) : '';
+        final formattedDiscount = hasDiscount ? '-${_formatPrice(discountAmount.toString())}' : '';
+>>>>>>> c9cddcb477d486f593c5a5c3fb56875c99670747
 
         final dropoffInfo = payment['dropoffInfo'] as Map<String, dynamic>?;
         final dropoffAddress = payment['dropoffAddress']?.toString();
@@ -294,6 +302,18 @@ class _GroupTicketQRScreenState extends State<GroupTicketQRScreen>
                             ),
 
                             const Divider(height: 32, thickness: 1.2, color: Color(0xFFE3F2FD)),
+                            if (hasDiscount) ...[
+                              _infoRow('Giá gốc', formattedOriginalPrice,
+                                  icon: Icons.price_change,
+                                  valueColor: Colors.grey,
+                                  valueSize: 16,
+                                  decoration: TextDecoration.lineThrough),
+                              _infoRow('Giảm giá', formattedDiscount,
+                                  icon: Icons.discount,
+                                  valueColor: Colors.red,
+                                  valueSize: 16,
+                                  fontWeight: FontWeight.bold),
+                            ],
                             _infoRow('Tổng tiền', formattedPrice,
                                 icon: Icons.paid, valueColor: const Color(0xFF1976D2), valueSize: 23, fontWeight: FontWeight.bold),
                             _infoRow(
@@ -401,7 +421,7 @@ class _GroupTicketQRScreenState extends State<GroupTicketQRScreen>
                                   width: 260,
                                   height: 260,
                                   fit: BoxFit.contain,
-                                  errorBuilder: (_, __, ___) => const Icon(Icons.qr_code_2, size: 100, color: Colors.grey),
+                                  errorBuilder: (context, error, stackTrace) => const Icon(Icons.qr_code_2, size: 100, color: Colors.grey),
                                 ),
                               ),
                               const SizedBox(height: 20),

@@ -5,6 +5,7 @@ import '../../bloc/auth/auth_bloc.dart';
 import '../services/ticket_api_service.dart';
 import 'group_ticket_qr_screen.dart';
 import 'ticket_detail_screen.dart';
+import '../../review/screens/write_review_screen.dart';
 
 class TicketHistoryScreen extends StatefulWidget {
   const TicketHistoryScreen({super.key});
@@ -152,6 +153,18 @@ class _TicketHistoryScreenState extends State<TicketHistoryScreen>
                   return sum + (price?.toInt() ?? 0);
                 });
 
+                // Lấy giá thực trả từ payment info (nếu có)
+                int? realAmount;
+                final firstPayment = group.first['payment'] as Map<String, dynamic>?;
+                if (firstPayment != null) {
+                  // payment['price'] trả về string "150.000đ", cần parse lại
+                  final priceStr = firstPayment['price'] as String?;
+                  if (priceStr != null) {
+                    final cleaned = priceStr.replaceAll(RegExp(r'[^0-9]'), '');
+                    realAmount = int.tryParse(cleaned);
+                  }
+                }
+
                 final hasQR = group.any((item) {
                   final payment = item['payment'] as Map<String, dynamic>?;
                   return payment != null && payment['qrCode']?.toString().isNotEmpty == true;
@@ -189,6 +202,7 @@ class _TicketHistoryScreenState extends State<TicketHistoryScreen>
                     groupTickets: isGroup ? group.map((e) => e['ticket'] as Map<String, dynamic>).toList() : null,
                     paymentHistoryId: paymentHistoryId,
                     totalPrice: totalPrice,
+                    realAmount: realAmount,
                     hasQR: hasQR,
                     status: status,
                     dropoffTitle: dropoffTitle,
@@ -217,6 +231,7 @@ class _TicketHistoryScreenState extends State<TicketHistoryScreen>
     required List<Map<String, dynamic>>? groupTickets,
     required int? paymentHistoryId,
     required int totalPrice,
+    int? realAmount,
     required bool hasQR,
     required String status,
     required String dropoffTitle,
@@ -259,6 +274,17 @@ class _TicketHistoryScreenState extends State<TicketHistoryScreen>
           RegExp(r'(\d)(?=(\d{3})+(?!\d))'),
           (m) => '${m[1]}.',
         );
+        
+    String? formattedRealPrice;
+    bool hasDiscount = false;
+    
+    if (realAmount != null && realAmount < totalPrice) {
+      hasDiscount = true;
+      formattedRealPrice = realAmount.toString().replaceAllMapped(
+          RegExp(r'(\d)(?=(\d{3})+(?!\d))'),
+          (m) => '${m[1]}.',
+        );
+    }
 
     return Container(
       decoration: BoxDecoration(
@@ -400,6 +426,7 @@ class _TicketHistoryScreenState extends State<TicketHistoryScreen>
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
+<<<<<<< HEAD
                   if (discountAmount > 0)
                     Row(
                       children: [
@@ -446,6 +473,27 @@ class _TicketHistoryScreenState extends State<TicketHistoryScreen>
                       '${formattedOriginalPrice}đ',
                       style: const TextStyle(fontSize: 19, fontWeight: FontWeight.bold, color: Color(0xFF1976D2)),
                     ),
+=======
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (hasDiscount)
+                        Text(
+                          '$formattedPriceđ',
+                          style: const TextStyle(
+                            fontSize: 14, 
+                            fontWeight: FontWeight.w500, 
+                            color: Colors.grey,
+                            decoration: TextDecoration.lineThrough,
+                          ),
+                        ),
+                      Text(
+                        hasDiscount ? '$formattedRealPriceđ' : '$formattedPriceđ',
+                        style: const TextStyle(fontSize: 19, fontWeight: FontWeight.bold, color: Color(0xFF1976D2)),
+                      ),
+                    ],
+                  ),
+>>>>>>> c9cddcb477d486f593c5a5c3fb56875c99670747
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                     decoration: BoxDecoration(
@@ -459,6 +507,37 @@ class _TicketHistoryScreenState extends State<TicketHistoryScreen>
                   ),
                 ],
               ),
+
+              // NÚT ĐÁNH GIÁ - CHỈ HIỆN KHI ĐÃ THANH TOÁN VÀ CHUYẾN ĐI ĐÃ QUA
+              if (status == 'PAID' && _isTripCompleted(departureAt)) ...[
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => WriteReviewScreen(
+                            ticketId: firstTicket['id'] as int,
+                            busId: firstTicket['schedule']['busId'] as int,
+                          ),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.rate_review_outlined, size: 18),
+                    label: const Text('Đánh giá chuyến đi'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFF1976D2),
+                      side: const BorderSide(color: Color(0xFF1976D2)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
         ),
@@ -526,6 +605,18 @@ class _TicketHistoryScreenState extends State<TicketHistoryScreen>
       return '${date.day}/${date.month} • ${date.hour}h${date.minute.toString().padLeft(2, '0')}';
     } catch (_) {
       return '—';
+    }
+  }
+
+  bool _isTripCompleted(String iso) {
+    if (iso.isEmpty) return false;
+    try {
+      final departure = DateTime.parse(iso).toLocal();
+      // Giả sử chuyến đi hoàn thành sau giờ khởi hành (đơn giản hóa)
+      // Thực tế nên cộng thêm duration của route
+      return DateTime.now().isAfter(departure);
+    } catch (_) {
+      return false;
     }
   }
 }

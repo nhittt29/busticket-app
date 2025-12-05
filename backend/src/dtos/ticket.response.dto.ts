@@ -6,7 +6,8 @@ export interface CreateResponse {
 
 export interface BulkCreateResponse {
   tickets: any[];
-  payment: any;
+  paymentHistoryId: number;
+  payUrl?: string;
 }
 
 export interface PaymentHistoryResponse {
@@ -22,7 +23,10 @@ export interface PaymentHistoryResponse {
   qrCode: string | null;
   paymentHistoryId: number;
   ticketIds: number[];
+<<<<<<< HEAD
   discountAmount: number;
+=======
+>>>>>>> c9cddcb477d486f593c5a5c3fb56875c99670747
 }
 
 // THÊM MỚI – THÔNG TIN ĐIỂM TRẢ

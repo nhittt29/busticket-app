@@ -211,6 +211,7 @@ export default function TicketShowPage() {
                                 {getStatusBadge(booking.status)}
                             </div>
                             <Separator />
+<<<<<<< HEAD
                             {booking.discountAmount > 0 ? (
                                 <>
                                     <div className="flex justify-between items-center">
@@ -235,6 +236,25 @@ export default function TicketShowPage() {
                                     <span className="font-bold text-xl text-primary">{formatCurrency(booking.totalPrice)}</span>
                                 </div>
                             )}
+=======
+                            {booking.discountAmount > 0 && (
+                                <>
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-muted-foreground">Giá gốc</span>
+                                        <span className="text-muted-foreground line-through">{formatCurrency(booking.originalPrice)}</span>
+                                    </div>
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-muted-foreground">Giảm giá</span>
+                                        <span className="text-red-500 font-medium">-{formatCurrency(booking.discountAmount)}</span>
+                                    </div>
+                                    <Separator />
+                                </>
+                            )}
+                            <div className="flex justify-between items-center">
+                                <span className="font-bold text-lg">Tổng cộng</span>
+                                <span className="font-bold text-xl text-primary">{formatCurrency(booking.totalPrice)}</span>
+                            </div>
+>>>>>>> c9cddcb477d486f593c5a5c3fb56875c99670747
                             <div className="flex justify-between items-center">
                                 <span className="text-muted-foreground">Phương thức</span>
                                 <span className="font-medium">{booking.paymentMethod || "Chưa chọn"}</span>

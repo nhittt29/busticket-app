@@ -160,6 +160,7 @@ export default function TicketListPage() {
                                         {booking.seatList}
                                     </span>
                                 </TableCell>
+<<<<<<< HEAD
                                 <TableCell>
                                     <div className="flex flex-col items-start">
                                         {booking.discountAmount > 0 && (
@@ -176,6 +177,19 @@ export default function TicketListPage() {
                                             </span>
                                         )}
                                     </div>
+=======
+                                <TableCell className="font-medium text-primary">
+                                    {booking.discountAmount > 0 ? (
+                                        <div className="flex flex-col">
+                                            <span className="text-xs text-muted-foreground line-through">
+                                                {formatCurrency(booking.originalPrice)}
+                                            </span>
+                                            <span>{formatCurrency(booking.totalPrice)}</span>
+                                        </div>
+                                    ) : (
+                                        formatCurrency(booking.totalPrice)
+                                    )}
+>>>>>>> c9cddcb477d486f593c5a5c3fb56875c99670747
                                 </TableCell>
                                 <TableCell>
                                     {getStatusBadge(booking.status)}
