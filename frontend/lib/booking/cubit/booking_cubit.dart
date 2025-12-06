@@ -4,6 +4,7 @@ import '../services/booking_api_service.dart';
 import 'booking_state.dart';
 import '../models/dropoff_point.dart';
 import '../../promotions/models/promotion.dart';
+import '../utils/seat_logic.dart';
 
 class BookingCubit extends Cubit<BookingState> {
   BookingCubit() : super(BookingState.initial());
@@ -79,8 +80,30 @@ class BookingCubit extends Cubit<BookingState> {
 
     final selected = List<Seat>.from(state.selectedSeats);
     if (selected.contains(seat)) {
-      selected.remove(seat);
+      // VALIDATE: Kiểm tra xem BỎ CHỌN có tạo ra ghế lẻ không?
+      // Logic mới: Auto-Correction (Tự động bỏ chọn các ghế bị lẻ theo)
+      
+      final simulatedList = List<Seat>.from(selected)..removeWhere((s) => s.id == seat.id);
+      
+      // Tìm các ghế không hợp lệ còn lại
+      final invalidSeats = SeatLogic.findInvalidSeats(state.seats, simulatedList);
+      
+      // Nếu có ghế không hợp lệ -> Bỏ chọn luôn chúng nó
+      if (invalidSeats.isNotEmpty) {
+         selected.removeWhere((s) => s.id == seat.id); // Bỏ ghế chính
+         for (final invalid in invalidSeats) {
+           selected.removeWhere((s) => s.id == invalid.id);
+         }
+         emit(state.copyWith(error: 'Đã tự động bỏ chọn ghế liên quan để tránh bị lẻ chỗ.'));
+      } else {
+         selected.removeWhere((s) => s.id == seat.id);
+      }
     } else {
+      // VALIDATE: Kiểm tra ghế lẻ (Orphan Logic)
+      if (SeatLogic.wouldCreateOrphan(seat, state.seats, selected)) {
+        emit(state.copyWith(error: 'Vui lòng chọn ghế liên tiếp, không để trống 1 ghế ở giữa hoặc bìa.'));
+        return;
+      }
       selected.add(seat);
     }
     final total = selected.fold<double>(0.0, (sum, s) => sum + s.price);
