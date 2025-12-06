@@ -120,29 +120,53 @@ class SeatLogic {
 
     // --- LAYOUT 41 GIƯỜNG ---
     if (allSeats.length == 41) {
-       // Tầng 1: 3 cột [6, 5, 6] ? -> Cần check lại code SeatLayout41Form
-       // Tầng 2: Phức tạp hơn (Main 18 + Last Row).
-       // Để đơn giản và an toàn, ta dùng logic Columns cơ bản cho phần thân.
-       // SeatLayout41Form: 
-       // Lower: 3 cột (giống 34?) -> code dùng _buildFloor("Tầng dưới", ..., lower, 3).
-       //       _buildFloor logic: chia đều columns?
-       //       Check _buildFloor: cols[i % columnCount].add(seats[i]). 
-       //       => CHIA THEO MÔ ĐUN (Round Robin)!? 
-       //       Khác với [6, 5, 6] (Sequential block).
+       // Logic phức tạp từ Frontend (SelectBusScreen.dart - SeatLayout41Form):
+       // Back Row (5 ghế) = 2 ghế cuối tầng trên + 3 ghế cuối tầng dưới.
        
-       // QUAN TRỌNG: Cần kiểm tra lại SelectBusScreen.dart để xem logic chia cột chính xác.
-       // Ở bước đọc file trước đó:
-       // Layout 34 dùng _buildFloorSide -> [6, 5, 6] (Sequential)
-       // Layout 41 dùng _buildFloor -> i % columnCount (Round Robin)
+       // 1. Lấy danh sách (giả định đã sort đúng theo thứ tự hiển thị hoặc row-based)
+       // KHÔNG DÙNG _sortSeats (vì nó sort theo cột A->B->C, làm vỡ logic Round Robin của Layout này)
+       // Ta tin tưởng vào thứ tự của list gốc (hoặc sort cơ bản id/seatNumber nếu cần)
+       // Tuy nhiên, SelectBusScreen dùng logic i % 3, tức là list phải có dạng [A1, B1, C1, A2, B2...]
        
-       if (target.floor == 1) {
-         // Tầng dưới 41 ghế dùng _buildFloor với columnCount = 3 (Round Robin)
-         return _findRowNeighborsByRoundRobin(target, sameFloorSeats, 3);
-       } else {
-         // Tầng trên 41 ghế: Main 18 (Round Robin 3 cols) + Last Row
-         // Chấp nhận logic tương đối cho tầng trên
-         return _findRowNeighborsByRoundRobin(target, sameFloorSeats, 3); 
+       final lowerSeats = allSeats.where((s) => s.floor == 1).toList();
+       final upperSeats = allSeats.where((s) => s.floor == 2).toList();
+       
+       // 2. Xác định các ghế "Moved" (3 ghế cuối tầng dưới dời lên)
+       // Logic gốc: movedSeats = lowerSeats.skip(18).take(3)
+       // (Lưu ý: lowerSeats có thể > 18. Nếu < 18 thì take(3) sẽ lấy ít hơn, ko sao)
+       final movedSeats = lowerSeats.skip(18).take(3).toList();
+       
+       // 3. Xác định các ghế "Last Row Upper" (2 ghế cuối tầng trên)
+       // Logic gốc: lastRowUpperSeats = upperSeats.skip(18).take(2)
+       final lastRowUpperSeats = upperSeats.skip(18).take(2).toList();
+       
+       // 4. Các ghế còn lại (Main Rows - Thân xe)
+       final mainLower = lowerSeats.take(18).toList(); // 18 ghế đầu tầng dưới
+       final mainUpper = upperSeats.take(18).toList(); // 18 ghế đầu tầng trên
+       
+       // 5. Build nhóm "Hàng cuối" (Back Row)
+       // Thứ tự Visual trong Row: [ ...lastRowUpperSeats, ...movedSeats ]
+       final backRow = [...lastRowUpperSeats, ...movedSeats];
+       
+       // 6. Kiểm tra Target thuộc nhóm nào?
+       
+       // Check ID trong Back Row
+       if (backRow.any((s) => s.id == target.id)) {
+         return backRow; // Trả về nguyên nhóm 5 ghế
        }
+       
+       // Nếu thuộc Main Lower (18 ghế) -> Dùng ROUND ROBIN (3 cột)
+       if (mainLower.any((s) => s.id == target.id)) {
+         return _findRowNeighborsByRoundRobin(target, mainLower, 3);
+       }
+       
+       // Nếu thuộc Main Upper (18 ghế) -> Dùng ROUND ROBIN (3 cột)
+       if (mainUpper.any((s) => s.id == target.id)) {
+         return _findRowNeighborsByRoundRobin(target, mainUpper, 3);
+       }
+       
+       // Fallback
+       return [target];
     }
     
     // --- LAYOUT 44/45 GIƯỜNG (Mặc định) ---
@@ -222,5 +246,22 @@ class SeatLogic {
       }
     }
     return invalid.toList();
+  }
+  
+  static void _sortSeats(List<Seat> seats) {
+    seats.sort((a, b) {
+      final aPrefix = a.seatNumber.replaceAll(RegExp(r'[0-9]'), '');
+      final bPrefix = b.seatNumber.replaceAll(RegExp(r'[0-9]'), '');
+      
+      final aNumStr = a.seatNumber.replaceAll(RegExp(r'[^0-9]'), '');
+      final bNumStr = b.seatNumber.replaceAll(RegExp(r'[^0-9]'), '');
+      final aNum = int.tryParse(aNumStr) ?? 0;
+      final bNum = int.tryParse(bNumStr) ?? 0;
+
+      int prefixCompare = aPrefix.compareTo(bPrefix);
+      if (prefixCompare != 0) return prefixCompare;
+
+      return aNum.compareTo(bNum);
+    });
   }
 }
