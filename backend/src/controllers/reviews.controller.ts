@@ -1,6 +1,7 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Headers, ParseIntPipe, UnauthorizedException, HttpCode, HttpStatus, NotFoundException } from '@nestjs/common';
+import { Controller, Get, Post, Put, Patch, Delete, Body, Param, Headers, ParseIntPipe, UnauthorizedException, HttpCode, HttpStatus, NotFoundException } from '@nestjs/common';
 import { ReviewsService } from '../services/reviews.service';
 import { CreateReviewDto } from '../dtos/create-review.dto';
+import { UpdateReviewDto } from '../dtos/update-review.dto';
 import { auth } from '../config/firebase';
 import { PrismaService } from '../services/prisma.service';
 
@@ -67,7 +68,7 @@ export class ReviewsController {
     @Put(':id')
     async update(
         @Param('id', ParseIntPipe) id: number,
-        @Body() dto: CreateReviewDto,
+        @Body() dto: UpdateReviewDto,
         @Headers('Authorization') authHeader: string,
     ) {
         const userId = await this.getUserIdFromToken(authHeader);
@@ -81,5 +82,10 @@ export class ReviewsController {
     ) {
         const userId = await this.getUserIdFromToken(authHeader);
         return this.reviewsService.delete(userId, id);
+    }
+
+    @Patch(':id/reply')
+    async reply(@Param('id', ParseIntPipe) id: number, @Body('reply') reply: string) {
+        return this.reviewsService.reply(id, reply);
     }
 }

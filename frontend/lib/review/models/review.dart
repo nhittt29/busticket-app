@@ -8,6 +8,9 @@ class Review {
   final DateTime createdAt;
   final String? userName;
   final String? userAvatar;
+  final List<String> images;
+  final String? reply;
+  final DateTime? repliedAt;
 
   Review({
     required this.id,
@@ -19,6 +22,9 @@ class Review {
     required this.createdAt,
     this.userName,
     this.userAvatar,
+    this.images = const [],
+    this.reply,
+    this.repliedAt,
   });
 
   factory Review.fromJson(Map<String, dynamic> json) {
@@ -32,6 +38,9 @@ class Review {
       createdAt: DateTime.parse(json['createdAt']),
       userName: json['user']?['name'],
       userAvatar: json['user']?['avatar'],
+      images: (json['images'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
+      reply: json['reply'],
+      repliedAt: json['repliedAt'] != null ? DateTime.parse(json['repliedAt']) : null,
     );
   }
 }

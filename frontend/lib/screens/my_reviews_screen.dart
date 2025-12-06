@@ -1,10 +1,13 @@
 // lib/review/screens/my_reviews_screen.dart
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import '../bloc/review/review_bloc.dart';
 import '../bloc/review/review_event.dart';
 import '../bloc/review/review_state.dart';
+import '../review/screens/write_review_screen.dart';
+import '../review/models/review.dart';
 
 const Color primaryBlue = Color(0xFF6AB7F5);
 const Color accentBlue = Color(0xFF4A9EFF);
@@ -249,7 +252,7 @@ class _UnreviewedTab extends StatelessWidget {
                 Align(
                   alignment: Alignment.centerRight,
                   child: ElevatedButton.icon(
-                    onPressed: () => _showRatingDialog(context, ticket['id']),
+                    onPressed: () => _navigateToWriteReview(context, ticket['id'], bus['id']),
                     icon: const Icon(Icons.star_rounded, size: 20),
                     label: const Text("Đánh giá ngay", style: TextStyle(fontWeight: FontWeight.bold)),
                     style: ElevatedButton.styleFrom(
@@ -270,97 +273,20 @@ class _UnreviewedTab extends StatelessWidget {
     );
   }
 
-  // ĐÃ SỬA HOÀN TOÀN: 5 SAO GẦN NHAU HƠN, ĐẸP CHÍNH XÁC NHƯ ẢNH BẠN GỬI
-  void _showRatingDialog(BuildContext context, int ticketId) {
-    final reviewBloc = context.read<ReviewBloc>();
-    int rating = 5;
-    final commentController = TextEditingController();
-
-    showDialog(
-      context: context,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setState) {
-            return AlertDialog(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-              title: const Text(
-                "Đánh giá chuyến đi",
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: deepBlue),
-              ),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text(
-                    "Bạn hài lòng đến mức nào?",
-                    style: TextStyle(fontSize: 16, color: Colors.black87),
-                  ),
-                  const SizedBox(height: 24),
-                  // 5 SAO SIÊU GẦN, ĐẸP, KHÔNG TRÀN
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: List.generate(5, (i) => GestureDetector(
-                      onTap: () => setState(() => rating = i + 1),
-                      child: Container(
-                        margin: const EdgeInsets.symmetric(horizontal: 2), // GIẢM TỪ 6 → 2 → GẮN BÓC SIÊU ĐẸP
-                        child: Icon(
-                          i < rating ? Icons.star_rounded : Icons.star_border_rounded,
-                          color: i < rating ? Colors.amber : Colors.grey[350],
-                          size: 52,
-                        ),
-                      ),
-                    )),
-                  ),
-                  const SizedBox(height: 20),
-                  TextField(
-                    controller: commentController,
-                    maxLines: 4,
-                    decoration: InputDecoration(
-                      hintText: 'Nhận xét của bạn (tùy chọn)',
-                      filled: true,
-                      fillColor: Colors.grey[50],
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        borderSide: BorderSide.none,
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        borderSide: const BorderSide(color: reviewGradientStart, width: 2),
-                      ),
-                      contentPadding: const EdgeInsets.all(16),
-                    ),
-                  ),
-                ],
-              ),
-              actionsPadding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: Text("Hủy", style: TextStyle(color: Colors.grey[700], fontSize: 16)),
-                ),
-                ElevatedButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                    reviewBloc.add(SubmitReviewEvent(
-                      ticketId: ticketId,
-                      rating: rating,
-                      comment: commentController.text.trim(),
-                    ));
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: reviewGradientStart,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  ),
-                  child: const Text("Gửi đánh giá", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
+  void _navigateToWriteReview(BuildContext context, int ticketId, int busId) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => WriteReviewScreen(
+          ticketId: ticketId,
+          busId: busId,
+        ),
+      ),
+    ).then((_) {
+      if (context.mounted) {
+        context.read<ReviewBloc>().add(LoadReviewsEvent());
+      }
+    });
   }
 }
 
@@ -444,6 +370,27 @@ class _HistoryTab extends StatelessWidget {
                         maxLines: 1,
                       ),
                     ),
+                    // NÚT SỬA ĐÁNH GIÁ
+                    IconButton(
+                      icon: const Icon(Icons.edit, size: 20, color: Colors.blueGrey),
+                      tooltip: 'Sửa đánh giá',
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => WriteReviewScreen(
+                              ticketId: review['ticketId'],
+                              busId: review['busId'],
+                              existingReview: Review.fromJson(review),
+                            ),
+                          ),
+                        ).then((_) {
+                          if (context.mounted) {
+                            context.read<ReviewBloc>().add(LoadReviewsEvent());
+                          }
+                        });
+                      },
+                    ),
                     Text(
                       dateStr,
                       style: TextStyle(color: Colors.grey[600], fontSize: 13),
@@ -482,11 +429,96 @@ class _HistoryTab extends StatelessWidget {
                     ),
                   ),
                 ],
+                if (review['images'] != null && (review['images'] as List).isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    height: 80,
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: (review['images'] as List).length,
+                      itemBuilder: (context, imgIndex) {
+                        final imgUrl = review['images'][imgIndex];
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 8.0),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: _buildReviewImage(imgUrl),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+
+                if (review['reply'] != null) ...[
+                  const SizedBox(height: 12),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.green.withAlpha(20),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.green.withAlpha(50)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          "Phản hồi từ Admin:",
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                            color: Colors.green,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          review['reply'],
+                          style: const TextStyle(fontSize: 15, color: Colors.black87),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
         );
       },
+    );
+  }
+
+  Widget _buildReviewImage(String imgUrl) {
+    if (imgUrl.startsWith('data:image')) {
+      try {
+        final base64String = imgUrl.split(',').last;
+        return Image.memory(
+          base64Decode(base64String),
+          width: 80,
+          height: 80,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) => _buildErrorImage(),
+        );
+      } catch (e) {
+        return _buildErrorImage();
+      }
+    } else {
+      return Image.network(
+        imgUrl,
+        width: 80,
+        height: 80,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) => _buildErrorImage(),
+      );
+    }
+  }
+
+  Widget _buildErrorImage() {
+    return Container(
+      width: 80,
+      height: 80,
+      color: Colors.grey[200],
+      child: const Icon(Icons.broken_image, color: Colors.grey),
     );
   }
 }

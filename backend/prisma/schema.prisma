@@ -201,6 +201,9 @@ model Review {
   id        Int      @id @default(autoincrement())
   rating    Int
   comment   String?
+  images    String[]
+  reply     String?
+  repliedAt DateTime?
   userId    Int
   user      User     @relation(fields: [userId], references: [id])
   busId     Int
@@ -211,11 +214,6 @@ model Review {
   updatedAt DateTime @updatedAt
   @@index([busId])
   @@index([userId])
-}
-
-enum DiscountType {
-  PERCENTAGE
-  FIXED
 }
 
 model Promotion {
@@ -236,6 +234,11 @@ model Promotion {
   @@index([code])
   @@index([isActive])
   @@index([startDate, endDate])
+}
+
+enum DiscountType {
+  PERCENTAGE
+  FIXED
 }
 
 enum RoleName {

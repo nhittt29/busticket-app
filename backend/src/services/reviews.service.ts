@@ -2,6 +2,7 @@ import { Injectable, BadRequestException, NotFoundException } from '@nestjs/comm
 import { ReviewsRepository } from '../repositories/reviews.repository';
 import { PrismaService } from './prisma.service';
 import { CreateReviewDto } from '../dtos/create-review.dto';
+import { UpdateReviewDto } from '../dtos/update-review.dto';
 
 @Injectable()
 export class ReviewsService {
@@ -41,6 +42,7 @@ export class ReviewsService {
         const review = await this.reviewsRepository.create({
             rating: dto.rating,
             comment: dto.comment,
+            images: dto.images || [],
             user: { connect: { id: userId } },
             bus: { connect: { id: ticket.schedule.busId } },
             ticket: { connect: { id: ticket.id } },
@@ -66,6 +68,7 @@ export class ReviewsService {
                 schedule: {
                     // Cho phép đánh giá sau khi chuyến đi kết thúc (thời gian đến < hiện tại)
                     arrivalAt: { lt: new Date() },
+                    status: 'COMPLETED',
                 },
                 review: null, // Chưa có đánh giá nào
             },
@@ -94,7 +97,7 @@ export class ReviewsService {
         return this.reviewsRepository.getStats(busId);
     }
 
-    async update(userId: number, reviewId: number, dto: CreateReviewDto) {
+    async update(userId: number, reviewId: number, dto: UpdateReviewDto) {
         const review = await this.reviewsRepository.findById(reviewId);
         if (!review) {
             throw new NotFoundException('Đánh giá không tồn tại');
@@ -107,6 +110,7 @@ export class ReviewsService {
         return this.reviewsRepository.update(reviewId, {
             rating: dto.rating,
             comment: dto.comment,
+            images: dto.images || [],
         });
     }
 
@@ -121,5 +125,17 @@ export class ReviewsService {
         }
 
         return this.reviewsRepository.delete(reviewId);
+    }
+
+    async reply(reviewId: number, reply: string) {
+        const review = await this.reviewsRepository.findById(reviewId);
+        if (!review) {
+            throw new NotFoundException('Đánh giá không tồn tại');
+        }
+
+        return this.reviewsRepository.update(reviewId, {
+            reply,
+            repliedAt: new Date(),
+        });
     }
 }

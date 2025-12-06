@@ -95,5 +95,44 @@ export const dataProvider: DataProvider = {
     createMany: async () => { throw new Error("Not implemented"); },
     deleteMany: async () => { throw new Error("Not implemented"); },
     updateMany: async () => { throw new Error("Not implemented"); },
-    custom: async () => { throw new Error("Not implemented"); },
+    custom: async ({ url, method, filters, sorters, payload, query, headers }) => {
+        let requestUrl = `${url}`;
+
+        if (sorters && sorters.length > 0) {
+            const sortQuery = {
+                sortBy: sorters[0].field,
+                order: sorters[0].order,
+            };
+            // Append sort query to requestUrl or handle as needed
+        }
+
+        if (filters) {
+            filters.map((filter) => {
+                // Append filter query to requestUrl or handle as needed
+            });
+        }
+
+        let response;
+        switch (method) {
+            case "put":
+                response = await api.put(requestUrl, payload, { headers });
+                break;
+            case "post":
+                response = await api.post(requestUrl, payload, { headers });
+                break;
+            case "patch":
+                response = await api.patch(requestUrl, payload, { headers });
+                break;
+            case "delete":
+                response = await api.delete(requestUrl, { headers });
+                break;
+            default:
+                response = await api.get(requestUrl, { headers });
+                break;
+        }
+
+        return {
+            data: response.data,
+        };
+    },
 };

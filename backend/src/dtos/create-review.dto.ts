@@ -13,4 +13,8 @@ export class CreateReviewDto {
     @IsString()
     @IsOptional()
     comment?: string;
+
+    @IsOptional()
+    @IsString({ each: true })
+    images?: string[];
 }

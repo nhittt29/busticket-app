@@ -109,6 +109,83 @@ async function main() {
     });
 
     console.log(`Created PAID ticket #${ticket.id} for user ${user.email}. You can now review it.`);
+
+    // 5. Create another Unreviewed Ticket (Different Route)
+    const route2 = await prisma.route.create({
+        data: {
+            startPoint: 'Đà Nẵng',
+            endPoint: 'Huế',
+            averageDurationMin: 120,
+            lowestPrice: 150000,
+            brandId: brand.id,
+        },
+    });
+
+    const schedule2 = await prisma.schedule.create({
+        data: {
+            busId: bus.id,
+            routeId: route2.id,
+            departureAt: yesterday,
+            arrivalAt: arrival,
+            status: 'COMPLETED',
+        },
+    });
+
+    const seat2 = await prisma.seat.create({
+        data: { seatNumber: 99, code: 'B01', price: 150000, busId: bus.id },
+    });
+
+    const ticket2 = await prisma.ticket.create({
+        data: {
+            userId: user.id,
+            scheduleId: schedule2.id,
+            seatId: seat2.id,
+            price: 150000,
+            totalPrice: 150000,
+            status: 'PAID',
+            paymentMethod: 'ZALOPAY',
+        },
+    });
+    console.log(`Created another UNREVIEWED ticket #${ticket2.id}`);
+
+    // 6. Create a REVIEWED Ticket (History)
+    const schedule3 = await prisma.schedule.create({
+        data: {
+            busId: bus.id,
+            routeId: route.id,
+            departureAt: new Date(new Date().setDate(new Date().getDate() - 5)), // 5 days ago
+            arrivalAt: new Date(new Date().setDate(new Date().getDate() - 5)),
+            status: 'COMPLETED',
+        },
+    });
+
+    const seat3 = await prisma.seat.create({
+        data: { seatNumber: 100, code: 'C01', price: 200000, busId: bus.id },
+    });
+
+    const ticket3 = await prisma.ticket.create({
+        data: {
+            userId: user.id,
+            scheduleId: schedule3.id,
+            seatId: seat3.id,
+            price: 200000,
+            totalPrice: 200000,
+            status: 'PAID',
+            paymentMethod: 'CASH',
+        },
+    });
+
+    await prisma.review.create({
+        data: {
+            rating: 5,
+            comment: 'Chuyến đi tuyệt vời! Xe sạch sẽ, bác tài vui tính.',
+            images: ['https://picsum.photos/200/300', 'https://picsum.photos/200/301'],
+            userId: user.id,
+            busId: bus.id,
+            ticketId: ticket3.id,
+        },
+    });
+    console.log(`Created REVIEWED ticket #${ticket3.id} with review.`);
 }
 
 main()

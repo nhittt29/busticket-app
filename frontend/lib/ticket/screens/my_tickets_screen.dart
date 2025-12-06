@@ -198,7 +198,7 @@ class _MyTicketsScreenState extends State<MyTicketsScreen> {
                     final first = group.first;
                     final phId = first['paymentHistoryId'] as int?;
                     final isGroup = group.length > 1;
-                    final highlighted = phId == _highlightPaymentHistoryId;
+                    // final highlighted = phId == _highlightPaymentHistoryId; // Đã bỏ highlight
 
                     return AnimatedContainer(
                       duration: const Duration(milliseconds: 700),
@@ -206,27 +206,18 @@ class _MyTicketsScreenState extends State<MyTicketsScreen> {
                       margin: const EdgeInsets.only(bottom: 16),
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(22), // nhỏ hơn 24
-                        boxShadow: highlighted
-                            ? [
-                                BoxShadow(
-                                  color: const Color(0xFF4CAF50).withOpacity(0.32),
-                                  blurRadius: 18,
-                                  spreadRadius: 4,
-                                  offset: const Offset(0, 6),
-                                ),
-                              ]
-                            : [
-                                BoxShadow(
-                                  color: Colors.grey.withOpacity(0.18),
-                                  blurRadius: 10,
-                                  offset: const Offset(0, 5),
-                                ),
-                              ],
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.grey.withOpacity(0.18),
+                            blurRadius: 10,
+                            offset: const Offset(0, 5),
+                          ),
+                        ],
                       ),
                       child: TicketCard(
                         ticket: first,
                         groupTickets: isGroup ? group : null,
-                        isHighlighted: highlighted,
+                        isHighlighted: false, // Luôn tắt highlight
                         onTap: () {
                           if (phId != null) {
                             Navigator.push(

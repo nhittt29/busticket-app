@@ -9,6 +9,8 @@ export interface IReview {
     busId: number;
     ticketId: number;
     createdAt: string;
+    reply?: string;
+    repliedAt?: string;
     user?: IUser;
     bus?: IBus;
 }

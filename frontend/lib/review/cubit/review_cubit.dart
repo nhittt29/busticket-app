@@ -20,20 +20,20 @@ class ReviewCubit extends Cubit<ReviewState> {
     }
   }
 
-  Future<void> createReview(int ticketId, int rating, String comment) async {
+  Future<void> createReview(int ticketId, int rating, String comment, List<String> images) async {
     emit(ReviewLoading());
     try {
-      await ReviewApiService.createReview(ticketId, rating, comment);
+      await ReviewApiService.createReview(ticketId, rating, comment, images);
       emit(const ReviewOperationSuccess('Đánh giá thành công!'));
     } catch (e) {
       emit(ReviewError(e.toString()));
     }
   }
 
-  Future<void> updateReview(int id, int rating, String comment) async {
+  Future<void> updateReview(int id, int rating, String comment, List<String> images) async {
     emit(ReviewLoading());
     try {
-      await ReviewApiService.updateReview(id, rating, comment);
+      await ReviewApiService.updateReview(id, rating, comment, images);
       emit(const ReviewOperationSuccess('Cập nhật đánh giá thành công!'));
     } catch (e) {
       emit(ReviewError(e.toString()));

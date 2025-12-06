@@ -30,7 +30,7 @@ class ReviewApiService {
     }
   }
 
-  static Future<Review> createReview(int ticketId, int rating, String comment) async {
+  static Future<Review> createReview(int ticketId, int rating, String comment, List<String> images) async {
     final token = await _getToken();
     if (token == null) throw Exception('Unauthorized');
 
@@ -44,6 +44,7 @@ class ReviewApiService {
         'ticketId': ticketId,
         'rating': rating,
         'comment': comment,
+        'images': images,
       }),
     );
 
@@ -54,7 +55,7 @@ class ReviewApiService {
     }
   }
 
-  static Future<Review> updateReview(int id, int rating, String comment) async {
+  static Future<Review> updateReview(int id, int rating, String comment, List<String> images) async {
     final token = await _getToken();
     if (token == null) throw Exception('Unauthorized');
 
@@ -67,6 +68,7 @@ class ReviewApiService {
       body: jsonEncode({
         'rating': rating,
         'comment': comment,
+        'images': images,
       }),
     );
 
