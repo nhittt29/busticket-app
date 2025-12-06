@@ -37,9 +37,11 @@ class TicketApiService {
     return null;
   }
 
-  static Future<void> cancelTicket(int ticketId) async {
+  static Future<Map<String, dynamic>> cancelTicket(int ticketId) async {
     final res = await http.delete(Uri.parse('$baseUrl/tickets/$ticketId'));
-    if (res.statusCode != 200) throw Exception('Hủy thất bại');
+    final body = json.decode(res.body);
+    if (res.statusCode == 200) return body;
+    throw Exception(body['message'] ?? 'Hủy thất bại');
   }
 
   // HÀM MỚI – LẤY CHI TIẾT VÉ THEO paymentHistoryId (dùng cho DeepLink MoMo trả về)

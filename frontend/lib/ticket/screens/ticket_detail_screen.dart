@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../services/ticket_api_service.dart';
 import 'ticket_qr_screen.dart';
 import 'group_ticket_qr_screen.dart';
+import 'cancel_ticket_dialog.dart';
 
 class TicketDetailScreen extends StatefulWidget {
   final int ticketId;
@@ -307,6 +308,42 @@ class _TicketDetailScreenState extends State<TicketDetailScreen>
               ],
             ),
           ),
+          
+          // NÚT HỦY VÉ (CHỈ HIỆN KHI CHƯA HỦY)
+          if (ticket['status'] != 'CANCELLED' && ticket['status'] != 'Đã hủy') 
+            Padding(
+              padding: const EdgeInsets.only(top: 24),
+              child: SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    showDialog(
+                      context: context,
+                      builder: (_) => CancelTicketDialog(
+                        ticketId: ticket['id'],
+                        userId: ticket['userId'],
+                      ),
+                    ).then((_) {
+                       // Reload lại trang sau khi đóng dialog (phòng khi đã hủy)
+                       setState(() {
+                         _ticketFuture = TicketApiService.getTicketDetail(widget.ticketId);
+                       });
+                    });
+                  },
+                  icon: const Icon(Icons.cancel_presentation, color: Colors.red),
+                  label: const Text(
+                    'Hủy đặt vé', 
+                    style: TextStyle(color: Colors.red, fontSize: 16, fontWeight: FontWeight.bold)
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: Colors.red, width: 1.5),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    backgroundColor: Colors.white,
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
     );

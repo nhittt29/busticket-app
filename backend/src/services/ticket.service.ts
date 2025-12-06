@@ -399,29 +399,115 @@ export class TicketService {
     };
   }
 
-  // HỦY VÉ ĐANG CHỜ THANH TOÁN – CHỈ CHO PHÉP TRƯỚC 2 GIỜ KHỞI HÀNH
+  // HỦY VÉ (HỖ TRỢ CẢ VÉ ĐÃ THANH TOÁN VÀ CHƯA THANH TOÁN)
+  // Đã cập nhật chính sách cho BrandId = 2 (Phương Trang)
   async cancel(id: number) {
     const ticket = await this.prism.ticket.findUnique({
       where: { id },
-      include: { schedule: true, paymentHistory: true },
+      include: {
+        schedule: {
+          include: {
+            bus: true // Cần thông tin xe để lấy brandId
+          }
+        },
+        paymentHistory: true
+      },
     });
+
     if (!ticket) throw new NotFoundException('Vé không tồn tại');
-    if (ticket.status !== TicketStatus.BOOKED)
-      throw new BadRequestException('Chỉ được hủy vé đang chờ thanh toán');
-    const diffHours = (new Date(ticket.schedule.departureAt).getTime() - Date.now()) / 3600000;
-    if (diffHours < 2)
-      throw new BadRequestException('Chỉ được hủy trước 2 giờ');
-    await this.prism.$transaction([
-      this.prism.ticket.update({
-        where: { id },
-        data: { status: TicketStatus.CANCELLED },
-      }),
-      this.prism.seat.update({
-        where: { id: ticket.seatId },
-        data: { isAvailable: true },
-      }),
-    ]);
-    return { message: 'Hủy vé thành công', ticketId: id };
+
+    const brandId = ticket.schedule.bus.brandId;
+    const now = new Date();
+    const departure = new Date(ticket.schedule.departureAt);
+    const diffHours = (departure.getTime() - now.getTime()) / 3600000; // Số giờ còn lại trước khi chạy
+
+    // LOGIC RIÊNG CHO PHƯƠNG TRANG (BRAND ID = 2)
+    if (brandId === 2) {
+      // 1. Nếu vé ĐÃ THANH TOÁN (PAID)
+      if (ticket.status === TicketStatus.PAID) {
+        if (diffHours < 4) {
+          throw new BadRequestException('Phương Trang: Không thể hủy vé trong vòng 4 giờ trước giờ khởi hành.');
+        }
+
+        let refundRate = 0;
+        let feeRate = 0;
+
+        if (diffHours >= 24) {
+          // Hủy trước 24h: Phí 10%
+          feeRate = 0.1;
+          refundRate = 0.9;
+        } else {
+          // Từ 4h - 24h: Phí 30%
+          feeRate = 0.3;
+          refundRate = 0.7;
+        }
+
+        const refundAmount = ticket.totalPrice * refundRate;
+        const feeAmount = ticket.totalPrice * feeRate;
+
+        // Thực hiện hủy
+        await this.prism.$transaction([
+          this.prism.ticket.update({
+            where: { id },
+            data: { status: TicketStatus.CANCELLED },
+          }),
+          this.prism.seat.update({
+            where: { id: ticket.seatId },
+            data: { isAvailable: true },
+          }),
+          // TODO: Tạo record Refund transaction nếu cần
+        ]);
+
+        // Có thể gọi Payment Service để hoàn tiền thật (MoMo Refund API) ở đây
+
+        return {
+          message: `Hủy vé thành công. Phí hủy ${feeRate * 100}%. Hoàn tiền: ${refundAmount.toLocaleString('vi-VN')}đ`,
+          refundAmount,
+          feeAmount
+        };
+      }
+
+      // 2. Nếu vé CHƯA THANH TOÁN (BOOKED)
+      // Giữ nguyên logic cũ hoặc cho phép hủy thoải mái trước 4h?
+      // Tạm thời áp dụng luật cũ: Hủy trước 2h (hoặc theo luật 4h cho đồng bộ)
+      if (ticket.status === TicketStatus.BOOKED) {
+        if (diffHours < 2) throw new BadRequestException('Chỉ được hủy vé đặt chỗ trước 2 giờ khởi hành');
+
+        await this.prism.$transaction([
+          this.prism.ticket.update({
+            where: { id },
+            data: { status: TicketStatus.CANCELLED },
+          }),
+          this.prism.seat.update({
+            where: { id: ticket.seatId },
+            data: { isAvailable: true },
+          }),
+        ]);
+        return { message: 'Hủy vé đặt chỗ thành công (Không mất phí).' };
+      }
+
+    } else {
+      // LOGIC CHO CÁC HÃNG KHÁC (Mặc định như cũ)
+      if (ticket.status !== TicketStatus.BOOKED)
+        throw new BadRequestException('Chỉ hỗ trợ hủy vé đang chờ thanh toán cho hãng xe này');
+
+      if (diffHours < 2)
+        throw new BadRequestException('Chỉ được hủy trước 2 giờ');
+
+      await this.prism.$transaction([
+        this.prism.ticket.update({
+          where: { id },
+          data: { status: TicketStatus.CANCELLED },
+        }),
+        this.prism.seat.update({
+          where: { id: ticket.seatId },
+          data: { isAvailable: true },
+        }),
+      ]);
+      return { message: 'Hủy vé thành công' };
+    }
+
+    throw new BadRequestException('Trạng thái vé không hợp lệ để hủy');
   }
 
   // LẤY DANH SÁCH VÉ CỦA NGƯỜI DÙNG – TRANG "VÉ CỦA TÔI" TRÊN APP/WEB

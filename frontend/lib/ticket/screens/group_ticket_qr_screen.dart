@@ -1,6 +1,7 @@
 // lib/ticket/screens/group_ticket_qr_screen.dart
 import 'package:flutter/material.dart';
 import '../services/ticket_api_service.dart';
+import 'cancel_group_dialog.dart';
 
 class GroupTicketQRScreen extends StatefulWidget {
   final int paymentHistoryId;
@@ -306,6 +307,42 @@ class _GroupTicketQRScreenState extends State<GroupTicketQRScreen>
                           ],
                         ),
                       ),
+                      
+                      // NÚT HỦY NHÓM VÉ
+                      if (payment['status'] != 'CANCELLED' && payment['status'] != 'Đã hủy')
+                        Padding(
+                          padding: const EdgeInsets.only(top: 24),
+                          child: SizedBox(
+                            width: double.infinity,
+                            height: 50,
+                            child: OutlinedButton.icon(
+                              onPressed: () {
+                                final ticketIds = (payment['ticketIds'] as List<dynamic>?)?.cast<int>() ?? [];
+                                if (ticketIds.isEmpty) return;
+
+                                showDialog(
+                                  context: context,
+                                  builder: (_) => CancelGroupDialog(ticketIds: ticketIds),
+                                ).then((_) {
+                                  // Reload
+                                  setState(() {
+                                    _paymentFuture = TicketApiService.getPaymentDetailByHistoryId(widget.paymentHistoryId);
+                                  });
+                                });
+                              },
+                              icon: const Icon(Icons.cancel_presentation, color: Colors.red),
+                              label: const Text(
+                                'Hủy nhóm vé', 
+                                style: TextStyle(color: Colors.red, fontSize: 16, fontWeight: FontWeight.bold)
+                              ),
+                              style: OutlinedButton.styleFrom(
+                                side: const BorderSide(color: Colors.red, width: 1.5),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                backgroundColor: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
                     ],
                   ),
                 ),

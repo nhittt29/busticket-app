@@ -1,15 +1,12 @@
-// lib/ticket/screens/cancel_ticket_dialog.dart
 import 'package:flutter/material.dart';
 import '../services/ticket_api_service.dart';
 
-class CancelTicketDialog extends StatelessWidget {
-  final int ticketId;
-  final int userId;
+class CancelGroupDialog extends StatelessWidget {
+  final List<int> ticketIds;
 
-  const CancelTicketDialog({
+  const CancelGroupDialog({
     super.key,
-    required this.ticketId,
-    required this.userId,
+    required this.ticketIds,
   });
 
   @override
@@ -20,23 +17,22 @@ class CancelTicketDialog extends StatelessWidget {
         children: [
           Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 28),
           SizedBox(width: 8),
-          Text('Xác nhận hủy vé', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+          Text('Hủy nhóm vé', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
         ],
       ),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Bạn có chắc muốn hủy vé này không?', style: TextStyle(color: Colors.grey[700], fontSize: 15)),
-          const SizedBox(height: 8),
-          Text('Vé #${ticketId.toString().padLeft(2, '0')}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+          Text('Bạn có chắc muốn hủy toàn bộ ${ticketIds.length} vé trong nhóm này không?', 
+            style: TextStyle(color: Colors.grey[700], fontSize: 15)),
           const SizedBox(height: 12),
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
               color: Colors.orange[50],
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.orange .withAlpha(100)),
+              border: Border.all(color: Colors.orange.withAlpha(100)),
             ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -53,7 +49,8 @@ class CancelTicketDialog extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 8),
-          Text('Hành động này không thể hoàn tác.', style: TextStyle(color: Colors.red[600], fontSize: 13, fontStyle: FontStyle.italic)),
+          Text('Hành động này không thể hoàn tác.', 
+            style: TextStyle(color: Colors.red[600], fontSize: 13, fontStyle: FontStyle.italic)),
         ],
       ),
       actions: [
@@ -63,14 +60,29 @@ class CancelTicketDialog extends StatelessWidget {
         ),
         ElevatedButton(
           onPressed: () async {
-            Navigator.pop(context); // Đóng dialog Confirm
+            Navigator.pop(context); // Đóng Confirm
             _showLoading(context);
 
             try {
-              final result = await TicketApiService.cancelTicket(ticketId);
+              double totalRefund = 0;
+              double totalFee = 0;
+              int successCount = 0;
+
+              // Loop cancel từng vé
+              for (final id in ticketIds) {
+                final res = await TicketApiService.cancelTicket(id);
+                if (res['refundAmount'] != null) {
+                   totalRefund += (res['refundAmount'] as num).toDouble();
+                }
+                if (res['feeAmount'] != null) {
+                   totalFee += (res['feeAmount'] as num).toDouble();
+                }
+                successCount++;
+              }
+
               if (context.mounted) {
                 Navigator.pop(context); // Đóng Loading
-                _showResultDialog(context, result);
+                _showResultDialog(context, successCount, totalRefund, totalFee);
               }
             } catch (e) {
               if (context.mounted) {
@@ -83,7 +95,7 @@ class CancelTicketDialog extends StatelessWidget {
             backgroundColor: Colors.red,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           ),
-          child: const Text('Hủy vé', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          child: const Text('Hủy tất cả', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         ),
       ],
     );
@@ -97,10 +109,10 @@ class CancelTicketDialog extends StatelessWidget {
     );
   }
 
-  void _showResultDialog(BuildContext context, Map<String, dynamic> result) {
-    final message = result['message'] ?? 'Hủy vé thành công';
-    final refundAmount = result['refundAmount']; // Có thể null nếu vé chưa thanh toán
-
+  void _showResultDialog(BuildContext context, int count, double refund, double fee) {
+    final formattedRefund = refund.toInt().toString().replaceAllMapped(
+        RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.');
+    
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -117,21 +129,23 @@ class CancelTicketDialog extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(message, style: const TextStyle(fontSize: 16, height: 1.4)),
-            if (refundAmount != null) ...[
-              const SizedBox(height: 16),
-              const Divider(),
-              const SizedBox(height: 8),
-              const Text('Vui lòng kiểm tra tài khoản nhận tiền hoàn sau 2-5 ngày làm việc.', 
+            Text('Đã hủy thành công $count vé.', style: const TextStyle(fontSize: 16)),
+            const SizedBox(height: 16),
+            const Divider(),
+            const SizedBox(height: 8),
+            if (refund > 0)
+               Text('Tổng tiền hoàn lại: ${formattedRefund}đ', 
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.green)),
+            const SizedBox(height: 4),
+            const Text('Vui lòng kiểm tra tài khoản nhận tiền hoàn sau 2-5 ngày làm việc.', 
                 style: TextStyle(fontSize: 13, color: Colors.grey, fontStyle: FontStyle.italic)),
-            ],
           ],
         ),
         actions: [
           ElevatedButton(
             onPressed: () {
-              Navigator.pop(ctx); // Đóng Dialog Result
-              Navigator.pop(context); // Quay lại màn hình trước (Danh sách vé)
+              Navigator.pop(ctx); // Đóng Result
+              Navigator.pop(context); // Back về danh sách
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.green,
@@ -151,7 +165,7 @@ class CancelTicketDialog extends StatelessWidget {
           children: [
             const Icon(Icons.error, color: Colors.white),
             const SizedBox(width: 8),
-            Expanded(child: Text('Hủy thất bại: ${message.split(':').last.trim()}')),
+            Expanded(child: Text('Lỗi: ${message.split(':').last.trim()}')),
           ],
         ),
         backgroundColor: Colors.red,
