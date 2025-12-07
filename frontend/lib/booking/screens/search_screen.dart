@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../cubit/booking_cubit.dart';
 import '../cubit/booking_state.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 
 const Color primaryBlue = Color(0xFF1976D2);
 const Color primaryGradientStart = Color(0xFF6AB7F5);
@@ -45,6 +47,38 @@ class _SearchScreenState extends State<SearchScreen> {
     _fromController.dispose();
     _toController.dispose();
     super.dispose();
+  }
+
+  Future<void> _saveToHistory(String from, String to, DateTime date) async {
+    final prefs = await SharedPreferences.getInstance();
+    List<Map<String, dynamic>> history = [];
+    final String? historyJson = prefs.getString('search_history');
+    if (historyJson != null) {
+      try {
+        history = List<Map<String, dynamic>>.from(jsonDecode(historyJson));
+      } catch (_) {}
+    }
+
+    final entry = {
+      'startPoint': from,
+      'endPoint': to,
+      'date': date.toIso8601String(),
+      'timestamp': DateTime.now().millisecondsSinceEpoch,
+    };
+
+    // Remove duplicate if exists (optional, or just add to top)
+    history.removeWhere((item) => 
+      item['startPoint'] == from && 
+      item['endPoint'] == to && 
+      item['date'].toString().split('T')[0] == date.toIso8601String().split('T')[0]
+    );
+
+    // Add to top
+    history.insert(0, entry);
+    // Limit to 10 items
+    if (history.length > 10) history = history.sublist(0, 10);
+
+    await prefs.setString('search_history', jsonEncode(history));
   }
 
   @override
@@ -269,6 +303,7 @@ class _SearchScreenState extends State<SearchScreen> {
         onPressed: state.loading || !canSearch
             ? null
             : () {
+                _saveToHistory(state.from, state.to, state.date);
                 context.read<BookingCubit>().searchTrips();
               },
         icon: state.loading

@@ -517,7 +517,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final List<Map<String, dynamic>> features = [
       {"icon": Icons.search, "label": "Tìm chuyến", "route": "/search-trips", "color": Colors.blue},
       {"icon": Icons.confirmation_number, "label": "Vé của tôi", "route": "/my-tickets", "color": Colors.orange},
-      {"icon": Icons.map, "label": "Tuyến đường", "route": "/routes", "color": Colors.green},
+      {"icon": Icons.history, "label": "Lịch sử", "route": "/search-history", "color": Colors.green},
       {"icon": Icons.explore, "label": "Khám phá", "route": "/explore-trips", "color": Colors.purple},
     ];
 

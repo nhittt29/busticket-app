@@ -21,6 +21,7 @@ import 'booking/screens/explore_trips_screen.dart';
 import 'booking/screens/select_bus_screen.dart';
 import 'booking/screens/dropoff_selection_screen.dart';
 import 'payment/screens/payment_screen.dart';
+import 'screens/search_history_screen.dart';
 import 'ticket/screens/my_tickets_screen.dart';
 import 'ticket/screens/ticket_qr_screen.dart';
 import 'ticket/screens/ticket_history_screen.dart';
@@ -89,6 +90,7 @@ class MyApp extends StatelessWidget {
           '/profile-detail': (context) => const ProfileDetailScreen(),
           '/edit-profile': (context) => const EditProfileScreen(),
           '/search-trips': (context) => const SearchScreen(),
+          '/search-history': (context) => const SearchHistoryScreen(),
           '/trip-list': (context) => const TripListScreen(),
           '/explore-trips': (context) => const ExploreTripsScreen(),
           '/select-bus': (context) {
