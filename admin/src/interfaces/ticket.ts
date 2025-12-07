@@ -44,6 +44,12 @@ export interface ITicket {
         seatNumber: number;
         code: string;
     };
+    // Grouped booking fields (from /tickets/bookings endpoint)
+    seatCount?: number;
+    seatList?: string;
+    seatNumber?: string; // Sometimes returned as string in grouped queries
+    discountAmount?: number;
+
     price: number;
     surcharge: number;
     totalPrice: number;

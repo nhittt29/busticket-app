@@ -51,6 +51,7 @@ import { StatsModule } from './stats/stats.module';
     UserModule,
     ReviewsModule,
     PromotionsModule,
+    StatsModule,
   ],
   controllers: [AuthController],
   providers: [AuthService, PrismaService, UserRepository],

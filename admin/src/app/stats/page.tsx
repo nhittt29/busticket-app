@@ -1,29 +1,34 @@
 "use client";
 
 import { ListLayout } from "@/components/common/ListLayout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BarChart3, TrendingUp, Users, Ticket, BusFront, ArrowLeft } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { BarChart3, TrendingUp, Users, Ticket, BusFront, ArrowLeft, Trophy, DollarSign } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import React from "react";
+import api from "@/lib/api";
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell, Legend } from 'recharts';
 
 export default function StatsPage() {
     const router = useRouter();
-    const [stats, setStats] = React.useState({
-        revenue: 0,
-        revenueGrowth: 0,
-        ticketsSold: 0,
-        newCustomers: 0,
-        activeTrips: 0,
-    });
+    const [topRoutes, setTopRoutes] = React.useState([]);
+    const [brandStats, setBrandStats] = React.useState([]);
+    const [statusStats, setStatusStats] = React.useState([]);
     const [loading, setLoading] = React.useState(true);
 
     React.useEffect(() => {
         const fetchStats = async () => {
             try {
-                const response = await fetch("http://localhost:3000/api/stats/summary");
-                const data = await response.json();
-                setStats(data);
+                // Parallel fetch for better performance
+                const [topRoutesRes, brandRes, statusRes] = await Promise.all([
+                    api.get("/stats/top-routes"),
+                    api.get("/stats/brand-stats"),
+                    api.get("/stats/status-stats")
+                ]);
+
+                setTopRoutes(topRoutesRes.data);
+                setBrandStats(brandRes.data);
+                setStatusStats(statusRes.data);
             } catch (error) {
                 console.error("Failed to fetch stats:", error);
             } finally {
@@ -41,7 +46,7 @@ export default function StatsPage() {
     return (
         <ListLayout
             title="Thống kê & Báo cáo"
-            description="Tổng hợp số liệu kinh doanh và hiệu quả hoạt động."
+            description="Phân tích chi tiết hiệu quả hoạt động theo các tiêu chí."
             icon={BarChart3}
             actions={
                 <Button variant="outline" onClick={() => router.push("/")}>
@@ -50,69 +55,118 @@ export default function StatsPage() {
                 </Button>
             }
         >
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 p-6">
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Tổng doanh thu</CardTitle>
-                        <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            <div className="grid gap-6 md:grid-cols-2 p-6">
+                {/* DOANH THU THEO HÃNG XE */}
+                <Card className="col-span-1">
+                    <CardHeader>
+                        <CardTitle>Doanh thu theo Nhà xe</CardTitle>
+                        <CardDescription>So sánh hiệu quả kinh doanh các nhà xe</CardDescription>
                     </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">
-                            {loading ? "..." : formatCurrency(stats.revenue)}
+                    <CardContent className="pl-2">
+                        <div className="h-[350px] w-full">
+                            {loading ? (
+                                <div className="h-full flex items-center justify-center text-muted-foreground">Đang tải...</div>
+                            ) : (
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart data={brandStats} layout="vertical" margin={{ left: 20 }}>
+                                        <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#f0f0f0" />
+                                        <XAxis type="number" fontSize={12} tickFormatter={(val) => `${val / 1000000}M`} />
+                                        <YAxis dataKey="name" type="category" width={100} fontSize={12} />
+                                        <Tooltip formatter={(value: number) => formatCurrency(value)} />
+                                        <Bar dataKey="revenue" fill="#8884d8" radius={[0, 4, 4, 0]}>
+                                            {brandStats.map((entry: any, index: number) => (
+                                                <Cell key={`cell-${index}`} fill={index % 2 === 0 ? '#8884d8' : '#82ca9d'} />
+                                            ))}
+                                        </Bar>
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            )}
                         </div>
-                        <p className="text-xs text-muted-foreground">
-                            {stats.revenueGrowth > 0 ? "+" : ""}{stats.revenueGrowth}% so với tháng trước
-                        </p>
                     </CardContent>
                 </Card>
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Vé đã bán</CardTitle>
-                        <Ticket className="h-4 w-4 text-muted-foreground" />
+
+                {/* TRẠNG THÁI VÉ */}
+                <Card className="col-span-1">
+                    <CardHeader>
+                        <CardTitle>Tỷ lệ Trạng thái Vé</CardTitle>
+                        <CardDescription>Phân bố các trạng thái đặt vé hiện tại</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">
-                            {loading ? "..." : stats.ticketsSold}
+                        <div className="h-[350px] w-full">
+                            {loading ? (
+                                <div className="h-full flex items-center justify-center text-muted-foreground">Đang tải...</div>
+                            ) : (
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <PieChart>
+                                        <Pie
+                                            data={statusStats}
+                                            cx="50%"
+                                            cy="50%"
+                                            innerRadius={60}
+                                            outerRadius={100}
+                                            paddingAngle={5}
+                                            dataKey="value"
+                                        >
+                                            {statusStats.map((entry: any, index: number) => (
+                                                <Cell key={`cell-${index}`} fill={entry.color} />
+                                            ))}
+                                        </Pie>
+                                        <Tooltip />
+                                        <Legend />
+                                    </PieChart>
+                                </ResponsiveContainer>
+                            )}
                         </div>
-                        <p className="text-xs text-muted-foreground">
-                            Vé đã thanh toán & đặt chỗ
-                        </p>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Khách hàng mới</CardTitle>
-                        <Users className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">
-                            {loading ? "..." : stats.newCustomers}
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                            Trong tháng này
-                        </p>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Chuyến xe</CardTitle>
-                        <BusFront className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">
-                            {loading ? "..." : stats.activeTrips}
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                            Đang hoạt động & Sắp chạy
-                        </p>
                     </CardContent>
                 </Card>
             </div>
 
-            <div className="p-6 pt-0">
-                <div className="rounded-xl border bg-card text-card-foreground shadow-sm p-6 flex items-center justify-center min-h-[400px] text-muted-foreground bg-muted/10 border-dashed">
-                    Biểu đồ chi tiết sẽ được cập nhật sau
-                </div>
+            <div className="grid gap-6 md:grid-cols-1 p-6 pt-0">
+                {/* TOP ROUTE - Full width now */}
+                <Card className="col-span-1">
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <Trophy className="w-5 h-5 text-yellow-500" />
+                            Top Tuyến Đường
+                        </CardTitle>
+                        <CardDescription>5 tuyến xe có doanh thu cao nhất</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="space-y-6">
+                            {loading ? (
+                                <div>Đang tải...</div>
+                            ) : topRoutes.length === 0 ? (
+                                <div className="text-muted-foreground text-center py-8">Chưa có dữ liệu</div>
+                            ) : (
+                                topRoutes.map((route: any, index) => (
+                                    <div key={route.id} className="flex items-center justify-between">
+                                        <div className="flex items-center gap-4">
+                                            <div className={`
+                                                flex items-center justify-center w-8 h-8 rounded-full font-bold
+                                                ${index === 0 ? 'bg-yellow-100 text-yellow-700' :
+                                                    index === 1 ? 'bg-gray-100 text-gray-700' :
+                                                        index === 2 ? 'bg-orange-100 text-orange-700' : 'bg-slate-50 text-slate-500'}
+                                            `}>
+                                                {index + 1}
+                                            </div>
+                                            <div className="space-y-1">
+                                                <p className="text-sm font-medium leading-none">
+                                                    {route.startPoint} ➝ {route.endPoint}
+                                                </p>
+                                                <p className="text-xs text-muted-foreground">
+                                                    Đã bán: {route.ticketsSold} vé
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div className="font-bold text-sm text-green-600">
+                                            {formatCurrency(route.revenue)}
+                                        </div>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </CardContent>
+                </Card>
             </div>
         </ListLayout>
     );
