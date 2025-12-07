@@ -49,7 +49,7 @@ class TicketApiService {
       int paymentHistoryId) async {
     try {
       final res = await http.get(
-        Uri.parse('$baseUrl/tickets/payment-history/$paymentHistoryId'),
+        Uri.parse('$baseUrl/tickets/bookings/$paymentHistoryId'),
         headers: {'Content-Type': 'application/json'},
       );
       if (res.statusCode == 200 && res.body.isNotEmpty) {

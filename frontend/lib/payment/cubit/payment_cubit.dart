@@ -109,24 +109,9 @@ class PaymentCubit extends Cubit<PaymentState> {
         }
       }
 
-      final finalSeatNumbers = allSeats.isEmpty ? 'Không rõ' : allSeats.join(', ');
       final firstTicket = await TicketApiService.getTicketDetail(data['tickets'][0]['id'] as int);
 
-      await ReminderService.showBookingSuccessNotification(
-        paymentHistoryId: paymentHistoryId,
-        userId: userId,
-        busName: _safeString(firstTicket['schedule']?['bus']?['name'], 'Xe khách'),
-        seatNumbers: finalSeatNumbers,
-        from: _safeString(firstTicket['schedule']?['route']?['startPoint']),
-        to: _safeString(firstTicket['schedule']?['route']?['endPoint']),
-        departureTime: _formatTime(firstTicket['schedule']?['departureAt'] as String?),
-      );
-
-      await ReminderService().scheduleDepartureReminder(
-        scheduleId: scheduleId,
-        paymentHistoryId: paymentHistoryId,
-        userId: userId,
-      );
+      // ĐÃ XÓA LOGIC THÔNG BÁO Ở ĐÂY - CHUYỂN SANG PaymentSuccessScreen
 
       if (currentMethod == PaymentMethod.momo && momoUrl != null && momoUrl.isNotEmpty) {
         emit(PaymentSuccess(

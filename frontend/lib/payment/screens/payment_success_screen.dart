@@ -1,10 +1,82 @@
 import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
+import '../../services/reminder_service.dart';
+import '../../ticket/services/ticket_api_service.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../bloc/auth/auth_bloc.dart';
 
-class PaymentSuccessScreen extends StatelessWidget {
+class PaymentSuccessScreen extends StatefulWidget {
   final int paymentHistoryId;
 
   const PaymentSuccessScreen({super.key, required this.paymentHistoryId});
+
+  @override
+  State<PaymentSuccessScreen> createState() => _PaymentSuccessScreenState();
+}
+
+class _PaymentSuccessScreenState extends State<PaymentSuccessScreen> {
+  @override
+  void initState() {
+    super.initState();
+    _triggerSuccessNotification();
+  }
+
+  Future<void> _triggerSuccessNotification() async {
+    try {
+      final authState = context.read<AuthBloc>().state;
+      final userId = authState.user?['id'] as int?;
+
+      if (userId == null) return;
+
+      // 1. Lấy chi tiết vé mới nhất từ server
+      final ticketData = await TicketApiService.getTicketDetailByPaymentHistoryId(widget.paymentHistoryId);
+      
+      if (ticketData == null) return;
+
+      // 2. Format dữ liệu
+      final tickets = ticketData['tickets'] as List?;
+      if (tickets == null || tickets.isEmpty) return;
+
+      final firstTicket = tickets[0];
+      final schedule = firstTicket['schedule'];
+      if (schedule == null) return;
+
+      final busName = schedule['bus']?['name'] ?? 'Xe khách';
+      final startPoint = schedule['route']?['startPoint'] ?? 'Điểm đi';
+      final endPoint = schedule['route']?['endPoint'] ?? 'Điểm đến';
+      final departureTime = schedule['departureAt']; // ISO String
+
+      final seatList = tickets.map((t) => t['seat']?['seatNumber'] ?? 0).join(', ');
+
+      // 3. Gửi thông báo "Đặt vé thành công"
+      await ReminderService.showBookingSuccessNotification(
+        paymentHistoryId: widget.paymentHistoryId,
+        userId: userId,
+        busName: busName,
+        seatNumbers: seatList,
+        from: startPoint,
+        to: endPoint,
+        departureTime: _formatTime(departureTime),
+      );
+
+      // 4. Lên lịch nhắc nhở trước giờ đi
+      await ReminderService().scheduleDepartureReminder(
+        scheduleId: schedule['id'],
+        paymentHistoryId: widget.paymentHistoryId,
+        userId: userId,
+      );
+
+    } catch (e) {
+      debugPrint('Lỗi gửi thông báo thành công: $e');
+    }
+  }
+
+  String _formatTime(String? isoString) {
+    if (isoString == null || isoString.isEmpty) return 'Chưa xác định';
+    final date = DateTime.tryParse(isoString);
+    if (date == null) return 'Chưa xác định';
+    return '${date.day}/${date.month} ${date.hour.toString().padLeft(2, "0")}:${date.minute.toString().padLeft(2, "0")}';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -65,7 +137,7 @@ class PaymentSuccessScreen extends StatelessWidget {
                     Navigator.pushReplacementNamed(
                       context, 
                       '/group-qr', 
-                      arguments: paymentHistoryId
+                      arguments: widget.paymentHistoryId
                     );
                   },
                   style: ElevatedButton.styleFrom(

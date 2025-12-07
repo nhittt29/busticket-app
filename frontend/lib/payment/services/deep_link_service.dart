@@ -103,45 +103,8 @@ class DeepLinkService {
         return;
       }
 
-      // Hiển thị thông báo đặt vé thành công
-      try {
-        final ticketData = await TicketApiService.getTicketDetailByPaymentHistoryId(paymentHistoryId);
-
-        if (ticketData != null && context.mounted) {
-          final seatsList = ticketData['seats'] as List<dynamic>? ?? [];
-          final seatNumbers = seatsList.isEmpty
-              ? 'Không rõ'
-              : seatsList
-                  .map((s) {
-                    final num = s['seatNumber'] ?? s['number'] ?? s['code'];
-                    return num?.toString().padLeft(2, '0');
-                  })
-                  .where((e) => e != null)
-                  .join(', ');
-
-          final departureAt = ticketData['schedule']?['departureAt'] as String?;
-          final departureTime = departureAt != null
-              ? DateTime.tryParse(departureAt)
-                      ?.toLocal()
-                      .toString()
-                      .substring(0, 16)
-                      .replaceAll('T', ' ') ??
-                  'Chưa xác định'
-              : 'Chưa xác định';
-
-          await ReminderService.showBookingSuccessNotification(
-            paymentHistoryId: paymentHistoryId,
-            userId: currentUserId,
-            busName: (ticketData['schedule']?['bus']?['name'] as String?) ?? 'Xe khách',
-            seatNumbers: seatNumbers,
-            from: (ticketData['schedule']?['route']?['startPoint'] as String?) ?? 'Không rõ',
-            to: (ticketData['schedule']?['route']?['endPoint'] as String?) ?? 'Không rõ',
-            departureTime: departureTime,
-          );
-        }
-      } catch (e) {
-        debugPrint('Lỗi hiển thị thông báo deep link: $e');
-      }
+      // Update: Notification logic is now handled in PaymentSuccessScreen
+      // to ensure consistency and avoid duplication.
 
       // Mở màn hình Payment Success
       if (context.mounted) {

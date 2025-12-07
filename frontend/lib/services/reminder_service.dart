@@ -226,8 +226,8 @@ class ReminderService {
       final departureTime = DateTime.parse(data['departureAt']).toLocal();
       final reminderTime = departureTime.subtract(const Duration(hours: 1));
 
-      if (reminderTime.isBefore(DateTime.now().subtract(const Duration(minutes: 5)))) {
-        if (kDebugMode) debugPrint('ĐÃ QUA GIỜ NHẮC → BỎ QUA (ID: $notificationId)');
+      if (reminderTime.isBefore(DateTime.now())) {
+        if (kDebugMode) debugPrint('ĐÃ QUA GIỜ NHẮC (${reminderTime.hour}:${reminderTime.minute}) → BỎ QUA KHÔNG NHẮC NỮA (ID: $notificationId)');
         return;
       }
 
