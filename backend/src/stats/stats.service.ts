@@ -311,4 +311,61 @@ export class StatsService {
             ]
         };
     }
+
+    async getPaymentMethodStats() {
+        // Thống kê phương thức thanh toán
+        const result = await this.prisma.ticket.groupBy({
+            by: ['paymentMethod'],
+            _count: {
+                id: true
+            },
+            where: {
+                status: TicketStatus.PAID
+            }
+        });
+
+        // Map colors suitable for charts
+        const colors: Record<string, string> = {
+            'MOMO': '#A50064', // Momo Pink
+            'ZALOPAY': '#0068FF', // Zalo Blue
+            'CASH': '#22c55e', // Green
+            'VNPAY': '#ED1C24', // VNPay Red
+            'BANK_TRANSFER': '#64748b' // Slate
+        };
+
+        return result.map(item => ({
+            name: item.paymentMethod || 'Khác',
+            value: item._count.id,
+            fill: colors[item.paymentMethod || ''] || '#94a3b8'
+        }));
+    }
+
+    async getHourlyBookingStats() {
+        // Thống kê khung giờ đặt vé (0h - 23h) trong 30 ngày qua
+        const startDate = new Date();
+        startDate.setDate(startDate.getDate() - 30);
+
+        // Prisma Query Raw to extract Hour from createdAt
+        // Postgres: EXTRACT(HOUR FROM "createdAt")
+        const result = await this.prisma.$queryRaw<{ hour: number; count: number }[]>`
+            SELECT EXTRACT(HOUR FROM "createdAt") as hour, COUNT(id) as count
+            FROM "Ticket"
+            WHERE "createdAt" >= ${startDate}
+            GROUP BY hour
+            ORDER BY hour ASC
+        `;
+
+        // Fill missing hours with 0
+        const chartData: { hour: string; count: number }[] = [];
+        for (let i = 0; i < 24; i++) {
+            // Convert hour to Number because BigInt or Decimal
+            const found = result.find((r: any) => Number(r.hour) === i);
+            chartData.push({
+                hour: `${i}:00`,
+                count: found ? Number(found.count) : 0
+            });
+        }
+
+        return chartData;
+    }
 }

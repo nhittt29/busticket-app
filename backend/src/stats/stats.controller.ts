@@ -44,4 +44,14 @@ export class StatsController {
     async getOccupancyStats() {
         return this.statsService.getOccupancyStats();
     }
+
+    @Get('payment-method-stats')
+    async getPaymentMethodStats() {
+        return this.statsService.getPaymentMethodStats();
+    }
+
+    @Get('hourly-booking-stats')
+    async getHourlyBookingStats() {
+        return this.statsService.getHourlyBookingStats();
+    }
 }
