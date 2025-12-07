@@ -54,8 +54,11 @@ class _HomeScreenState extends State<HomeScreen> {
         break;
       case 3:
         Navigator.pushNamed(context, '/profile').then((_) {
-          if (mounted && _selectedIndex != 0) {
-            setState(() => _selectedIndex = 0);
+          if (mounted) {
+            context.read<HomeBloc>().add(LoadUserEvent()); // Reload user data (avatar might changed)
+            if (_selectedIndex != 0) {
+              setState(() => _selectedIndex = 0);
+            }
           }
         });
         break;
@@ -191,7 +194,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return BlocBuilder<HomeBloc, HomeState>(
       builder: (context, state) {
         final userName = state.user?['name']?.toString() ?? 'Bạn';
-        // Lấy avatar nếu có, chưa implement thì dùng icon
+        final avatarUrl = state.user?['avatar']?.toString();
         
         return AppBar(
           backgroundColor: const Color(0xFFEAF6FF),
@@ -202,7 +205,14 @@ class _HomeScreenState extends State<HomeScreen> {
             children: [
               CircleAvatar(
                 backgroundColor: Colors.blue.withOpacity(0.2),
-                child: const Icon(Icons.person, color: Color(0xFF023E8A)),
+                backgroundImage: (avatarUrl != null && avatarUrl.startsWith('http')) 
+                    ? NetworkImage(avatarUrl) 
+                    : (avatarUrl != null && avatarUrl.startsWith('assets') 
+                        ? AssetImage(avatarUrl) as ImageProvider
+                        : null),
+                child: (avatarUrl == null || (!avatarUrl.startsWith('http') && !avatarUrl.startsWith('assets')))
+                    ? const Icon(Icons.person, color: Color(0xFF023E8A))
+                    : null,
               ),
               const SizedBox(width: 12),
               Column(
