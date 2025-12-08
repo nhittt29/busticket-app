@@ -1,7 +1,8 @@
 // lib/payment/screens/payment_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter_zalopay_sdk/flutter_zalopay_sdk.dart';
+
 import '../../bloc/auth/auth_bloc.dart';
 import '../../bloc/notification/notification_bloc.dart';
 import '../../bloc/notification/notification_event.dart';
@@ -365,6 +366,13 @@ class PaymentScreen extends StatelessWidget {
                             isSelected: method == PaymentMethod.cash,
                             onTap: () => context.read<PaymentCubit>().selectMethod(PaymentMethod.cash),
                           ),
+                          const SizedBox(height: 14),
+                          PaymentMethodTile(
+                            icon: Icons.account_balance_wallet_outlined,
+                            title: 'Ví ZaloPay',
+                            isSelected: method == PaymentMethod.zalopay,
+                            onTap: () => context.read<PaymentCubit>().selectMethod(PaymentMethod.zalopay),
+                          ),
                         ],
                       );
                     },
@@ -385,11 +393,29 @@ class PaymentScreen extends StatelessWidget {
           ),
           child: SafeArea(
             child: BlocConsumer<PaymentCubit, PaymentState>(
-              listener: (context, state) {
+              listener: (context, state) async {
                 if (state is PaymentSuccess) {
                   context.read<NotificationBloc>().add(LoadNotificationsEvent());
                   
-                  if (state.momoPayUrl != null && state.momoPayUrl!.isNotEmpty) {
+                  if (state.method == PaymentMethod.zalopay && state.zpTransToken != null) {
+                    try {
+                      final event = await FlutterZaloPaySdk.payOrder(zpToken: state.zpTransToken!);
+                      if (!context.mounted) return;
+                      if (event == FlutterZaloPayStatus.success) {
+                        Navigator.pushReplacementNamed(context, '/payment-success', arguments: state.paymentHistoryId);
+                      } else if (event == FlutterZaloPayStatus.failed) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Thanh toán ZaloPay thất bại'), backgroundColor: Colors.redAccent),
+                          );
+                      } else if (event == FlutterZaloPayStatus.cancelled) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Đã hủy thanh toán ZaloPay'), backgroundColor: Colors.orange),
+                          );
+                      }
+                    } catch (e) {
+                      debugPrint('ZaloPay Error: $e');
+                    }
+                  } else if (state.momoPayUrl != null && state.momoPayUrl!.isNotEmpty) {
                     // Sử dụng WebView tích hợp để chặn redirect
                     Navigator.push(
                       context,
@@ -398,6 +424,7 @@ class PaymentScreen extends StatelessWidget {
                       ),
                     ).then((result) {
                       // Nếu trả về true (thanh toán thành công & redirect đúng)
+                      if (!context.mounted) return;
                       if (result == true) {
                          Navigator.pushReplacementNamed(context, '/payment-success', arguments: state.paymentHistoryId);
                       }

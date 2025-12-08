@@ -17,6 +17,7 @@ import {
 import { MomoService } from './momo.service';
 import { EmailService } from './email.service';
 import { QrService } from './qr.service';
+import { ZaloPayService } from './zalopay.service';
 import {
   CreateResponse,
   BulkCreateResponse,
@@ -33,6 +34,7 @@ export class TicketService {
     private readonly momoService: MomoService,
     private readonly emailService: EmailService,
     private readonly qrService: QrService,
+    private readonly zaloPayService: ZaloPayService,
     @InjectQueue('ticket') private readonly ticketQueue: Queue,
   ) { }
 
@@ -248,22 +250,41 @@ export class TicketService {
       createdTickets.push(ticket);
     }
 
-    const momoResponse = await this.momoService.createPayment(
-      paymentGroup.id,
-      calculatedTotal,
-      `Thanh toán ${dtos.length} vé${surchargePerTicket > 0 ? ' + trả khách' : ''} - ${calculatedTotal.toLocaleString('vi-VN')}đ`,
-    );
 
-    if (momoResponse && momoResponse.payUrl) {
+
+    let paymentResponse: any = null;
+
+    if (dtos[0].paymentMethod === AppPaymentMethod.ZALOPAY) {
+      const user = await this.prism.user.findUnique({ where: { id: dtos[0].userId } });
+      const res = await this.zaloPayService.createOrder(
+        paymentGroup.id,
+        calculatedTotal,
+        user?.email || 'unknown@user.com'
+      );
+      if (res.return_code === 1) {
+        paymentResponse = { payUrl: res.order_url, zpTransToken: res.zp_trans_token };
+      } else {
+        console.log('ZALOPAY ORDER FAILED:', res);
+        throw new BadRequestException(`ZaloPay Error: ${res.return_message} (Code: ${res.return_code}, SubCode: ${res.sub_return_code})`);
+      }
+    } else {
+      paymentResponse = await this.momoService.createPayment(
+        paymentGroup.id,
+        calculatedTotal,
+        `Thanh toán ${dtos.length} vé${surchargePerTicket > 0 ? ' + trả khách' : ''} - ${calculatedTotal.toLocaleString('vi-VN')}đ`,
+      );
+    }
+
+    if (paymentResponse && paymentResponse.payUrl) {
       await this.prism.paymentHistory.update({
         where: { id: paymentGroup.id },
-        data: { payUrl: momoResponse.payUrl },
+        data: { payUrl: paymentResponse.payUrl },
       });
     }
 
     return {
       tickets: createdTickets,
-      payment: momoResponse,
+      payment: paymentResponse,
     };
   }
 

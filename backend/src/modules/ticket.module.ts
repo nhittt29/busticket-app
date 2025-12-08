@@ -10,12 +10,14 @@ import { QrController } from '../controllers/qr.controller'; // THÊM DÒNG NÀY
 import { MomoService } from '../services/momo.service';
 import { EmailService } from '../services/email.service';
 import { QrService } from '../services/qr.service';
+import { ZaloPayModule } from './zalopay.module';
 
 @Module({
   imports: [
     BullModule.registerQueue({
       name: 'ticket',
     }),
+    ZaloPayModule,
   ],
   controllers: [TicketController, QrController], // THÊM QrController
   providers: [
@@ -29,4 +31,4 @@ import { QrService } from '../services/qr.service';
   ],
   exports: [TicketService],
 })
-export class TicketModule {}
+export class TicketModule { }

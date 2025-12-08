@@ -23,6 +23,21 @@ rootProject.layout.buildDirectory.value(newBuildDir)
 subprojects {
     val newSubprojectBuildDir: Directory = newBuildDir.dir(project.name)
     project.layout.buildDirectory.value(newSubprojectBuildDir)
+    
+    afterEvaluate {
+        if (project.name == "flutter_zalopay_sdk") {
+            val android = project.extensions.findByName("android")
+            if (android != null) {
+                try {
+                    val setNamespace = android.javaClass.getMethod("setNamespace", String::class.java)
+                    setNamespace.invoke(android, "com.flutterzalopay.flutter_zalo_sdk")
+                    println("BusticketApp: Fixed namespace for flutter_zalopay_sdk")
+                } catch (e: Exception) {
+                    println("BusticketApp: Failed to fix namespace for flutter_zalopay_sdk: $e")
+                }
+            }
+        }
+    }
 }
 
 subprojects {

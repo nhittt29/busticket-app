@@ -1,7 +1,7 @@
 // lib/payment/cubit/payment_state.dart
 import 'package:equatable/equatable.dart';
 
-enum PaymentMethod { momo, cash }
+enum PaymentMethod { momo, cash, zalopay }
 
 sealed class PaymentState extends Equatable {
   const PaymentState();
@@ -27,14 +27,19 @@ class PaymentSuccess extends PaymentState {
   final String? momoPayUrl;
   final int paymentHistoryId;
 
+  final String? zpTransToken;
+  final PaymentMethod method;
+
   const PaymentSuccess({
     this.ticketId,
     this.momoPayUrl,
+    this.zpTransToken,
     required this.paymentHistoryId,
+    required this.method,
   });
 
   @override
-  List<Object?> get props => [ticketId, momoPayUrl, paymentHistoryId];
+  List<Object?> get props => [ticketId, momoPayUrl, zpTransToken, paymentHistoryId, method];
 }
 
 class PaymentFailure extends PaymentState {

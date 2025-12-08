@@ -47,6 +47,7 @@ dependencies:
   # ────────────────────────────────
   url_launcher: ^6.2.6
   app_links: ^3.5.1
+  flutter_zalopay_sdk:
 
   # ────────────────────────────────
   # 6. CHIA SẺ & LƯU QR
