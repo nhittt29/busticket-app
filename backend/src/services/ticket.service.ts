@@ -617,6 +617,7 @@ export class TicketService {
 
   // LẤY CHI TIẾT THANH TOÁN THEO PAYMENT HISTORY ID (DÙNG CHO QR, XÁC NHẬN, IN VÉ)
   async getPaymentDetailByHistoryId(paymentHistoryId: number): Promise<any> {
+    // Updated to support retrieving tickets via direct relation 'tickets' OR 'ticketPayments'
     const payment = await this.prism.paymentHistory.findUnique({
       where: { id: paymentHistoryId },
       include: {
@@ -635,13 +636,34 @@ export class TicketService {
             },
           },
         },
+        tickets: { // Add this include
+          include: {
+            seat: { select: { seatNumber: true } },
+            schedule: {
+              include: {
+                route: { select: { startPoint: true, endPoint: true } },
+              },
+            },
+            dropoffPoint: true,
+          },
+        }
       },
     });
 
-    if (!payment || payment.ticketPayments.length === 0)
+    if (!payment)
       throw new NotFoundException('Không tìm thấy thông tin thanh toán theo paymentHistoryId');
 
-    const ticketsInGroup = payment.ticketPayments.map(tp => tp.ticket);
+    // Merge tickets from both relations (deduplicate by ID if necessary, though they should be consistent)
+    let ticketsInGroup = payment.ticketPayments.map(tp => tp.ticket);
+
+    // Fallback: If ticketPayments is empty, try using the direct 'tickets' relation
+    if (ticketsInGroup.length === 0 && payment.tickets.length > 0) {
+      ticketsInGroup = payment.tickets;
+    }
+
+    if (ticketsInGroup.length === 0)
+      throw new NotFoundException('Không có vé nào trong đơn thanh toán này');
+
     const firstTicket = ticketsInGroup[0];
     const departure = new Date(firstTicket.schedule.departureAt);
 

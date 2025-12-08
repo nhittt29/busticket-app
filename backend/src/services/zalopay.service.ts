@@ -90,17 +90,17 @@ export class ZaloPayService {
             this.logger.log(`ZaloPay Response: ${JSON.stringify(result.data)}`);
 
             if (result.data.return_code === 1) {
-                // Save Transaction ID to Database
-                await this.prisma.paymentHistory.create({
-                    data: {
-                        method: PaymentMethod.ZALOPAY,
-                        amount: amount,
-                        transactionId: order.app_trans_id, // Save ZaloPay Trans ID
-                        ticketCode: bookingId.toString(), // Linking to ticket
-                        status: 'PENDING',
-                        payUrl: result.data.order_url,
-                    },
-                });
+                if (result.data.return_code === 1) {
+                    // Update Existing PaymentHistory with Transaction ID
+                    await this.prisma.paymentHistory.update({
+                        where: { id: bookingId }, // bookingId IS paymentHistoryId
+                        data: {
+                            transactionId: order.app_trans_id,
+                            payUrl: result.data.order_url,
+                            // status remains PENDING until callback
+                        },
+                    });
+                }
             }
 
             return result.data;
