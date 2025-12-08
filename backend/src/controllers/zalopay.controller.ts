@@ -12,6 +12,8 @@ export class ZaloPayController {
 
     @Post('callback')
     async callback(@Body() body: any) {
+        console.log('🔥 ZALOPAY CALLBACK HIT! 🔥');
+        console.log('Body:', JSON.stringify(body));
         return this.zaloPayService.handleCallback(body);
     }
 

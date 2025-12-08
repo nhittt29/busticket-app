@@ -122,23 +122,40 @@ export class TicketService {
       { delay: 15 * 60 * 1000 },
     );
 
-    const momoResponse = await this.momoService.createPayment(
-      paymentGroup.id,
-      totalAmount,
-      `Thanh toán vé xe #${ticket.id}${surcharge > 0 ? ' + trả khách' : ''}`,
-    );
+    let paymentResponse: any = null;
 
-    if (momoResponse && momoResponse.payUrl) {
+    if (paymentMethod === AppPaymentMethod.ZALOPAY) {
+      const user = await this.prism.user.findUnique({ where: { id: userId } });
+      const res = await this.zaloPayService.createOrder(
+        paymentGroup.id,
+        totalAmount,
+        user?.email || 'unknown@user.com'
+      );
+      if (res.return_code === 1) {
+        paymentResponse = { payUrl: res.order_url, zpTransToken: res.zp_trans_token };
+      } else {
+        console.log('ZALOPAY ORDER FAILED:', res);
+        throw new BadRequestException(`ZaloPay Error: ${res.return_message}`);
+      }
+    } else {
+      paymentResponse = await this.momoService.createPayment(
+        paymentGroup.id,
+        totalAmount,
+        `Thanh toán vé xe #${ticket.id}${surcharge > 0 ? ' + trả khách' : ''}`,
+      );
+    }
+
+    if (paymentResponse && paymentResponse.payUrl) {
       await this.prism.paymentHistory.update({
         where: { id: paymentGroup.id },
-        data: { payUrl: momoResponse.payUrl },
+        data: { payUrl: paymentResponse.payUrl },
       });
     }
 
     return {
       message: 'Đặt vé thành công. Vui lòng thanh toán trong 15 phút.',
       ticket,
-      payment: momoResponse,
+      payment: paymentResponse,
     };
   }
 

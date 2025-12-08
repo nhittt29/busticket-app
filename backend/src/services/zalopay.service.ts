@@ -9,13 +9,17 @@ export class ZaloPayService {
     private readonly logger = new Logger(ZaloPayService.name);
 
     // SANBOX CREDENTIALS (FOR TEST ONLY)
-    private readonly config = {
-        app_id: '2554',
-        key1: 'sdngKKJmqEMzvh5QQcdD2A9XBSKUNaYn',
-        key2: 'trMrHtvjo6myautxDUiAcYsVtaeQ8nhf',
-        endpoint: 'https://sb-openapi.zalopay.vn/v2/create',
-        query_endpoint: 'https://sb-openapi.zalopay.vn/v2/query',
-    };
+    // CONFIGURATION FROM .ENV
+    private get config() {
+        return {
+            app_id: process.env.ZALO_APP_ID || '2554',
+            key1: process.env.ZALO_KEY1 || 'sdngKKJmqEMzvh5QQcdD2A9XBSKUNaYn',
+            key2: process.env.ZALO_KEY2 || 'trMrHtvjo6myautxDUiAcYsVtaeQ8nhf',
+            endpoint: 'https://sb-openapi.zalopay.vn/v2/create',
+            query_endpoint: 'https://sb-openapi.zalopay.vn/v2/query',
+            callback_url: process.env.ZALO_CALLBACK_URL, // Must be set in .env
+        };
+    }
 
     constructor(private prisma: PrismaService) { }
 
@@ -51,7 +55,7 @@ export class ZaloPayService {
             description: `Busticket - Payment for Ticket #${bookingId}`,
             bank_code: '',
             mac: '',
-            callback_url: 'https://faxqg-2405-4803-b186-99f0-dc2d-2b09-4ed9-4450.a.free.pinggy.link/api/zalopay/callback',
+            callback_url: this.config.callback_url,
         };
 
         // app_id|app_trans_id|app_user|amount|app_time|embed_data|item
@@ -117,9 +121,12 @@ export class ZaloPayService {
             .update(dataStr)
             .digest('hex');
 
-        this.logger.log(`Received Callback. Calc Mac: ${mac}, Req Mac: ${reqMac}`);
+        this.logger.log(`Received Callback. DataStr: ${dataStr}`);
+        this.logger.log(`Calc Mac: ${mac}`);
+        this.logger.log(`Req Mac: ${reqMac}`);
 
         if (reqMac !== mac) {
+            this.logger.error('❌ MAC VALIDATION FAILED');
             // callback không hợp lệ
             return { return_code: -1, return_message: 'mac not equal' };
         } else {
@@ -135,23 +142,39 @@ export class ZaloPayService {
             const conversionId = dataJson['app_trans_id'];
 
             try {
+                // Find PaymentHistory AND related Tickets
                 const payment = await this.prisma.paymentHistory.findFirst({
-                    where: { transactionId: conversionId }
+                    where: { transactionId: conversionId },
+                    include: { tickets: true }
                 });
 
-                if (payment && payment.ticketCode) {
-                    // Update Payment Status
-                    await this.prisma.paymentHistory.update({
-                        where: { id: payment.id },
-                        data: { status: 'SUCCESS', paidAt: new Date() }
-                    });
+                if (payment) {
+                    const ticketIds = payment.tickets.map(t => t.id);
+                    const seatIds = payment.tickets.map(t => t.seatId);
 
-                    // Update Ticket Status (Assumes ticketCode is Ticket ID)
-                    const ticketId = parseInt(payment.ticketCode);
-                    await this.prisma.ticket.update({
-                        where: { id: ticketId },
-                        data: { status: TicketStatus.PAID }
-                    });
+                    this.logger.log(`Processing Success for Payment #${payment.id} covering TicketIds: ${ticketIds}`);
+
+                    await this.prisma.$transaction([
+                        // 1. Update Payment Status
+                        this.prisma.paymentHistory.update({
+                            where: { id: payment.id },
+                            data: { status: 'SUCCESS', paidAt: new Date() }
+                        }),
+                        // 2. Update All Tickets to PAID
+                        this.prisma.ticket.updateMany({
+                            where: { paymentHistoryId: payment.id },
+                            data: { status: TicketStatus.PAID }
+                        }),
+                        // 3. Update All Seats to Unavailable
+                        this.prisma.seat.updateMany({
+                            where: { id: { in: seatIds } },
+                            data: { isAvailable: false }
+                        })
+                    ]);
+
+                    this.logger.log('DB Updated Successfully: Payment, Tickets, Seats.');
+                } else {
+                    this.logger.error(`Payment not found for TransID: ${conversionId}`);
                 }
             } catch (e) {
                 this.logger.error('Error updating DB in callback', e)
