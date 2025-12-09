@@ -1,5 +1,5 @@
 // src/modules/ticket.module.ts
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { BullModule } from '@nestjs/bull';
 import { TicketService } from '../services/ticket.service';
 import { TicketRepository } from '../repositories/ticket.repository';
@@ -17,7 +17,7 @@ import { ZaloPayModule } from './zalopay.module';
     BullModule.registerQueue({
       name: 'ticket',
     }),
-    ZaloPayModule,
+    forwardRef(() => ZaloPayModule), // Use forwardRef to avoid circular dependency
   ],
   controllers: [TicketController, QrController], // THÊM QrController
   providers: [

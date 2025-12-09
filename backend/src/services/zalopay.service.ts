@@ -1,8 +1,9 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Inject, forwardRef } from '@nestjs/common';
 import axios from 'axios';
 import * as crypto from 'crypto';
 import { PrismaService } from './prisma.service';
-import { PaymentMethod, TicketStatus } from '@prisma/client';
+import { PaymentMethod, TicketStatus } from '../models/Ticket';
+import { TicketService } from './ticket.service';
 
 @Injectable()
 export class ZaloPayService {
@@ -21,7 +22,10 @@ export class ZaloPayService {
         };
     }
 
-    constructor(private prisma: PrismaService) { }
+    constructor(
+        private prisma: PrismaService,
+        @Inject(forwardRef(() => TicketService)) private ticketService: TicketService
+    ) { }
 
     /**
      * Create ZaloPay Order
@@ -90,17 +94,16 @@ export class ZaloPayService {
             this.logger.log(`ZaloPay Response: ${JSON.stringify(result.data)}`);
 
             if (result.data.return_code === 1) {
-                if (result.data.return_code === 1) {
-                    // Update Existing PaymentHistory with Transaction ID
-                    await this.prisma.paymentHistory.update({
-                        where: { id: bookingId }, // bookingId IS paymentHistoryId
-                        data: {
-                            transactionId: order.app_trans_id,
-                            payUrl: result.data.order_url,
-                            // status remains PENDING until callback
-                        },
-                    });
-                }
+                // Update Transaction ID to Database (bookingId is paymentHistoryId)
+                await this.prisma.paymentHistory.update({
+                    where: { id: bookingId },
+                    data: {
+                        method: PaymentMethod.ZALOPAY,
+                        transactionId: order.app_trans_id, // Save ZaloPay Trans ID
+                        // ticketCode: bookingId.toString(), // No need, already set
+                        payUrl: result.data.order_url,
+                    },
+                });
             }
 
             return result.data;
@@ -137,47 +140,32 @@ export class ZaloPayService {
                 `Update Order Status success for TransID: ${dataJson['app_trans_id']}`,
             );
 
-            // --- DB UPDATE LOGIC MUST BE HERE ---
             // Find the PaymentHistory by transactionId
             const conversionId = dataJson['app_trans_id'];
 
             try {
-                // Find PaymentHistory AND related Tickets
+                // Find find id by transactionId
                 const payment = await this.prisma.paymentHistory.findFirst({
-                    where: { transactionId: conversionId },
-                    include: { tickets: true }
+                    where: { transactionId: conversionId }
                 });
 
                 if (payment) {
-                    const ticketIds = payment.tickets.map(t => t.id);
-                    const seatIds = payment.tickets.map(t => t.seatId);
+                    this.logger.log(`Calling TicketService.payTicket for Payment #${payment.id}`);
 
-                    this.logger.log(`Processing Success for Payment #${payment.id} covering TicketIds: ${ticketIds}`);
+                    // REUSE MOMO/CASH LOGIC:
+                    // 1. Generate QR
+                    // 2. Mark Tickets as PAID
+                    // 3. Mark Payment as SUCCESS
+                    // 4. Send Email
+                    // 5. Remove Hold Job
+                    await this.ticketService.payTicket(payment.id, PaymentMethod.ZALOPAY, conversionId);
 
-                    await this.prisma.$transaction([
-                        // 1. Update Payment Status
-                        this.prisma.paymentHistory.update({
-                            where: { id: payment.id },
-                            data: { status: 'SUCCESS', paidAt: new Date() }
-                        }),
-                        // 2. Update All Tickets to PAID
-                        this.prisma.ticket.updateMany({
-                            where: { paymentHistoryId: payment.id },
-                            data: { status: TicketStatus.PAID }
-                        }),
-                        // 3. Update All Seats to Unavailable
-                        this.prisma.seat.updateMany({
-                            where: { id: { in: seatIds } },
-                            data: { isAvailable: false }
-                        })
-                    ]);
-
-                    this.logger.log('DB Updated Successfully: Payment, Tickets, Seats.');
+                    this.logger.log('TicketService.payTicket executed successfully.');
                 } else {
                     this.logger.error(`Payment not found for TransID: ${conversionId}`);
                 }
             } catch (e) {
-                this.logger.error('Error updating DB in callback', e)
+                this.logger.error('Error in TicketService.payTicket', e)
             }
 
             return { return_code: 1, return_message: 'success' };

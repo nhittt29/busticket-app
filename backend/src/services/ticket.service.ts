@@ -4,6 +4,8 @@ import {
   BadRequestException,
   NotFoundException,
   Logger,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bull';
 import type { Queue } from 'bull';
@@ -34,7 +36,7 @@ export class TicketService {
     private readonly momoService: MomoService,
     private readonly emailService: EmailService,
     private readonly qrService: QrService,
-    private readonly zaloPayService: ZaloPayService,
+    @Inject(forwardRef(() => ZaloPayService)) private readonly zaloPayService: ZaloPayService,
     @InjectQueue('ticket') private readonly ticketQueue: Queue,
   ) { }
 
@@ -357,6 +359,13 @@ export class TicketService {
     const paymentHistory = await this.prism.paymentHistory.findUnique({
       where: { id: paymentHistoryId },
       include: {
+        tickets: {
+          include: {
+            seat: true,
+            user: true,
+            schedule: { include: { route: true, bus: true } },
+          }
+        },
         ticketPayments: {
           include: {
             ticket: {
@@ -374,7 +383,12 @@ export class TicketService {
     if (paymentHistory.status === 'SUCCESS')
       throw new BadRequestException('Đơn đã được thanh toán');
 
-    const groupTickets = paymentHistory.ticketPayments.map(tp => tp.ticket);
+    let groupTickets = paymentHistory.ticketPayments.map(tp => tp.ticket);
+    // Fallback: If ticketPayments is empty, use direct tickets relation
+    if (groupTickets.length === 0 && paymentHistory.tickets.length > 0) {
+      groupTickets = paymentHistory.tickets;
+    }
+
     if (groupTickets.length === 0)
       throw new NotFoundException('Không có vé trong nhóm');
 
@@ -419,11 +433,13 @@ export class TicketService {
 
     if (firstTicket.user?.email) {
       try {
+        const paymentMethodStr = this.formatPaymentMethod(method);
         await this.emailService.sendUnifiedTicketEmail(
           firstTicket.user.email,
           groupTickets,
           paymentHistoryId,
           qrCodeUrl,
+          paymentMethodStr,
         );
       } catch (error) {
         this.logger.error('Gửi email thất bại:', error);

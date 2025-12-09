@@ -1,5 +1,5 @@
 import { Process, Processor } from '@nestjs/bull';
-import type { Job } from 'bull'; // ✅ dùng import type để tránh lỗi TS1272
+import type { Job } from 'bull';
 import { Logger } from '@nestjs/common';
 import { PrismaService } from '../services/prisma.service';
 import { TicketStatus } from '../models/Ticket';
@@ -8,7 +8,7 @@ import { TicketStatus } from '../models/Ticket';
 export class TicketProcessor {
   private readonly logger = new Logger(TicketProcessor.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   /**
    * ✅ Tự động hủy vé nếu sau 15 phút chưa thanh toán
