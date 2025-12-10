@@ -140,6 +140,7 @@ export default function ScheduleListPage() {
                         <TableHead>Xe</TableHead>
                         <TableHead>Khởi hành</TableHead>
                         <TableHead>Đến nơi</TableHead>
+                        <TableHead>Ghế trống</TableHead>
                         <TableHead>Trạng thái</TableHead>
                         <TableHead className="text-right">Thao tác</TableHead>
                     </TableRow>
@@ -147,13 +148,13 @@ export default function ScheduleListPage() {
                 <TableBody>
                     {isLoading ? (
                         <TableRow>
-                            <TableCell colSpan={7} className="h-24 text-center">
+                            <TableCell colSpan={8} className="h-24 text-center">
                                 Đang tải dữ liệu...
                             </TableCell>
                         </TableRow>
                     ) : schedules.length === 0 ? (
                         <TableRow>
-                            <TableCell colSpan={7} className="h-24 text-center">
+                            <TableCell colSpan={8} className="h-24 text-center">
                                 Chưa có chuyến xe nào.
                             </TableCell>
                         </TableRow>
@@ -197,6 +198,11 @@ export default function ScheduleListPage() {
                                         <Clock className="w-4 h-4 text-muted-foreground" />
                                         {formatDateTime(schedule.arrivalAt)}
                                     </div>
+                                </TableCell>
+                                <TableCell>
+                                    <Badge variant={schedule.availableSeats && schedule.availableSeats < 5 ? "destructive" : "secondary"}>
+                                        {schedule.availableSeats ?? 0} ghế
+                                    </Badge>
                                 </TableCell>
                                 <TableCell>
                                     {getStatusBadge(schedule.status)}

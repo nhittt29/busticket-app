@@ -19,6 +19,7 @@ export interface ISchedule {
     departureAt: string;
     arrivalAt: string;
     status: ScheduleStatus;
+    availableSeats?: number;
     createdAt: string;
     updatedAt: string;
 }

@@ -256,7 +256,37 @@ class TripCard extends StatelessWidget {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 12),
+
+                    // Available Seats Badge (New)
+                    if (trip.availableSeats > 0)
+                      Container(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: trip.availableSeats < 5 ? const Color(0xFFFFEBEE) : const Color(0xFFE3F2FD),
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(
+                                  color: trip.availableSeats < 5 ? Colors.red.withOpacity(0.3) : Colors.blue.withOpacity(0.3),
+                                ),
+                              ),
+                              child: Text(
+                                'Còn ${trip.availableSeats} ghế trống',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: trip.availableSeats < 5 ? Colors.red[700] : Colors.blue[700],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    
+                    const SizedBox(height: 4),
 
                     // Footer: Price + Seat Type
                     Row(

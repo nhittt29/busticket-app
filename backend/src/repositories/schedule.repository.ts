@@ -180,7 +180,7 @@ export class ScheduleRepository {
             }
         }
 
-        return this.prisma.schedule.findMany({
+        const schedules = await this.prisma.schedule.findMany({
             where,
             include: {
                 bus: {
@@ -188,24 +188,57 @@ export class ScheduleRepository {
                 },
                 route: true,
                 dropoffPoints: true,
+                tickets: {
+                    where: {
+                        status: { not: 'CANCELLED' }
+                    },
+                    select: { id: true } // Optimization: Only select ID to count
+                }
             },
             orderBy,
+        });
+
+        // Map outcomes to include availableSeats
+        return schedules.map(schedule => {
+            const bookedCount = schedule.tickets.length;
+            const availableSeats = schedule.bus.seatCount - bookedCount;
+            // Remove huge tickets array from response if not needed, or keep it minimal
+            const { tickets, ...rest } = schedule;
+            return {
+                ...rest,
+                availableSeats: availableSeats > 0 ? availableSeats : 0,
+            };
         });
     }
 
     // LẤY TOÀN BỘ CHUYẾN XE (KHÔNG LỌC) - DÀNH RIÊNG CHO ADMIN QUẢN LÝ, BAO GỒM CẢ QUÁ KHỨ VÀ TƯƠNG LAI
     async getAllSchedulesForAdmin() {
-        return this.prisma.schedule.findMany({
+        const schedules = await this.prisma.schedule.findMany({
             include: {
                 bus: {
                     include: { brand: true },
                 },
                 route: true,
+                tickets: {
+                    where: {
+                        status: { not: 'CANCELLED' }
+                    },
+                    select: { id: true }
+                }
             },
             orderBy: { id: 'asc' },
         });
-    }
 
+        return schedules.map(schedule => {
+            const bookedCount = schedule.tickets.length;
+            const availableSeats = schedule.bus.seatCount - bookedCount;
+            const { tickets, ...rest } = schedule;
+            return {
+                ...rest,
+                availableSeats: availableSeats > 0 ? availableSeats : 0,
+            };
+        });
+    }
     // LẤY THÔNG TIN CHI TIẾT MỘT CHUYẾN XE THEO ID (DÙNG CHO CHI TIẾT CHUYẾN, ĐẶT VÉ, CHỌN GHẾ...)
     async getScheduleById(id: number) {
         return this.prisma.schedule.findUnique({

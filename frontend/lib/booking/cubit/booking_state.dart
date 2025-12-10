@@ -143,6 +143,7 @@ class Trip {
   final int totalReviews;
   final String startPoint;
   final String endPoint;
+  final int availableSeats;
 
   const Trip({
     required this.id,
@@ -157,6 +158,7 @@ class Trip {
     this.totalReviews = 0,
     required this.startPoint,
     required this.endPoint,
+    this.availableSeats = 0,
   });
 
   factory Trip.fromJson(Map<String, dynamic> json) {
@@ -173,6 +175,7 @@ class Trip {
       totalReviews: (json['bus']?['totalReviews'] as int?) ?? 0,
       startPoint: (json['route']?['startPoint'] as String?) ?? (json['startPoint'] as String?) ?? 'Điểm đi',
       endPoint: (json['route']?['endPoint'] as String?) ?? (json['endPoint'] as String?) ?? 'Điểm đến',
+      availableSeats: (json['availableSeats'] as int?) ?? 0,
     );
   }
 
