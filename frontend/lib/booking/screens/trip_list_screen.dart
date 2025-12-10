@@ -119,7 +119,7 @@ class TripListScreen extends StatelessWidget {
                         borderRadius: BorderRadius.circular(28),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.grey.withOpacity(0.22),
+                            color: Colors.grey.withValues(alpha: 0.22),
                             blurRadius: 16,
                             offset: const Offset(0, 8),
                           ),

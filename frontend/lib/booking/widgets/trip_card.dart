@@ -39,7 +39,7 @@ class TripCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
+            color: Colors.grey.withValues(alpha: 0.1),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -143,7 +143,7 @@ class TripCard extends StatelessWidget {
                                       fontWeight: FontWeight.w600,
                                     ),
                                   ),
-                                  if (trip.category != null && trip.category!.isNotEmpty) ...[
+                                  if (trip.category.isNotEmpty) ...[
                                     const SizedBox(width: 8),
                                     Container(
                                       width: 4,
@@ -213,6 +213,49 @@ class TripCard extends StatelessWidget {
                         _buildTime(arrivalTime, 'Đến nơi'),
                       ],
                     ),
+                    
+                    const SizedBox(height: 12), // Spacing between time and locations
+
+                    // LOCATIONS ROW (New, full width)
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Start Point
+                        Expanded(
+                          child: Text(
+                            trip.startPoint,
+                            style: const TextStyle(
+                              fontSize: 13, 
+                              fontWeight: FontWeight.w600, 
+                              color: Color(0xFF455A64)
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        
+                        const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 8),
+                          child: Icon(Icons.arrow_right_alt_rounded, color: Colors.grey, size: 20),
+                        ),
+
+                        // End Point
+                        Expanded(
+                          child: Text(
+                            trip.endPoint,
+                            style: const TextStyle(
+                              fontSize: 13, 
+                              fontWeight: FontWeight.w600, 
+                              color: Color(0xFF455A64)
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.right,
+                          ),
+                        ),
+                      ],
+                    ),
                     const SizedBox(height: 16),
 
                     // Footer: Price + Seat Type
@@ -248,13 +291,13 @@ class TripCard extends StatelessWidget {
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                           decoration: BoxDecoration(
                             color: trip.seatType == 'SEAT' 
-                                ? Colors.blue.withOpacity(0.1) 
-                                : Colors.purple.withOpacity(0.1),
+                                ? Colors.blue.withValues(alpha: 0.1) 
+                                : Colors.purple.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
                               color: trip.seatType == 'SEAT' 
-                                  ? Colors.blue.withOpacity(0.3) 
-                                  : Colors.purple.withOpacity(0.3),
+                                  ? Colors.blue.withValues(alpha: 0.3) 
+                                  : Colors.purple.withValues(alpha: 0.3),
                             ),
                           ),
                           child: Row(
@@ -288,7 +331,7 @@ class TripCard extends StatelessWidget {
                 Positioned.fill(
                   child: Container(
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.6),
+                      color: Colors.white.withValues(alpha: 0.6),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Center(
@@ -370,9 +413,9 @@ class TripCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withOpacity(0.5), width: 1),
+        border: Border.all(color: color.withValues(alpha: 0.5), width: 1),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,

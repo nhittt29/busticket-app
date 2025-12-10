@@ -141,6 +141,8 @@ class Trip {
   final String status;
   final double averageRating;
   final int totalReviews;
+  final String startPoint;
+  final String endPoint;
 
   const Trip({
     required this.id,
@@ -153,6 +155,8 @@ class Trip {
     required this.status,
     this.averageRating = 0.0,
     this.totalReviews = 0,
+    required this.startPoint,
+    required this.endPoint,
   });
 
   factory Trip.fromJson(Map<String, dynamic> json) {
@@ -167,6 +171,8 @@ class Trip {
       status: (json['status'] as String?) ?? 'UPCOMING',
       averageRating: _safeToDouble(json['bus']?['averageRating'] ?? 0),
       totalReviews: (json['bus']?['totalReviews'] as int?) ?? 0,
+      startPoint: (json['route']?['startPoint'] as String?) ?? (json['startPoint'] as String?) ?? 'Điểm đi',
+      endPoint: (json['route']?['endPoint'] as String?) ?? (json['endPoint'] as String?) ?? 'Điểm đến',
     );
   }
 
