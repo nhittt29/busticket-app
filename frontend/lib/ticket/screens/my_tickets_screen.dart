@@ -51,6 +51,8 @@ class _MyTicketsScreenState extends State<MyTicketsScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true, // Cho phép cuộn nếu danh sách dài
+      backgroundColor: const Color(0xFFF2F9FF), // Light blue tint to match theme
+      elevation: 0,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -381,42 +383,27 @@ class _MyTicketsScreenState extends State<MyTicketsScreen> {
                     final isGroup = group.length > 1;
                     // final highlighted = phId == _highlightPaymentHistoryId; // Đã bỏ highlight
 
-                    return AnimatedContainer(
-                      duration: const Duration(milliseconds: 700),
-                      curve: Curves.easeOutCubic,
-                      margin: const EdgeInsets.only(bottom: 16),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(22), // nhỏ hơn 24
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.grey.withOpacity(0.18),
-                            blurRadius: 10,
-                            offset: const Offset(0, 5),
-                          ),
-                        ],
-                      ),
-                      child: TicketCard(
-                        ticket: first,
-                        groupTickets: isGroup ? group : null,
-                        isHighlighted: false, // Luôn tắt highlight
-                        onTap: () {
-                          if (phId != null) {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => GroupTicketQRScreen(paymentHistoryId: phId),
-                              ),
-                            );
-                          } else {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => TicketDetailScreen(ticketId: first['id'] as int),
-                              ),
-                            );
-                          }
-                        },
-                      ),
+                    return TicketCard(
+                      ticket: first,
+                      groupTickets: isGroup ? group : null,
+                      isHighlighted: false, // Luôn tắt highlight
+                      onTap: () {
+                        if (phId != null) {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => GroupTicketQRScreen(paymentHistoryId: phId),
+                            ),
+                          );
+                        } else {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => TicketDetailScreen(ticketId: first['id'] as int),
+                            ),
+                          );
+                        }
+                      },
                     );
                   },
                 ),
