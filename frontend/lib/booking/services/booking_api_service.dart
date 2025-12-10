@@ -44,6 +44,8 @@ class BookingApiService {
                     : trip.status == 'FEW_SEATS'
                         ? 'FEW_SEATS'
                         : 'UPCOMING',
+            startPoint: trip.startPoint,
+            endPoint: trip.endPoint,
           );
         }).toList();
 
@@ -113,6 +115,8 @@ class BookingApiService {
                     : trip.status == 'FEW_SEATS'
                         ? 'FEW_SEATS'
                         : 'UPCOMING',
+            startPoint: trip.startPoint,
+            endPoint: trip.endPoint,
           );
         }).toList();
       } else {
