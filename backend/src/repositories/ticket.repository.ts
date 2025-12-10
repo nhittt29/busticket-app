@@ -65,7 +65,12 @@ export class TicketRepository {
     return this.prisma.ticket.findMany({
       where: { userId },
       include: {
-        schedule: { include: { route: true } },
+        schedule: { 
+          include: { 
+            route: true,
+            bus: true 
+          } 
+        },
         seat: true,
         paymentHistory: true,
         dropoffPoint: true,

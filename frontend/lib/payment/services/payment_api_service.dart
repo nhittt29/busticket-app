@@ -108,8 +108,7 @@ class PaymentApiService {
     }
   }
 
-  /// Kiểm tra trạng thái thanh toán ZaloPay (Active Polling)
-  static Future<bool> checkZaloPayStatus(int paymentHistoryId) async {
+  static Future<({bool success, String message, int? zpCode})> checkZaloPayStatus(int paymentHistoryId) async {
     final Uri url = Uri.parse('$baseUrl/tickets/$paymentHistoryId/check-zalopay');
     print('💰 [FRONTEND] Checking ZaloPay Status: $url');
 
@@ -118,15 +117,24 @@ class PaymentApiService {
       print('💰 [FRONTEND] Response Code: ${response.statusCode}');
       print('💰 [FRONTEND] Response Body: ${response.body}');
 
+      final body = jsonDecode(response.body);
+      final zpCode = body['zp_code'] as int?;
+
       if (response.statusCode == 201 || response.statusCode == 200) {
-        final body = jsonDecode(response.body);
-        return body['success'] == true;
+        return (
+          success: body['success'] == true, 
+          message: body['message']?.toString() ?? 'Lỗi không xác định',
+          zpCode: zpCode
+        );
       }
-      return false;
+      return (
+        success: false, 
+        message: body['message']?.toString() ?? 'Lỗi server (${response.statusCode})',
+        zpCode: zpCode
+      );
     } catch (e) {
       print('❌ [FRONTEND] Error checking ZaloPay status: $e');
-      debugPrint('Error checking ZaloPay status: $e');
-      return false;
+      return (success: false, message: 'Lỗi kết nối: $e', zpCode: null);
     }
   }
 }

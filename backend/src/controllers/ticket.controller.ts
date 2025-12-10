@@ -54,13 +54,18 @@ export class TicketController {
       // 2. Nếu thành công (return_code = 1) -> Cập nhật hệ thống
       if (result.return_code === 1) {
         await this.ticketService.payTicket(paymentHistoryId, PaymentMethod.ZALOPAY, payment.transactionId);
-        return { success: true, message: 'Thanh toán thành công' };
+        return { success: true, message: 'Thanh toán thành công', zp_code: 1 };
       }
 
-      return { success: false, message: 'Giao dịch chưa hoàn tất hoặc thất bại' };
+      return {
+        success: false,
+        message: result.return_message || 'Giao dịch chưa hoàn tất',
+        zp_code: result.return_code,
+        is_processing: result.is_processing // ZaloPay often sends this flag
+      };
     } catch (error) {
       this.logger.error(`Check ZaloPay Status Failed`, error);
-      return { success: false, message: 'Lỗi kiểm tra trạng thái' };
+      return { success: false, message: error.message || 'Lỗi kiểm tra trạng thái' };
     }
   }
 

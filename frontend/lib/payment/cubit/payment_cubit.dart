@@ -166,15 +166,15 @@ class PaymentCubit extends Cubit<PaymentState> {
   Future<void> checkZaloPayStatus(int paymentHistoryId) async {
     emit(const PaymentLoading(PaymentMethod.zalopay));
     try {
-      final success = await PaymentApiService.checkZaloPayStatus(paymentHistoryId);
-      if (success) {
+      final result = await PaymentApiService.checkZaloPayStatus(paymentHistoryId);
+      if (result.success) {
         emit(PaymentSuccess(
           paymentHistoryId: paymentHistoryId,
           method: PaymentMethod.zalopay,
           // momoPayUrl null -> Listener will navigate to success screen
         ));
       } else {
-        emit(const PaymentFailure('Giao dịch chưa hoàn tất hoặc thất bại.', PaymentMethod.zalopay));
+        emit(PaymentFailure(result.message, PaymentMethod.zalopay));
       }
     } catch (e) {
       emit(PaymentFailure('Lỗi kiểm tra: $e', PaymentMethod.zalopay));

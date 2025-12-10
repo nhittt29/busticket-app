@@ -8,6 +8,9 @@ import '../widgets/ticket_card.dart';
 import 'ticket_detail_screen.dart';
 import 'group_ticket_qr_screen.dart';
 
+enum TicketFilter { all, upcoming, completed, cancelled }
+enum SortOrder { newest, oldest }
+
 class MyTicketsScreen extends StatefulWidget {
   const MyTicketsScreen({super.key});
 
@@ -17,6 +20,8 @@ class MyTicketsScreen extends StatefulWidget {
 
 class _MyTicketsScreenState extends State<MyTicketsScreen> {
   int? _highlightPaymentHistoryId;
+  TicketFilter _selectedFilter = TicketFilter.all;
+  SortOrder _sortOrder = SortOrder.newest; // Default: Mới nhất lên đầu
 
   @override
   void didChangeDependencies() {
@@ -39,6 +44,120 @@ class _MyTicketsScreenState extends State<MyTicketsScreen> {
         });
       });
     }
+  }
+
+  // 2. Hàm hiển thị Dialog chọn Filter & Sort
+  void _showFilterDialog() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true, // Cho phép cuộn nếu danh sách dài
+      backgroundColor: const Color(0xFFF2F9FF), // Light blue tint to match theme
+      elevation: 0,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.6,
+          minChildSize: 0.4,
+          maxChildSize: 0.9,
+          expand: false,
+          builder: (context, scrollController) {
+            return SingleChildScrollView(
+              controller: scrollController,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      margin: const EdgeInsets.only(top: 10, bottom: 20),
+                      width: 40,
+                      height: 5,
+                      decoration: BoxDecoration(
+                        color: Colors.grey[300],
+                        borderRadius: BorderRadius.circular(5),
+                      ),
+                    ),
+                  ),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16.0),
+                    child: Text(
+                      'Sắp xếp (Theo ngày đặt)',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  ListTile(
+                    leading: const Icon(Icons.arrow_downward, color: Colors.blue),
+                    title: const Text('Mới nhất trước'),
+                    trailing: _sortOrder == SortOrder.newest ? const Icon(Icons.check, color: Colors.blue) : null,
+                    onTap: () {
+                      setState(() => _sortOrder = SortOrder.newest);
+                      Navigator.pop(context);
+                    },
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.arrow_upward, color: Colors.blue),
+                    title: const Text('Cũ nhất trước'),
+                    trailing: _sortOrder == SortOrder.oldest ? const Icon(Icons.check, color: Colors.blue) : null,
+                    onTap: () {
+                      setState(() => _sortOrder = SortOrder.oldest);
+                      Navigator.pop(context);
+                    },
+                  ),
+                  const Divider(thickness: 1, height: 30),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16.0),
+                    child: Text(
+                      'Lọc theo trạng thái',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  ListTile(
+                    leading: const Icon(Icons.list_alt_rounded, color: Colors.blue),
+                    title: const Text('Tất cả'),
+                    trailing: _selectedFilter == TicketFilter.all ? const Icon(Icons.check, color: Colors.blue) : null,
+                    onTap: () {
+                      setState(() => _selectedFilter = TicketFilter.all);
+                      Navigator.pop(context);
+                    },
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.schedule_rounded, color: Colors.orange),
+                    title: const Text('Sắp khởi hành'),
+                    trailing: _selectedFilter == TicketFilter.upcoming ? const Icon(Icons.check, color: Colors.blue) : null,
+                    onTap: () {
+                      setState(() => _selectedFilter = TicketFilter.upcoming);
+                      Navigator.pop(context);
+                    },
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.history_rounded, color: Colors.green),
+                    title: const Text('Đã hoàn thành / Qua ngày'),
+                    trailing: _selectedFilter == TicketFilter.completed ? const Icon(Icons.check, color: Colors.blue) : null,
+                    onTap: () {
+                      setState(() => _selectedFilter = TicketFilter.completed);
+                      Navigator.pop(context);
+                    },
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.cancel_outlined, color: Colors.red),
+                    title: const Text('Đã hủy'),
+                    trailing: _selectedFilter == TicketFilter.cancelled ? const Icon(Icons.check, color: Colors.blue) : null,
+                    onTap: () {
+                      setState(() => _selectedFilter = TicketFilter.cancelled);
+                      Navigator.pop(context);
+                    },
+                  ),
+                  const SizedBox(height: 20),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 
   @override
@@ -112,6 +231,13 @@ class _MyTicketsScreenState extends State<MyTicketsScreen> {
               letterSpacing: 0.5,
             ),
           ),
+          // 3. Add Filter Icon
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.filter_list_alt, color: Colors.white),
+              onPressed: _showFilterDialog,
+            ),
+          ],
         ),
         body: BlocBuilder<TicketCubit, TicketState>(
           builder: (context, state) {
@@ -185,6 +311,63 @@ class _MyTicketsScreenState extends State<MyTicketsScreen> {
                 grouped.putIfAbsent(phId, () => []).add(t);
               }
 
+              // Chuyển sang List và Sắp xếp
+              final sortedGroups = grouped.values.toList();
+              sortedGroups.sort((a, b) {
+                // Sử dụng ngày đặt (createdAt) để sắp xếp thay vì ngày khởi hành
+                final firstA = a.first;
+                final firstB = b.first;
+
+                final dateStrA = firstA['createdAt'] as String?;
+                final dateStrB = firstB['createdAt'] as String?;
+
+                final dateA = dateStrA != null ? DateTime.tryParse(dateStrA) : null;
+                final dateB = dateStrB != null ? DateTime.tryParse(dateStrB) : null;
+
+                if (dateA == null && dateB == null) return 0;
+                if (dateA == null) return 1;
+                if (dateB == null) return -1;
+
+                // Sort theo selected SortOrder
+                if (_sortOrder == SortOrder.newest) {
+                  return dateB.compareTo(dateA); // Giảm dần
+                } else {
+                  return dateA.compareTo(dateB); // Tăng dần
+                }
+              });
+
+              // 4. Implement Filter Logic
+              final filteredGroups = sortedGroups.where((group) {
+                if (_selectedFilter == TicketFilter.all) return true;
+
+                final first = group.first;
+                final status = first['status'];
+                final schedule = first['schedule'];
+                final dateStr = schedule?['departureTime'] as String?;
+                final date = dateStr != null ? DateTime.tryParse(dateStr) : null;
+                final now = DateTime.now();
+
+                if (_selectedFilter == TicketFilter.cancelled) {
+                  return status == 'CANCELLED';
+                }
+
+                if (_selectedFilter == TicketFilter.upcoming) {
+                  // status != CANCELLED và chưa đi
+                  return status != 'CANCELLED' && (date == null || date.isAfter(now));
+                }
+
+                if (_selectedFilter == TicketFilter.completed) {
+                  // status == COMPLETED hoặc đã đi qua ngày
+                  return status == 'COMPLETED' || (date != null && date.isBefore(now));
+                }
+
+                return true;
+              }).toList();
+
+              if (filteredGroups.isEmpty) {
+                 return const Center(child: Text("Không có vé nào phù hợp bộ lọc.", style: TextStyle(fontSize: 16, color: Colors.grey)));
+              }
+
               return RefreshIndicator(
                 onRefresh: () async => context.read<TicketCubit>().loadUserTickets(userId),
                 color: const Color(0xFF6AB7F5),
@@ -192,50 +375,35 @@ class _MyTicketsScreenState extends State<MyTicketsScreen> {
                 strokeWidth: 3,
                 child: ListView.builder(
                   padding: const EdgeInsets.fromLTRB(18, 20, 18, 100), // thu hẹp margin
-                  itemCount: grouped.values.length,
+                  itemCount: filteredGroups.length,
                   itemBuilder: (context, index) {
-                    final group = grouped.values.toList()[index];
+                    final group = filteredGroups[index];
                     final first = group.first;
                     final phId = first['paymentHistoryId'] as int?;
                     final isGroup = group.length > 1;
                     // final highlighted = phId == _highlightPaymentHistoryId; // Đã bỏ highlight
 
-                    return AnimatedContainer(
-                      duration: const Duration(milliseconds: 700),
-                      curve: Curves.easeOutCubic,
-                      margin: const EdgeInsets.only(bottom: 16),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(22), // nhỏ hơn 24
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.grey.withOpacity(0.18),
-                            blurRadius: 10,
-                            offset: const Offset(0, 5),
-                          ),
-                        ],
-                      ),
-                      child: TicketCard(
-                        ticket: first,
-                        groupTickets: isGroup ? group : null,
-                        isHighlighted: false, // Luôn tắt highlight
-                        onTap: () {
-                          if (phId != null) {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => GroupTicketQRScreen(paymentHistoryId: phId),
-                              ),
-                            );
-                          } else {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => TicketDetailScreen(ticketId: first['id'] as int),
-                              ),
-                            );
-                          }
-                        },
-                      ),
+                    return TicketCard(
+                      ticket: first,
+                      groupTickets: isGroup ? group : null,
+                      isHighlighted: false, // Luôn tắt highlight
+                      onTap: () {
+                        if (phId != null) {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => GroupTicketQRScreen(paymentHistoryId: phId),
+                            ),
+                          );
+                        } else {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => TicketDetailScreen(ticketId: first['id'] as int),
+                            ),
+                          );
+                        }
+                      },
                     );
                   },
                 ),
