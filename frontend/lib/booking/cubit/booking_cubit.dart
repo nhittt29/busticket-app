@@ -78,6 +78,15 @@ class BookingCubit extends Cubit<BookingState> {
   void selectSeat(Seat seat) {
     if (!seat.isAvailable) return;
 
+    final schedule = state.selectedTrip;
+    final isSeat45 = state.seats.length == 45 &&
+        schedule?.category.toUpperCase() == 'COACH' &&
+        schedule?.seatType.toUpperCase() == 'SEAT';
+        
+    final isSeat28 = state.seats.length == 28 &&
+        schedule?.category.toUpperCase() == 'COACH' &&
+        schedule?.seatType.toUpperCase() == 'SEAT';
+
     final selected = List<Seat>.from(state.selectedSeats);
     if (selected.contains(seat)) {
       // VALIDATE: Kiểm tra xem BỎ CHỌN có tạo ra ghế lẻ không?
@@ -86,7 +95,7 @@ class BookingCubit extends Cubit<BookingState> {
       final simulatedList = List<Seat>.from(selected)..removeWhere((s) => s.id == seat.id);
       
       // Tìm các ghế không hợp lệ còn lại
-      final invalidSeats = SeatLogic.findInvalidSeats(state.seats, simulatedList);
+      final invalidSeats = SeatLogic.findInvalidSeats(state.seats, simulatedList, isCoach45: isSeat45, isCoach28: isSeat28);
       
       // Nếu có ghế không hợp lệ -> Bỏ chọn luôn chúng nó
       if (invalidSeats.isNotEmpty) {
@@ -100,7 +109,7 @@ class BookingCubit extends Cubit<BookingState> {
       }
     } else {
       // VALIDATE: Kiểm tra ghế lẻ (Orphan Logic)
-      if (SeatLogic.wouldCreateOrphan(seat, state.seats, selected)) {
+      if (SeatLogic.wouldCreateOrphan(seat, state.seats, selected, isCoach45: isSeat45, isCoach28: isSeat28)) {
         emit(state.copyWith(error: 'Vui lòng chọn ghế liên tiếp, không để trống 1 ghế ở giữa hoặc bìa.'));
         return;
       }
