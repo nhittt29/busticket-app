@@ -1,7 +1,8 @@
-// lib/ticket/widgets/ticket_card.dart
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../review/screens/write_review_screen.dart';
+import '../../payment/screens/payment_webview_screen.dart';
+import '../../payment/services/payment_api_service.dart';
 
 class TicketCard extends StatelessWidget {
   final Map<String, dynamic> ticket;
@@ -277,8 +278,78 @@ class TicketCard extends StatelessWidget {
   }
 
   void _handlePayment(BuildContext context, Map<String, dynamic> ticket) async {
-    final url = ticket['paymentHistory']?['payUrl'] as String?;
+    final ph = ticket['paymentHistory'];
+    final url = ph?['payUrl'] as String?;
+    final method = ph?['method'] as String?;
+    final phId = ph?['id'] as int?;
+
     if (url != null) {
+      if (method == 'ZALOPAY' || method == 'MOMO') {
+        final isZalo = method == 'ZALOPAY';
+        
+        final result = await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => PaymentWebViewScreen(
+              paymentUrl: url,
+              title: isZalo ? 'Thanh toán ZaloPay' : 'Thanh toán MoMo',
+              appBarColor: isZalo ? const Color(0xFF008FE5) : const Color(0xFFA50064),
+            ),
+          ),
+        );
+
+        if (context.mounted && phId != null) {
+          bool success = false;
+          String msg = 'Đang xác minh thanh toán...';
+
+          if (isZalo) {
+            // POLLING LOOP: Retry up to 10 times (approx 30s)
+            for (int i = 0; i < 10; i++) {
+              if (!context.mounted) break;
+              
+              if (i > 0) {
+                 ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                 ScaffoldMessenger.of(context).showSnackBar(
+                   SnackBar(content: Text('Đang xác minh... (Lần ${i+1})'), duration: const Duration(seconds: 2)),
+                 );
+                 await Future.delayed(const Duration(seconds: 3));
+              } else {
+                 ScaffoldMessenger.of(context).showSnackBar(
+                   const SnackBar(content: Text('Đang xác minh thanh toán...')),
+                 );
+              }
+
+              final result = await PaymentApiService.checkZaloPayStatus(phId);
+              success = result.success;
+              msg = result.message;
+              
+              if (success) break;
+              // Nếu trả về code 3 (Đang xử lý) -> Tiếp tục lặp
+              // Nếu khác 3 (Lỗi hẳn hoặc Hủy) -> Dừng luôn
+              if (result.zpCode != 3) {
+                 break;
+              }
+            }
+          } else {
+             // MoMo logic placeholder
+             success = false; 
+          }
+
+          if (context.mounted) {
+            if (success) {
+              Navigator.pushNamed(context, '/payment-success', arguments: phId);
+            } else {
+              ScaffoldMessenger.of(context).hideCurrentSnackBar();
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text(msg)),
+              );
+            }
+          }
+        }
+        return;
+      }
+
+      // Fallback
       final uri = Uri.parse(url);
       try {
         if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
