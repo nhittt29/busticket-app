@@ -66,7 +66,7 @@ class TicketCard extends StatelessWidget {
         boxShadow: isHighlighted
             ? [
                 BoxShadow(
-                    color: const Color(0xFF66BB6A).withOpacity(0.3),
+                    color: const Color(0xFF66BB6A).withValues(alpha: 0.3),
                     blurRadius: 20)
               ]
             : null,
@@ -82,17 +82,36 @@ class TicketCard extends StatelessWidget {
           ),
           title: Text('$start → $end',
               style: const TextStyle(fontWeight: FontWeight.bold)),
-          subtitle: Row(
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.event_seat, size: 16, color: Color(0xFF66BB6A)),
-              const SizedBox(width: 4),
-              Expanded(
-                child: Text(
-                  seatDisplay,
-                  overflow: TextOverflow.ellipsis,
-                  maxLines: 2,
-                  style: const TextStyle(fontWeight: FontWeight.w600),
-                ),
+              const SizedBox(height: 4),
+              Row(
+                children: [
+                  const Icon(Icons.event_seat, size: 16, color: Color(0xFF66BB6A)),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: Text(
+                      seatDisplay,
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 2,
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              // DISPLAY CREATED AT / BOOKING TIME
+              Row(
+                children: [
+                  const Icon(Icons.access_time, size: 16, color: Colors.grey),
+                  const SizedBox(width: 4),
+                  Text(
+                    _formatDate(ticket['createdAt']),
+                    style: const TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
+                ],
               ),
             ],
           ),
@@ -166,5 +185,15 @@ class TicketCard extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  String _formatDate(String? dateStr) {
+    if (dateStr == null) return '';
+    try {
+      final date = DateTime.parse(dateStr).toLocal(); // Convert to local time
+      return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year} ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+    } catch (_) {
+      return '';
+    }
   }
 }
