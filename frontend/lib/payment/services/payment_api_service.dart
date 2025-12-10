@@ -107,4 +107,26 @@ class PaymentApiService {
       throw Exception('Lỗi kết nối khi lấy danh sách vé: $e');
     }
   }
+
+  /// Kiểm tra trạng thái thanh toán ZaloPay (Active Polling)
+  static Future<bool> checkZaloPayStatus(int paymentHistoryId) async {
+    final Uri url = Uri.parse('$baseUrl/tickets/$paymentHistoryId/check-zalopay');
+    print('💰 [FRONTEND] Checking ZaloPay Status: $url');
+
+    try {
+      final response = await http.post(url);
+      print('💰 [FRONTEND] Response Code: ${response.statusCode}');
+      print('💰 [FRONTEND] Response Body: ${response.body}');
+
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        return body['success'] == true;
+      }
+      return false;
+    } catch (e) {
+      print('❌ [FRONTEND] Error checking ZaloPay status: $e');
+      debugPrint('Error checking ZaloPay status: $e');
+      return false;
+    }
+  }
 }

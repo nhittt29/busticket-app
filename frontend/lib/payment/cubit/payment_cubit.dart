@@ -67,14 +67,15 @@ class PaymentCubit extends Cubit<PaymentState> {
     required List<int> seatIds,
     required double totalPrice,
   }) async {
-    emit(const PaymentLoading());
+    final currentMethod = state is PaymentInitial
+        ? (state as PaymentInitial).method
+        : PaymentMethod.momo;
+
+    emit(PaymentLoading(currentMethod));
     try {
-      final currentMethod = state is PaymentInitial
-          ? (state as PaymentInitial).method
-          : PaymentMethod.momo;
 
       if (userId <= 0) {
-        emit(const PaymentFailure('ID người dùng không hợp lệ'));
+        emit(PaymentFailure('ID người dùng không hợp lệ', currentMethod));
         return;
       }
 
@@ -93,6 +94,7 @@ class PaymentCubit extends Cubit<PaymentState> {
 
       final paymentHistoryId = data['tickets'][0]['paymentHistoryId'] as int;
       final momoUrl = data['payment']?['payUrl'] as String?;
+      final zpTransToken = data['payment']?['zpTransToken'] as String?;
 
       List<String> allSeats = [];
       for (var ticket in data['tickets']) {
@@ -111,18 +113,45 @@ class PaymentCubit extends Cubit<PaymentState> {
 
       final firstTicket = await TicketApiService.getTicketDetail(data['tickets'][0]['id'] as int);
 
-      // ĐÃ XÓA LOGIC THÔNG BÁO Ở ĐÂY - CHUYỂN SANG PaymentSuccessScreen
+      
+      // LÊN LỊCH NHẮC THANH TOÁN (NẾU NGƯỜI DÙNG KHÔNG THANH TOÁN NGAY)
+      await ReminderService().schedulePaymentReminder(
+        paymentHistoryId: paymentHistoryId,
+        userId: userId,
+        busName: _safeString(firstTicket['schedule']?['bus']?['name'], 'Xe khách'),
+        from: _safeString(firstTicket['schedule']?['route']?['startPoint']),
+        to: _safeString(firstTicket['schedule']?['route']?['endPoint']),
+        bookTime: DateTime.now(),
+      );
+
+      // LÊN LỊCH THÔNG BÁO VÉ BỊ HỦY (SAU 15 PHÚT)
+      await ReminderService().scheduleTicketExpiredNotification(
+        paymentHistoryId: paymentHistoryId,
+        userId: userId,
+        busName: _safeString(firstTicket['schedule']?['bus']?['name'], 'Xe khách'),
+        bookTime: DateTime.now(),
+      );
 
       if (currentMethod == PaymentMethod.momo && momoUrl != null && momoUrl.isNotEmpty) {
         emit(PaymentSuccess(
           ticketId: data['tickets'][0]['id'] as int,
           momoPayUrl: momoUrl,
           paymentHistoryId: paymentHistoryId,
+          method: PaymentMethod.momo,
+        ));
+      } else if (currentMethod == PaymentMethod.zalopay) {
+        emit(PaymentSuccess(
+          ticketId: data['tickets'][0]['id'] as int,
+          momoPayUrl: momoUrl, // For ZaloPay this is order_url
+          zpTransToken: zpTransToken,
+          paymentHistoryId: paymentHistoryId,
+          method: PaymentMethod.zalopay,
         ));
       } else {
         emit(PaymentSuccess(
           ticketId: data['tickets'][0]['id'] as int,
           paymentHistoryId: paymentHistoryId,
+          method: currentMethod,
         ));
       }
     } catch (e, stackTrace) {
@@ -130,7 +159,25 @@ class PaymentCubit extends Cubit<PaymentState> {
         debugPrint('PaymentCubit Error: $e');
         debugPrint(stackTrace.toString());
       }
-      emit(const PaymentFailure('Bạn đã đạt giới hạn đặt vé tối đa 8 vé/ngày.'));
+      emit(PaymentFailure('Bạn đã đạt giới hạn đặt vé tối đa 8 vé/ngày.', currentMethod));
+    }
+  }
+
+  Future<void> checkZaloPayStatus(int paymentHistoryId) async {
+    emit(const PaymentLoading(PaymentMethod.zalopay));
+    try {
+      final success = await PaymentApiService.checkZaloPayStatus(paymentHistoryId);
+      if (success) {
+        emit(PaymentSuccess(
+          paymentHistoryId: paymentHistoryId,
+          method: PaymentMethod.zalopay,
+          // momoPayUrl null -> Listener will navigate to success screen
+        ));
+      } else {
+        emit(const PaymentFailure('Giao dịch chưa hoàn tất hoặc thất bại.', PaymentMethod.zalopay));
+      }
+    } catch (e) {
+      emit(PaymentFailure('Lỗi kiểm tra: $e', PaymentMethod.zalopay));
     }
   }
 }

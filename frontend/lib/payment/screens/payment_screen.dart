@@ -1,7 +1,8 @@
 // lib/payment/screens/payment_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:url_launcher/url_launcher.dart';
+// import 'package:flutter_zalopay_sdk/flutter_zalopay_sdk.dart'; // Removed
+
 import '../../bloc/auth/auth_bloc.dart';
 import '../../bloc/notification/notification_bloc.dart';
 import '../../bloc/notification/notification_event.dart';
@@ -10,6 +11,7 @@ import '../cubit/payment_cubit.dart';
 import '../cubit/payment_state.dart';
 import '../widgets/payment_method_tile.dart';
 import 'momo_webview_screen.dart';
+import 'zalopay_webview_screen.dart';
 
 import '../../booking/cubit/booking_state.dart' as bs;
 import '../../promotions/models/promotion.dart';
@@ -349,7 +351,12 @@ class PaymentScreen extends StatelessWidget {
 
                   BlocBuilder<PaymentCubit, PaymentState>(
                     builder: (context, state) {
-                      final method = state is PaymentInitial ? state.method : PaymentMethod.momo;
+                      final method = switch (state) {
+                        PaymentInitial(method: var val) => val,
+                        PaymentLoading(method: var val) => val,
+                        PaymentFailure(method: var val) => val,
+                        PaymentSuccess(method: var val) => val,
+                      };
                       return Column(
                         children: [
                           PaymentMethodTile(
@@ -359,11 +366,12 @@ class PaymentScreen extends StatelessWidget {
                             onTap: () => context.read<PaymentCubit>().selectMethod(PaymentMethod.momo),
                           ),
                           const SizedBox(height: 14),
+
                           PaymentMethodTile(
-                            icon: Icons.payments_rounded,
-                            title: 'Tiền mặt (Thanh toán tại quầy)',
-                            isSelected: method == PaymentMethod.cash,
-                            onTap: () => context.read<PaymentCubit>().selectMethod(PaymentMethod.cash),
+                            icon: Icons.account_balance_wallet_outlined,
+                            title: 'Ví ZaloPay',
+                            isSelected: method == PaymentMethod.zalopay,
+                            onTap: () => context.read<PaymentCubit>().selectMethod(PaymentMethod.zalopay),
                           ),
                         ],
                       );
@@ -385,11 +393,26 @@ class PaymentScreen extends StatelessWidget {
           ),
           child: SafeArea(
             child: BlocConsumer<PaymentCubit, PaymentState>(
-              listener: (context, state) {
+              listener: (context, state) async {
                 if (state is PaymentSuccess) {
                   context.read<NotificationBloc>().add(LoadNotificationsEvent());
                   
-                  if (state.momoPayUrl != null && state.momoPayUrl!.isNotEmpty) {
+                  if (state.method == PaymentMethod.zalopay && state.momoPayUrl != null && state.momoPayUrl!.isNotEmpty) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ZaloPayWebViewScreen(paymentUrl: state.momoPayUrl!),
+                      ),
+                    ).then((_) {
+                      if (!context.mounted) return;
+                      // FORCE Active Polling regardless of WebView result
+                      // This ensures Backend is synced (QR, Email) even if Callback failed
+                      context.read<PaymentCubit>().checkZaloPayStatus(state.paymentHistoryId);
+                    });
+                  } else if (state.method == PaymentMethod.zalopay) {
+                    // Success state from polling (momoPayUrl is null)
+                    Navigator.pushReplacementNamed(context, '/payment-success', arguments: state.paymentHistoryId);
+                  } else if (state.method == PaymentMethod.momo && state.momoPayUrl != null && state.momoPayUrl!.isNotEmpty) {
                     // Sử dụng WebView tích hợp để chặn redirect
                     Navigator.push(
                       context,
@@ -398,6 +421,7 @@ class PaymentScreen extends StatelessWidget {
                       ),
                     ).then((result) {
                       // Nếu trả về true (thanh toán thành công & redirect đúng)
+                      if (!context.mounted) return;
                       if (result == true) {
                          Navigator.pushReplacementNamed(context, '/payment-success', arguments: state.paymentHistoryId);
                       }

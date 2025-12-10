@@ -265,4 +265,130 @@ class ReminderService {
       }
     }
   }
+  // NHẮC NHỞ THANH TOÁN (10 PHÚT SAU KHI ĐẶT VÉ)
+  Future<void> schedulePaymentReminder({
+    required int paymentHistoryId,
+    required int userId,
+    required String busName,
+    required String from,
+    required String to,
+    required DateTime bookTime,
+  }) async {
+    await initialize();
+    await _setCurrentUserId(userId);
+
+    // CÔNG THỨC: paymentHistoryId + (userId * 100000) + 500000
+    final notificationId = paymentHistoryId + (userId * 100000) + 500000;
+
+    // Thời gian nhắc: 10 phút sau khi đặt vé
+    final reminderTime = bookTime.add(const Duration(minutes: 10));
+
+    if (reminderTime.isBefore(DateTime.now())) {
+      if (kDebugMode) debugPrint('ĐÃ QUA GIỜ NHẮC THANH TOÁN -> BỎ QUA');
+      return;
+    }
+
+    try {
+      const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
+        'reminder_channel',
+        'Nhắc nhở thanh toán',
+        importance: Importance.high,
+        priority: Priority.high,
+      );
+
+      const NotificationDetails details = NotificationDetails(android: androidDetails);
+
+      await _notifications.zonedSchedule(
+        notificationId,
+        'Sắp hết hạn thanh toán!',
+        'Vé xe $busName sẽ bị hủy sau 5 phút nữa nếu chưa thanh toán.',
+        tz.TZDateTime.from(reminderTime, tz.local),
+        details,
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+        payload: 'payment_reminder',
+      );
+
+      if (kDebugMode) {
+        debugPrint('LÊN LỊCH NHẮC THANH TOÁN THÀNH CÔNG (ID: $notificationId)');
+      }
+    } catch (e) {
+      if (kDebugMode) debugPrint('LỖI LÊN LỊCH NHẮC THANH TOÁN: $e');
+    }
+  }
+
+  // HỦY NHẮC NHỞ THANH TOÁN
+  Future<void> cancelPaymentReminder({
+    required int paymentHistoryId,
+    required int userId,
+  }) async {
+    final notificationId = paymentHistoryId + (userId * 100000) + 500000;
+    await _notifications.cancel(notificationId);
+    if (kDebugMode) {
+      debugPrint('ĐÃ HỦY NHẮC THANH TOÁN (ID: $notificationId)');
+    }
+  }
+
+  // THÔNG BÁO VÉ HẾT HẠN / ĐÃ HỦY (15 PHÚT SAU KHI ĐẶT)
+  Future<void> scheduleTicketExpiredNotification({
+    required int paymentHistoryId,
+    required int userId,
+    required String busName,
+    required DateTime bookTime,
+  }) async {
+    await initialize();
+    await _setCurrentUserId(userId);
+
+    // CÔNG THỨC: paymentHistoryId + (userId * 100000) + 800000 (Dùng dải 800k)
+    final notificationId = paymentHistoryId + (userId * 100000) + 800000;
+
+    // Thời gian: 15 phút sau khi đặt vé
+    final expireTime = bookTime.add(const Duration(minutes: 15));
+
+    if (expireTime.isBefore(DateTime.now())) {
+      return;
+    }
+
+    try {
+      const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
+        'reminder_channel', // Dùng chung channel reminder
+        'Thông báo vé hủy',
+        importance: Importance.max,
+        priority: Priority.high,
+      );
+
+      const NotificationDetails details = NotificationDetails(android: androidDetails);
+
+      await _notifications.zonedSchedule(
+        notificationId,
+        'Vé đã bị hủy',
+        'Vé xe $busName đã tự động hủy do quá hạn thanh toán.',
+        tz.TZDateTime.from(expireTime, tz.local),
+        details,
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+        payload: 'ticket_expired',
+      );
+
+      if (kDebugMode) {
+        debugPrint('LÊN LỊCH BÁO VÉ HỦY THÀNH CÔNG (ID: $notificationId)');
+      }
+    } catch (e) {
+      if (kDebugMode) debugPrint('LỖI LÊN LỊCH BÁO VÉ HỦY: $e');
+    }
+  }
+
+  // HỦY THÔNG BÁO VÉ HẾT HẠN (KHI ĐÃ TRẢ TIỀN XONG)
+  Future<void> cancelTicketExpiredNotification({
+    required int paymentHistoryId,
+    required int userId,
+  }) async {
+    final notificationId = paymentHistoryId + (userId * 100000) + 800000;
+    await _notifications.cancel(notificationId);
+    if (kDebugMode) {
+      debugPrint('ĐÃ HỦY LỊCH BÁO VÉ HỦY (ID: $notificationId)');
+    }
+  }
 }

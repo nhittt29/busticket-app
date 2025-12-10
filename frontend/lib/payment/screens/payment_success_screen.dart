@@ -59,6 +59,18 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen> {
         departureTime: _formatTime(departureTime),
       );
 
+      // 4. HỦY NHẮC NHỞ THANH TOÁN (VÌ ĐÃ THANH TOÁN XONG)
+      await ReminderService().cancelPaymentReminder(
+        paymentHistoryId: widget.paymentHistoryId,
+        userId: userId,
+      );
+
+      // 5. HỦY THÔNG BÁO VÉ HẾT HẠN (VÌ ĐÃ THANH TOÁN XONG)
+      await ReminderService().cancelTicketExpiredNotification(
+        paymentHistoryId: widget.paymentHistoryId,
+        userId: userId,
+      );
+
       // 4. Lên lịch nhắc nhở trước giờ đi
       await ReminderService().scheduleDepartureReminder(
         scheduleId: schedule['id'],

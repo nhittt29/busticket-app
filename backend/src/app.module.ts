@@ -21,6 +21,7 @@ import { UserModule } from './modules/user.module';
 import { ReviewsModule } from './modules/reviews.module';
 import { PromotionsModule } from './modules/promotions.module';
 import { StatsModule } from './stats/stats.module';
+import { ZaloPayModule } from './modules/zalopay.module';
 
 @Module({
   imports: [
@@ -52,6 +53,7 @@ import { StatsModule } from './stats/stats.module';
     ReviewsModule,
     PromotionsModule,
     StatsModule,
+    ZaloPayModule,
   ],
   controllers: [AuthController],
   providers: [AuthService, PrismaService, UserRepository],

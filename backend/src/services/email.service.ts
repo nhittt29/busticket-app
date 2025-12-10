@@ -26,6 +26,7 @@ export class EmailService {
     tickets: any[],                 // mảng vé (1 hoặc nhiều)
     paymentHistoryId: number,       // ← mã vé chung được sinh từ paymentHistory.id
     qrCodeUrl: string,
+    paymentMethod: string = 'MoMo', // Default fallback
   ) {
     const userName = tickets[0]?.user?.name || 'Khách hàng';
     const startPoint = tickets[0]?.schedule?.route?.startPoint || 'Không xác định';
@@ -127,7 +128,7 @@ export class EmailService {
           </div>
           <div class="info-row">
             <div class="label">Thanh toán</div>
-            <div class="value">MoMo</div>
+            <div class="value">${paymentMethod}</div>
           </div>
         </div>
       </div>

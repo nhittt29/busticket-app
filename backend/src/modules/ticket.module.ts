@@ -1,5 +1,5 @@
 // src/modules/ticket.module.ts
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { BullModule } from '@nestjs/bull';
 import { TicketService } from '../services/ticket.service';
 import { TicketRepository } from '../repositories/ticket.repository';
@@ -10,12 +10,14 @@ import { QrController } from '../controllers/qr.controller'; // THÊM DÒNG NÀY
 import { MomoService } from '../services/momo.service';
 import { EmailService } from '../services/email.service';
 import { QrService } from '../services/qr.service';
+import { ZaloPayModule } from './zalopay.module';
 
 @Module({
   imports: [
     BullModule.registerQueue({
       name: 'ticket',
     }),
+    forwardRef(() => ZaloPayModule), // Use forwardRef to avoid circular dependency
   ],
   controllers: [TicketController, QrController], // THÊM QrController
   providers: [
@@ -29,4 +31,4 @@ import { QrService } from '../services/qr.service';
   ],
   exports: [TicketService],
 })
-export class TicketModule {}
+export class TicketModule { }

@@ -9,7 +9,7 @@
     "build": "copyfiles -u 1 src/config/firebase-service-account.json dist/src/config/ && nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
-    "start:dev": "nest start --watch",
+    "start:dev": "node scripts/dev-tunnel.js",
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
@@ -19,7 +19,8 @@
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "prisma:generate": "npx prisma generate",
-    "prisma:seed": "npx prisma db seed"
+    "prisma:seed": "npx prisma db seed",
+    "tunnel": "ssh -o StrictHostKeyChecking=no -R 80:localhost:3000 serveo.net"
   },
   "dependencies": {
     "@nestjs/bull": "^11.0.4",
@@ -69,6 +70,7 @@
     "eslint-plugin-prettier": "^5.2.2",
     "globals": "^16.0.0",
     "jest": "^30.0.0",
+    "localtunnel": "^2.0.2",
     "nodemon": "^3.1.10",
     "prettier": "^3.4.2",
     "prisma": "^6.16.2",
