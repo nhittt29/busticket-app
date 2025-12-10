@@ -61,6 +61,7 @@ export class ZaloPayService {
             mac: '',
             callback_url: this.config.callback_url,
         };
+        this.logger.log(`Creating ZaloPay Order with Callback URL: ${order.callback_url}`);
 
         // app_id|app_trans_id|app_user|amount|app_time|embed_data|item
         const data =

@@ -1,17 +1,68 @@
 // src/controllers/ticket.controller.ts
-import { Body, Controller, Delete, Get, Param, Post, Query, Redirect } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Query, Redirect, Logger, BadRequestException } from '@nestjs/common';
 import { TicketService } from '../services/ticket.service';
 import { CreateTicketDto } from '../dtos/ticket.dto';
 import { PaymentMethod } from '../models/Ticket';
 import { BulkCreateResponse } from '../dtos/ticket.response.dto';
 import { PrismaService } from '../services/prisma.service';
+import { ZaloPayService } from '../services/zalopay.service';
+import { Inject, forwardRef } from '@nestjs/common';
 
 @Controller('tickets')
 export class TicketController {
+  private readonly logger = new Logger(TicketController.name);
+
   constructor(
     private readonly ticketService: TicketService,
     private readonly prism: PrismaService,
+    @Inject(forwardRef(() => ZaloPayService)) private readonly zaloPayService: ZaloPayService,
   ) { }
+
+  @Post('zalopay/callback')
+  zalopayCallback(@Body() data: any) {
+    this.logger.log(`ZaloPay Callback Received: ${JSON.stringify(data)}`);
+    return this.zaloPayService.handleCallback(data);
+  }
+
+  // CHỦ ĐỘNG KIỂM TRA TRẠNG THÁI THANH TOÁN ZALOPAY (POLLING)
+  @Post(':id/check-zalopay')
+  async checkZaloPayStatus(@Param('id') id: string) {
+    const paymentHistoryId = Number(id);
+    this.logger.log(`Manual Check ZaloPay Status for Payment #${paymentHistoryId}`);
+
+    const payment = await this.prism.paymentHistory.findUnique({
+      where: { id: paymentHistoryId },
+    });
+
+    if (!payment) {
+      throw new BadRequestException('Không tìm thấy đơn thanh toán');
+    }
+
+    if (payment.status === 'SUCCESS') {
+      return { success: true, message: 'Đã thanh toán thành công' };
+    }
+
+    if (!payment.transactionId) {
+      return { success: false, message: 'Chưa có mã giao dịch ZaloPay' };
+    }
+
+    try {
+      // 1. Hỏi ZaloPay trạng thái đơn hàng
+      const result = await this.zaloPayService.queryStatus(payment.transactionId) as any;
+      this.logger.log(`Query Status Result: ${JSON.stringify(result)}`);
+
+      // 2. Nếu thành công (return_code = 1) -> Cập nhật hệ thống
+      if (result.return_code === 1) {
+        await this.ticketService.payTicket(paymentHistoryId, PaymentMethod.ZALOPAY, payment.transactionId);
+        return { success: true, message: 'Thanh toán thành công' };
+      }
+
+      return { success: false, message: 'Giao dịch chưa hoàn tất hoặc thất bại' };
+    } catch (error) {
+      this.logger.error(`Check ZaloPay Status Failed`, error);
+      return { success: false, message: 'Lỗi kiểm tra trạng thái' };
+    }
+  }
 
   // LẤY DANH SÁCH TẤT CẢ VÉ TRONG HỆ THỐNG (DÙNG CHO ADMIN HOẶC DEBUG)
   @Get()

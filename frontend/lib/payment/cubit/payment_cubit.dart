@@ -71,11 +71,11 @@ class PaymentCubit extends Cubit<PaymentState> {
         ? (state as PaymentInitial).method
         : PaymentMethod.momo;
 
-    emit(const PaymentLoading());
+    emit(PaymentLoading(currentMethod));
     try {
 
       if (userId <= 0) {
-        emit(const PaymentFailure('ID người dùng không hợp lệ'));
+        emit(PaymentFailure('ID người dùng không hợp lệ', currentMethod));
         return;
       }
 
@@ -159,7 +159,25 @@ class PaymentCubit extends Cubit<PaymentState> {
         debugPrint('PaymentCubit Error: $e');
         debugPrint(stackTrace.toString());
       }
-      emit(const PaymentFailure('Bạn đã đạt giới hạn đặt vé tối đa 8 vé/ngày.'));
+      emit(PaymentFailure('Bạn đã đạt giới hạn đặt vé tối đa 8 vé/ngày.', currentMethod));
+    }
+  }
+
+  Future<void> checkZaloPayStatus(int paymentHistoryId) async {
+    emit(const PaymentLoading(PaymentMethod.zalopay));
+    try {
+      final success = await PaymentApiService.checkZaloPayStatus(paymentHistoryId);
+      if (success) {
+        emit(PaymentSuccess(
+          paymentHistoryId: paymentHistoryId,
+          method: PaymentMethod.zalopay,
+          // momoPayUrl null -> Listener will navigate to success screen
+        ));
+      } else {
+        emit(const PaymentFailure('Giao dịch chưa hoàn tất hoặc thất bại.', PaymentMethod.zalopay));
+      }
+    } catch (e) {
+      emit(PaymentFailure('Lỗi kiểm tra: $e', PaymentMethod.zalopay));
     }
   }
 }

@@ -19,7 +19,11 @@ class PaymentInitial extends PaymentState {
 }
 
 class PaymentLoading extends PaymentState {
-  const PaymentLoading();
+  final PaymentMethod method;
+  const PaymentLoading(this.method);
+
+  @override
+  List<Object?> get props => [method];
 }
 
 class PaymentSuccess extends PaymentState {
@@ -44,8 +48,9 @@ class PaymentSuccess extends PaymentState {
 
 class PaymentFailure extends PaymentState {
   final String error;
-  const PaymentFailure(this.error);
+  final PaymentMethod method;
+  const PaymentFailure(this.error, this.method);
 
   @override
-  List<Object?> get props => [error];
+  List<Object?> get props => [error, method];
 }
