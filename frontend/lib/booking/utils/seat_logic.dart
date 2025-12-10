@@ -6,10 +6,36 @@ class SeatLogic {
   static bool wouldCreateOrphan(
     Seat candidate,
     List<Seat> allSeats,
-    List<Seat> currentSelectedSeats,
-  ) {
-    // 1. Xác định nhóm ghế của candidate (Cùng hàng hoặc cùng cụm)
-    final group = _getSeatGroup(candidate, allSeats);
+    List<Seat> currentSelectedSeats, {
+    bool isCoach45 = false,
+    bool isCoach28 = false,
+  }) {
+    List<Seat> group;
+
+    if (isCoach45) {
+      // Logic riêng cho xe 45 chỗ (COACH):
+      // - 40 ghế đầu (hàng đôi): KHÔNG áp dụng check ghế lẻ.
+      // - 5 ghế cuối: KHÔNG được để trống 1 ghế ở giữa (Inner Orphan), cho phép tối đa 1 ghế lẻ ở bìa.
+      final sorted = List<Seat>.from(allSeats)..sort((a, b) => a.id.compareTo(b.id)); // Sort theo ID như Frontend
+      final index = sorted.indexWhere((s) => s.id == candidate.id);
+      
+      if (index < 40) return false; // Hàng đôi -> Cho phép chọn tự do
+      
+      group = sorted.skip(40).take(5).toList(); // Nhóm 5 ghế cuối
+    } else if (isCoach28) {
+      // Logic riêng cho xe 28 chỗ (COACH):
+      // - 24 ghế đầu (hàng đôi): KHÔNG áp dụng check ghế lẻ.
+      // - 4 ghế cuối (hàng ngang): KHÔNG được để trống 1 ghế ở giữa.
+      final sorted = List<Seat>.from(allSeats)..sort((a, b) => a.id.compareTo(b.id)); // Sort theo ID
+      final index = sorted.indexWhere((s) => s.id == candidate.id);
+
+      if (index < 24) return false; // Hàng đôi -> Cho phép chọn tự do
+      
+      group = sorted.skip(24).take(4).toList(); // Nhóm 4 ghế cuối
+    } else {
+      // 1. Xác định nhóm ghế của candidate (Cùng hàng hoặc cùng cụm)
+      group = _getSeatGroup(candidate, allSeats);
+    }
 
     // Nếu nhóm chỉ có 1 ghế hoặc ghế này độc lập -> Không vi phạm
     if (group.length <= 1) return false;
@@ -238,10 +264,10 @@ class SeatLogic {
      return neighbors;
   }
   /// Tìm các ghế không hợp lệ trong danh sách đã chọn (dùng cho Auto-Deselect)
-  static List<Seat> findInvalidSeats(List<Seat> allSeats, List<Seat> currentSelected) {
+  static List<Seat> findInvalidSeats(List<Seat> allSeats, List<Seat> currentSelected, {bool isCoach45 = false, bool isCoach28 = false}) {
     final invalid = <Seat>{};
     for (final seat in currentSelected) {
-      if (wouldCreateOrphan(seat, allSeats, currentSelected)) {
+      if (wouldCreateOrphan(seat, allSeats, currentSelected, isCoach45: isCoach45, isCoach28: isCoach28)) {
         invalid.add(seat);
       }
     }
