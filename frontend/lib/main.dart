@@ -1,5 +1,6 @@
 // lib/main.dart
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'bloc/auth/auth_bloc.dart';
@@ -68,80 +69,87 @@ class MyApp extends StatelessWidget {
         BlocProvider(create: (context) => NotificationBloc()),
         BlocProvider(create: (context) => ReviewCubit()),
       ],
-      child: MaterialApp(
-        title: 'Vé Xe Việt',
-        theme: AppTheme.lightTheme,
-        debugShowCheckedModeBanner: false,
-        navigatorKey: navigatorKey,
-        initialRoute: '/login',
-        routes: {
-          '/login': (context) => const LoginScreen(),
-          '/register': (context) => const RegisterScreen(),
-          '/forgot-password': (context) => const ForgotPasswordScreen(),
-          '/reset-password': (context) {
-            final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>?;
-            if (args == null || !args.containsKey('email')) {
-              return const Scaffold(body: Center(child: Text('Email không hợp lệ')));
-            }
-            return ResetPasswordScreen(email: args['email'] as String);
-          },
-          '/home': (context) => const HomeScreen(),
-          '/profile': (context) => const ProfileScreen(),
-          '/profile-detail': (context) => const ProfileDetailScreen(),
-          '/edit-profile': (context) => const EditProfileScreen(),
-          '/search-trips': (context) => const SearchScreen(),
-          '/search-history': (context) => const SearchHistoryScreen(),
-          '/trip-list': (context) => const TripListScreen(),
-          '/explore-trips': (context) => const ExploreTripsScreen(),
-          '/select-bus': (context) {
-            final args = ModalRoute.of(context)!.settings.arguments;
-            if (args is! int) return const SearchScreen();
-            return SelectBusScreen(scheduleId: args);
-          },
-          '/dropoff-selection': (context) => const DropoffSelectionScreen(),
-          '/payment': (context) => const PaymentScreen(),
-          '/my-tickets': (context) => const MyTicketsScreen(),
-          '/ticket-history': (context) => const TicketHistoryScreen(),
-          '/ticket-detail': (context) {
-            final args = ModalRoute.of(context)!.settings.arguments as int?;
-            if (args == null) {
-              return const Scaffold(body: Center(child: Text('ID vé không hợp lệ')));
-            }
-            return TicketDetailScreen(ticketId: args);
-          },
-          '/ticket-qr': (context) {
-            final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>?;
-            if (args == null || !args.containsKey('qrUrl') || !args.containsKey('ticket')) {
-              return const Scaffold(body: Center(child: Text('Không tìm thấy mã QR')));
-            }
-            return TicketQRScreen(
-              qrUrl: args['qrUrl'] as String,
-              ticket: args['ticket'] as Map<String, dynamic>,
-            );
-          },
-          '/group-qr': (context) {
-            final args = ModalRoute.of(context)!.settings.arguments as int?;
-            if (args == null) {
-              return const Scaffold(body: Center(child: Text('ID nhóm vé không hợp lệ')));
-            }
-            return GroupTicketQRScreen(paymentHistoryId: args);
-          },
-          '/notifications': (context) => const NotificationScreen(),
-          '/promotions': (context) => const PromotionsScreen(),
-          '/payment-success': (context) {
-             final args = ModalRoute.of(context)!.settings.arguments as int?;
-             if (args == null) {
-               return const Scaffold(body: Center(child: Text('Missing payment ID')));
-             }
-             return PaymentSuccessScreen(paymentHistoryId: args);
-          },
+      child: ScreenUtilInit(
+        designSize: const Size(375, 812),
+        minTextAdapt: true,
+        splitScreenMode: true,
+        builder: (context, child) {
+          return MaterialApp(
+            title: 'Vé Xe Việt',
+            theme: AppTheme.lightTheme,
+            debugShowCheckedModeBanner: false,
+            navigatorKey: navigatorKey,
+            initialRoute: '/login',
+            routes: {
+              '/login': (context) => const LoginScreen(),
+              '/register': (context) => const RegisterScreen(),
+              '/forgot-password': (context) => const ForgotPasswordScreen(),
+              '/reset-password': (context) {
+                final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>?;
+                if (args == null || !args.containsKey('email')) {
+                  return const Scaffold(body: Center(child: Text('Email không hợp lệ')));
+                }
+                return ResetPasswordScreen(email: args['email'] as String);
+              },
+              '/home': (context) => const HomeScreen(),
+              '/profile': (context) => const ProfileScreen(),
+              '/profile-detail': (context) => const ProfileDetailScreen(),
+              '/edit-profile': (context) => const EditProfileScreen(),
+              '/search-trips': (context) => const SearchScreen(),
+              '/search-history': (context) => const SearchHistoryScreen(),
+              '/trip-list': (context) => const TripListScreen(),
+              '/explore-trips': (context) => const ExploreTripsScreen(),
+              '/select-bus': (context) {
+                final args = ModalRoute.of(context)!.settings.arguments;
+                if (args is! int) return const SearchScreen();
+                return SelectBusScreen(scheduleId: args);
+              },
+              '/dropoff-selection': (context) => const DropoffSelectionScreen(),
+              '/payment': (context) => const PaymentScreen(),
+              '/my-tickets': (context) => const MyTicketsScreen(),
+              '/ticket-history': (context) => const TicketHistoryScreen(),
+              '/ticket-detail': (context) {
+                final args = ModalRoute.of(context)!.settings.arguments as int?;
+                if (args == null) {
+                  return const Scaffold(body: Center(child: Text('ID vé không hợp lệ')));
+                }
+                return TicketDetailScreen(ticketId: args);
+              },
+              '/ticket-qr': (context) {
+                final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>?;
+                if (args == null || !args.containsKey('qrUrl') || !args.containsKey('ticket')) {
+                  return const Scaffold(body: Center(child: Text('Không tìm thấy mã QR')));
+                }
+                return TicketQRScreen(
+                  qrUrl: args['qrUrl'] as String,
+                  ticket: args['ticket'] as Map<String, dynamic>,
+                );
+              },
+              '/group-qr': (context) {
+                final args = ModalRoute.of(context)!.settings.arguments as int?;
+                if (args == null) {
+                  return const Scaffold(body: Center(child: Text('ID nhóm vé không hợp lệ')));
+                }
+                return GroupTicketQRScreen(paymentHistoryId: args);
+              },
+              '/notifications': (context) => const NotificationScreen(),
+              '/promotions': (context) => const PromotionsScreen(),
+              '/payment-success': (context) {
+                 final args = ModalRoute.of(context)!.settings.arguments as int?;
+                 if (args == null) {
+                   return const Scaffold(body: Center(child: Text('Missing payment ID')));
+                 }
+                 return PaymentSuccessScreen(paymentHistoryId: args);
+              },
+            },
+            onUnknownRoute: (settings) => MaterialPageRoute(
+              builder: (context) => Scaffold(
+                appBar: AppBar(title: const Text('Lỗi')),
+                body: Center(child: Text('Không tìm thấy trang: ${settings.name}')),
+              ),
+            ),
+          );
         },
-        onUnknownRoute: (settings) => MaterialPageRoute(
-          builder: (context) => Scaffold(
-            appBar: AppBar(title: const Text('Lỗi')),
-            body: Center(child: Text('Không tìm thấy trang: ${settings.name}')),
-          ),
-        ),
       ),
     );
   }

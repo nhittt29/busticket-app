@@ -10,7 +10,9 @@ import '../bloc/notification/notification_event.dart';
 import '../bloc/notification/notification_state.dart';      
 import '../booking/screens/search_screen.dart';
 import '../ticket/screens/ticket_detail_screen.dart';
+import 'package:curved_navigation_bar/curved_navigation_bar.dart';
 import 'package:badges/badges.dart' as badges;
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -623,38 +625,93 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildBottomNavBar() {
-    return BottomNavigationBar(
-      type: BottomNavigationBarType.fixed,
-      backgroundColor: Colors.white,
-      currentIndex: _selectedIndex,
-      onTap: _onItemTapped,
-      selectedItemColor: const Color(0xFF1976D2),
-      unselectedItemColor: Colors.grey,
-      elevation: 12,
-      items: [
-        const BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Trang chủ'),
-        const BottomNavigationBarItem(icon: Icon(Icons.confirmation_number), label: 'Vé của tôi'),
-         BottomNavigationBarItem(
-          icon: BlocBuilder<NotificationBloc, NotificationState>(
-            builder: (context, state) {
-              final count = state.unreadCount;
-              if (count <= 0) {
-                return const Icon(Icons.notifications_outlined);
-              }
-              return badges.Badge(
-                badgeContent: Text(
-                  count > 99 ? '99+' : count.toString(),
-                  style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
-                ),
-                badgeStyle: const badges.BadgeStyle(badgeColor: Colors.red),
-                child: const Icon(Icons.notifications),
-              );
-            },
-          ),
-          label: 'Thông báo',
-        ),
-        const BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Tài khoản'),
+    return CurvedNavigationBar(
+      index: _selectedIndex,
+      height: 75.0,
+      items: <Widget>[
+        _buildNavItem(Icons.home, "Trang chủ", 0),
+        _buildNavItem(Icons.confirmation_number, "Vé của tôi", 1),
+        _buildNotificationNavItem(2),
+        _buildNavItem(Icons.person, "Tài khoản", 3),
       ],
+      color: Colors.white,
+      buttonBackgroundColor: const Color(0xFF1E88E5), // Xanh đậm hơn chút, cân đối
+      backgroundColor: const Color(0xFFEAF6FF),
+      animationCurve: Curves.easeInOut,
+      animationDuration: const Duration(milliseconds: 300),
+      onTap: _onItemTapped,
+      letIndexChange: (index) => true,
+    );
+  }
+
+  Widget _buildNavItem(IconData icon, String label, int index) {
+    final bool isSelected = _selectedIndex == index;
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(
+          icon,
+          size: 26.sp,
+          color: isSelected ? Colors.white : const Color(0xFF9EA7B2), // Màu xám nhạt
+        ),
+        if (!isSelected)
+          Padding(
+            padding: EdgeInsets.only(top: 4.h),
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 10.sp,
+                color: const Color(0xFF9EA7B2),
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildNotificationNavItem(int index) {
+    final bool isSelected = _selectedIndex == index;
+    return BlocBuilder<NotificationBloc, NotificationState>(
+      builder: (context, state) {
+        final count = state.unreadCount;
+        
+        Widget iconWidget = Icon(
+            count > 0 ? Icons.notifications : Icons.notifications_outlined, 
+            size: 26.sp,
+            color: isSelected ? Colors.white : const Color(0xFF9EA7B2),
+        );
+
+        if (count > 0) {
+          iconWidget = badges.Badge(
+            badgeContent: Text(
+              count > 99 ? '99+' : count.toString(),
+              style: TextStyle(color: Colors.white, fontSize: 9.sp, fontWeight: FontWeight.bold),
+            ),
+            badgeStyle: const badges.BadgeStyle(badgeColor: Colors.red),
+            child: iconWidget,
+          );
+        }
+
+        return Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            iconWidget,
+            if (!isSelected)
+              Padding(
+                padding: EdgeInsets.only(top: 4.h),
+                child: Text(
+                  "Thông báo",
+                  style: TextStyle(
+                    fontSize: 10.sp,
+                    color: const Color(0xFF9EA7B2),
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+          ],
+        );
+      },
     );
   }
 }
