@@ -96,6 +96,31 @@ export class ReviewsRepository {
     async findById(id: number): Promise<Review | null> {
         return this.prisma.review.findUnique({
             where: { id },
+            include: {
+                user: {
+                    select: {
+                        id: true,
+                        name: true,
+                        avatar: true,
+                    },
+                },
+                bus: {
+                    select: {
+                        id: true,
+                        name: true,
+                        brand: { select: { name: true } },
+                    },
+                },
+                ticket: {
+                    include: {
+                        schedule: {
+                            include: {
+                                route: { select: { startPoint: true, endPoint: true } },
+                            },
+                        },
+                    },
+                },
+            },
         });
     }
 

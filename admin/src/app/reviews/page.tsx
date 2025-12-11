@@ -13,7 +13,7 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Star, Search, Filter, MoreHorizontal, Trash2, ArrowLeft } from "lucide-react";
+import { Star, Search, Filter, MoreHorizontal, Trash2, ArrowLeft, Eye } from "lucide-react";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -26,11 +26,6 @@ import { IReview } from "@/interfaces/review";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { MessageSquareReply } from "lucide-react";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Textarea } from "@/components/ui/textarea";
-import { useState } from "react";
-import { useCustomMutation } from "@refinedev/core";
 
 export default function ReviewListPage() {
     const router = useRouter();
@@ -40,7 +35,7 @@ export default function ReviewListPage() {
         sorters: [
             {
                 field: "createdAt",
-                order: "desc",
+                order: "asc",
             },
         ],
         meta: {
@@ -75,49 +70,7 @@ export default function ReviewListPage() {
         }
     };
 
-    const [replyDialogOpen, setReplyDialogOpen] = useState(false);
-    const [selectedReviewId, setSelectedReviewId] = useState<number | null>(null);
-    const [replyContent, setReplyContent] = useState("");
-    const { mutate: replyReview } = useCustomMutation<IReview>();
 
-    const handleReplyClick = (review: IReview) => {
-        setSelectedReviewId(review.id);
-        setReplyContent(review.reply || "");
-        setReplyDialogOpen(true);
-    };
-
-    const handleReplySubmit = () => {
-        if (!selectedReviewId) return;
-
-        replyReview(
-            {
-                url: `reviews/${selectedReviewId}/reply`,
-                method: "patch",
-                values: {
-                    reply: replyContent,
-                },
-                successNotification: (data, values, resource) => {
-                    return {
-                        message: "Trả lời đánh giá thành công",
-                        description: "Câu trả lời đã được cập nhật.",
-                        type: "success",
-                    };
-                },
-            },
-            {
-                onSuccess: () => {
-                    setReplyDialogOpen(false);
-                    setSelectedReviewId(null);
-                    setReplyContent("");
-                },
-                onError: (error) => {
-                    toast.error("Trả lời thất bại", {
-                        description: error.message,
-                    });
-                },
-            }
-        );
-    };
 
     return (
         <ListLayout
@@ -224,9 +177,9 @@ export default function ReviewListPage() {
                                         <DropdownMenuContent align="end">
                                             <DropdownMenuLabel>Thao tác</DropdownMenuLabel>
                                             <DropdownMenuSeparator />
-                                            <DropdownMenuItem onClick={() => handleReplyClick(review)}>
-                                                <MessageSquareReply className="w-4 h-4 mr-2" />
-                                                Trả lời
+                                            <DropdownMenuItem onClick={() => router.push(`/reviews/show/${review.id}`)}>
+                                                <Eye className="w-4 h-4 mr-2" />
+                                                Xem chi tiết
                                             </DropdownMenuItem>
                                             <DropdownMenuItem
                                                 className="text-destructive focus:text-destructive"
@@ -243,29 +196,6 @@ export default function ReviewListPage() {
                     )}
                 </TableBody>
             </Table>
-
-            <Dialog open={replyDialogOpen} onOpenChange={setReplyDialogOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Trả lời đánh giá</DialogTitle>
-                        <DialogDescription>
-                            Nhập nội dung phản hồi của bạn cho đánh giá này.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="grid gap-4 py-4">
-                        <Textarea
-                            placeholder="Nhập nội dung trả lời..."
-                            value={replyContent}
-                            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReplyContent(e.target.value)}
-                            className="min-h-[100px]"
-                        />
-                    </div>
-                    <DialogFooter>
-                        <Button variant="outline" onClick={() => setReplyDialogOpen(false)}>Hủy</Button>
-                        <Button onClick={handleReplySubmit}>Gửi trả lời</Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
         </ListLayout>
     );
 }

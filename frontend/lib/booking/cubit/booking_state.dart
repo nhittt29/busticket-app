@@ -44,7 +44,12 @@ class BookingState extends Equatable {
     required this.finalTotalPrice,
     this.selectedPromotion,
     this.discountAmount = 0.0,
+    this.dropoffDiscount = 0.0, // Thêm: Giảm giá do điểm trả
+    this.surchargeReason,
   });
+
+  final String? surchargeReason;
+  final double dropoffDiscount; // lưu giá trị giảm (số dương)
 
   factory BookingState.initial() => BookingState(
         from: '',
@@ -64,6 +69,8 @@ class BookingState extends Equatable {
         finalTotalPrice: 0.0,
         selectedPromotion: null,
         discountAmount: 0.0,
+        dropoffDiscount: 0.0,
+        surchargeReason: null,
       );
 
   BookingState copyWith({
@@ -84,7 +91,9 @@ class BookingState extends Equatable {
     double? finalTotalPrice,
     Promotion? selectedPromotion,
     double? discountAmount,
+    double? dropoffDiscount,
     bool clearPromotion = false,
+    String? surchargeReason,
   }) {
     return BookingState(
       from: from ?? this.from,
@@ -104,6 +113,8 @@ class BookingState extends Equatable {
       finalTotalPrice: finalTotalPrice ?? this.finalTotalPrice,
       selectedPromotion: clearPromotion ? null : (selectedPromotion ?? this.selectedPromotion),
       discountAmount: discountAmount ?? this.discountAmount,
+      dropoffDiscount: dropoffDiscount ?? this.dropoffDiscount,
+      surchargeReason: surchargeReason ?? this.surchargeReason,
     );
   }
 
@@ -126,6 +137,8 @@ class BookingState extends Equatable {
         finalTotalPrice,
         selectedPromotion,
         discountAmount,
+        dropoffDiscount,
+        surchargeReason,
       ];
 }
 
@@ -144,6 +157,7 @@ class Trip {
   final String startPoint;
   final String endPoint;
   final int availableSeats;
+  final int totalSeats;
 
   const Trip({
     required this.id,
@@ -159,6 +173,7 @@ class Trip {
     required this.startPoint,
     required this.endPoint,
     this.availableSeats = 0,
+    this.totalSeats = 0,
   });
 
   factory Trip.fromJson(Map<String, dynamic> json) {
@@ -176,6 +191,7 @@ class Trip {
       startPoint: (json['route']?['startPoint'] as String?) ?? (json['startPoint'] as String?) ?? 'Điểm đi',
       endPoint: (json['route']?['endPoint'] as String?) ?? (json['endPoint'] as String?) ?? 'Điểm đến',
       availableSeats: (json['availableSeats'] as int?) ?? 0,
+      totalSeats: (json['bus']?['seatCount'] as int?) ?? 40,
     );
   }
 

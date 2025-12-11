@@ -360,7 +360,7 @@ class PaymentScreen extends StatelessWidget {
                       return Column(
                         children: [
                           PaymentMethodTile(
-                            icon: Icons.account_balance_wallet_rounded,
+                            assetPath: 'assets/images/momo.jpeg',
                             title: 'Ví MoMo',
                             isSelected: method == PaymentMethod.momo,
                             onTap: () => context.read<PaymentCubit>().selectMethod(PaymentMethod.momo),
@@ -368,7 +368,7 @@ class PaymentScreen extends StatelessWidget {
                           const SizedBox(height: 14),
 
                           PaymentMethodTile(
-                            icon: Icons.account_balance_wallet_outlined,
+                            assetPath: 'assets/images/zalopay.jpeg',
                             title: 'Ví ZaloPay',
                             isSelected: method == PaymentMethod.zalopay,
                             onTap: () => context.read<PaymentCubit>().selectMethod(PaymentMethod.zalopay),

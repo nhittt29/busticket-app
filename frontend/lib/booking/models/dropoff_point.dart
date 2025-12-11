@@ -4,12 +4,14 @@ class DropoffPoint {
   final String name;
   final String address;
   final double surcharge;
+  final double priceDifference; // Thêm trường này
 
   const DropoffPoint({
     required this.id,
     required this.name,
     required this.address,
     required this.surcharge,
+    this.priceDifference = 0.0,
   });
 
   factory DropoffPoint.fromJson(Map<String, dynamic> json) {
@@ -18,6 +20,7 @@ class DropoffPoint {
       name: json['name'] as String,
       address: json['address'] as String,
       surcharge: (json['surcharge'] ?? 0).toDouble(),
+      priceDifference: (json['priceDifference'] ?? 0).toDouble(),
     );
   }
 

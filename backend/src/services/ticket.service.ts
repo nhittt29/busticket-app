@@ -88,6 +88,27 @@ export class TicketService {
       finalDropoffPointId = defaultPoint?.id ?? null;
     }
 
+    // --- START DYNAMIC PRICING LOGIC ---
+    // Chỉ áp dụng giảm giá (priceDifference) nếu:
+    // 1. Còn dưới 24h trước giờ khởi hành (< 24)
+    // 2. Tỉ lệ lấp đầy < 80%
+    if (dropoffPointId != null) {
+      const point = schedule.dropoffPoints.find(p => p.id === dropoffPointId);
+      if (point && (point as any).priceDifference !== 0) {
+        if (diffHours < 24) {
+          const soldCount = await this.ticketRepo.countSoldTickets(scheduleId);
+          const occupancy = soldCount / schedule.bus.seatCount;
+          if (occupancy < 0.8) {
+            // Đủ điều kiện: Áp dụng giá khác biệt (ví dụ: -20000)
+            surcharge += (point as any).priceDifference;
+          }
+          // Ngược lại: Giữ nguyên surcharge (giá Full)
+        }
+        // Nếu > 24h: Giữ nguyên surcharge (giá Full)
+      }
+    }
+    // --- END DYNAMIC PRICING LOGIC ---
+
     const totalAmount = price + surcharge;
 
     const paymentGroup = await this.prism.paymentHistory.create({
@@ -199,6 +220,23 @@ export class TicketService {
       const defaultPoint = schedule.dropoffPoints.find(p => p.isDefault);
       finalDropoffPointId = defaultPoint?.id ?? null;
     }
+
+    // --- START DYNAMIC PRICING LOGIC (BULK) ---
+    if (dropoffPointId != null) {
+      const point = schedule.dropoffPoints.find(p => p.id === dropoffPointId);
+      if (point && (point as any).priceDifference !== 0) {
+        // Chỉ cần tính 1 lần cho cả nhóm vé
+        const diffHours = (new Date(schedule.departureAt).getTime() - Date.now()) / 3600000;
+        if (diffHours < 24) {
+          const soldCount = await this.ticketRepo.countSoldTickets(firstDto.scheduleId);
+          const occupancy = soldCount / schedule.bus.seatCount;
+          if (occupancy < 0.8) {
+            surchargePerTicket += (point as any).priceDifference;
+          }
+        }
+      }
+    }
+    // --- END DYNAMIC PRICING LOGIC ---
 
     let calculatedTotal = dtos.reduce((sum, d) => sum + d.price, 0) + (surchargePerTicket * dtos.length);
 
