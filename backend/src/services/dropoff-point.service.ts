@@ -47,6 +47,7 @@ export class DropoffPointService {
     if (dto.name !== undefined) data.name = dto.name;
     if (dto.address !== undefined) data.address = dto.address;
     if (dto.surcharge !== undefined) data.surcharge = dto.surcharge;
+    if (dto.priceDifference !== undefined) data.priceDifference = dto.priceDifference;
     if (dto.isDefault !== undefined) data.isDefault = dto.isDefault;
     if (dto.order !== undefined) data.order = dto.order;
 

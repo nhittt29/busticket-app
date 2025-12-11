@@ -5,6 +5,7 @@ export interface DropoffPoint {
   name: string;
   address: string | null;
   surcharge: number;
+  priceDifference: number;
   isDefault: boolean;
   order: number;
   createdAt: Date;

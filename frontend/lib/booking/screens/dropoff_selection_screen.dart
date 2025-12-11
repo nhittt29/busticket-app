@@ -103,6 +103,7 @@ class _DropoffSelectionScreenState extends State<DropoffSelectionScreen> {
         final selectedSeatsCount = state.selectedSeats.length;
         final baseTotal = state.totalPrice;
         final surcharge = state.surcharge * selectedSeatsCount;
+        final dropoffDiscount = state.dropoffDiscount * selectedSeatsCount; // Mới
         final finalTotal = state.finalTotalPrice;
 
         final doorToDoorPoint = DropoffPoint(
@@ -166,10 +167,30 @@ class _DropoffSelectionScreenState extends State<DropoffSelectionScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text('Phụ thu', style: TextStyle(color: Colors.orange, fontWeight: FontWeight.w600)),
+                          Expanded(
+                            child: Text(
+                              'Phụ thu (${state.selectedDropoffPoint?.name ?? ''})',
+                              style: const TextStyle(color: Colors.orange, fontWeight: FontWeight.w600),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
                           Text(
                             '+${surcharge.toInt().toString().replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.')}đ',
                             style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.orange),
+                          ),
+                        ],
+                      ),
+                    ],
+                    if (dropoffDiscount > 0) ...[
+                      const SizedBox(height: 8),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text('Ưu đãi chặng ngắn', style: TextStyle(color: successGreen, fontWeight: FontWeight.w600)),
+                          Text(
+                            '-${dropoffDiscount.toInt().toString().replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.')}đ',
+                            style: const TextStyle(fontWeight: FontWeight.bold, color: successGreen),
                           ),
                         ],
                       ),
@@ -206,6 +227,24 @@ class _DropoffSelectionScreenState extends State<DropoffSelectionScreen> {
                         children: [
                           ..._dropoffPoints.map((point) {
                             final isSelected = state.selectedDropoffPoint?.id == point.id;
+                            
+                            // LOGIC VIEW-ONLY: Kiểm tra xem điểm trả này có được giảm giá không?
+                            // Logic này phải khớp với BookingCubit
+                            bool isEligibleForDiscount = false;
+                            double potentialDiscount = 0;
+                            final trip = context.read<BookingCubit>().state.selectedTrip;
+                            
+                            if (trip != null && point.priceDifference != 0) {
+                               final diffHours = DateTime.parse(trip.departure).toLocal().difference(DateTime.now()).inHours;
+                               if (diffHours < 24 && trip.totalSeats > 0) {
+                                  final occupancy = (trip.totalSeats - trip.availableSeats) / trip.totalSeats;
+                                  if (occupancy < 0.8) {
+                                     isEligibleForDiscount = true;
+                                     potentialDiscount = point.priceDifference.abs();
+                                  }
+                               }
+                            }
+
                             return Container(
                               margin: const EdgeInsets.only(bottom: 12),
                               decoration: BoxDecoration(
@@ -220,7 +259,20 @@ class _DropoffSelectionScreenState extends State<DropoffSelectionScreen> {
                                 activeColor: primaryBlue,
                                 selected: isSelected,
                                 title: Text(point.name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
-                                subtitle: Text(point.address, style: const TextStyle(fontSize: 14)),
+                                subtitle: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(point.address, style: const TextStyle(fontSize: 14)),
+                                    if (isEligibleForDiscount) 
+                                      Padding(
+                                        padding: const EdgeInsets.only(top: 4),
+                                        child: Text(
+                                          'Ưu đãi chặng ngắn: -${potentialDiscount.toInt()}đ',
+                                          style: const TextStyle(color: successGreen, fontWeight: FontWeight.bold, fontSize: 13),
+                                        ),
+                                      ),
+                                  ],
+                                ),
                                 secondary: Text(
                                   point.surcharge == 0 ? 'Miễn phí' : '+${point.surcharge.toInt()}k',
                                   style: TextStyle(fontWeight: FontWeight.bold, color: point.surcharge == 0 ? successGreen : Colors.orange),

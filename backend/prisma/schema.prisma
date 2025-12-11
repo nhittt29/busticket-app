@@ -125,6 +125,7 @@ model DropoffPoint {
   name       String
   address    String?
   surcharge  Float     @default(0)
+  priceDifference Float @default(0)
   isDefault  Boolean   @default(false)
   order      Int       @default(0)
   tickets    Ticket[]

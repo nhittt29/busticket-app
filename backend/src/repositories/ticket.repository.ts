@@ -65,11 +65,11 @@ export class TicketRepository {
     return this.prisma.ticket.findMany({
       where: { userId },
       include: {
-        schedule: { 
-          include: { 
+        schedule: {
+          include: {
             route: true,
-            bus: true 
-          } 
+            bus: true
+          }
         },
         seat: true,
         paymentHistory: true,
@@ -80,6 +80,16 @@ export class TicketRepository {
   }
 
   // THỐNG KÊ SỐ VÉ ĐÃ BÁN TRONG NGÀY HIỆN TẠI CỦA MỘT NHÀ XE (DÙNG CHO BÁO CÁO DOANH THU)
+  // ĐẾM SỐ VÉ ĐÃ BÁN CỦA MỘT CHUYẾN XE (TRỪ VÉ HỦY)
+  countSoldTickets(scheduleId: number) {
+    return this.prisma.ticket.count({
+      where: {
+        scheduleId,
+        status: { not: TicketStatus.CANCELLED },
+      },
+    });
+  }
+
   countBrandSoldToday(brandId: number) {
     const now = new Date();
     const start = new Date(now.setHours(0, 0, 0, 0));

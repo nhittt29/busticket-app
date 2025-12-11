@@ -15,6 +15,11 @@ export class CreateDropoffPointDto {
   @Type(() => Number)
   surcharge: number;
 
+  @IsNumber()
+  @IsOptional()
+  @Type(() => Number)
+  priceDifference?: number;
+
   @IsBoolean()
   @IsOptional()
   isDefault?: boolean;
@@ -25,4 +30,32 @@ export class CreateDropoffPointDto {
   order?: number;
 }
 
-export class UpdateDropoffPointDto extends CreateDropoffPointDto {}
+export class UpdateDropoffPointDto {
+  @IsString()
+  @IsOptional()
+  name?: string;
+
+  @IsString()
+  @IsOptional()
+  address?: string;
+
+  @IsNumber()
+  @IsOptional()
+  @Min(0)
+  @Type(() => Number)
+  surcharge?: number;
+
+  @IsNumber()
+  @IsOptional()
+  @Type(() => Number)
+  priceDifference?: number;
+
+  @IsBoolean()
+  @IsOptional()
+  isDefault?: boolean;
+
+  @IsInt()
+  @IsOptional()
+  @Type(() => Number)
+  order?: number;
+}

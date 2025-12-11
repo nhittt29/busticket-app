@@ -2,14 +2,16 @@
 import 'package:flutter/material.dart';
 
 class PaymentMethodTile extends StatelessWidget {
-  final IconData icon;
+  final IconData? icon;
+  final String? assetPath;
   final String title;
   final bool isSelected;
   final VoidCallback onTap;
 
   const PaymentMethodTile({
     super.key,
-    required this.icon,
+    this.icon,
+    this.assetPath,
     required this.title,
     required this.isSelected,
     required this.onTap,
@@ -29,7 +31,16 @@ class PaymentMethodTile extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Icon(icon, color: isSelected ? const Color(0xFF66BB6A) : Colors.grey.shade600),
+            if (assetPath != null)
+              Image.asset(
+                assetPath!,
+                width: 32,
+                height: 32,
+                fit: BoxFit.contain,
+              )
+            else if (icon != null)
+              Icon(icon, color: isSelected ? const Color(0xFF66BB6A) : Colors.grey.shade600),
+              
             const SizedBox(width: 16),
             Text(title, style: TextStyle(fontSize: 16, fontWeight: isSelected ? FontWeight.bold : FontWeight.normal)),
             const Spacer(),
