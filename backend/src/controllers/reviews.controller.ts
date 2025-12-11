@@ -65,6 +65,11 @@ export class ReviewsController {
         return this.reviewsService.getStats(busId);
     }
 
+    @Get(':id')
+    async findOne(@Param('id', ParseIntPipe) id: number) {
+        return this.reviewsService.findById(id);
+    }
+
     @Put(':id')
     async update(
         @Param('id', ParseIntPipe) id: number,

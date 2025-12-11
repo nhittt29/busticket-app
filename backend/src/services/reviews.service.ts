@@ -97,6 +97,12 @@ export class ReviewsService {
         return this.reviewsRepository.getStats(busId);
     }
 
+
+
+    async findById(id: number) {
+        return this.reviewsRepository.findById(id);
+    }
+
     async update(userId: number, reviewId: number, dto: UpdateReviewDto) {
         const review = await this.reviewsRepository.findById(reviewId);
         if (!review) {
