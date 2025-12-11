@@ -30,8 +30,16 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
       final currentUserId = prefs.getInt('reminder_current_user_id');
       if (currentUserId == null) return 0;
 
+      // Lấy danh sách ID đã đọc
+      final readIds = prefs.getStringList('read_notifications') ?? [];
+
       int count = 0;
       for (var noti in pending) {
+        // Kiểm tra xem ID này đã đọc chưa
+        if (readIds.contains(noti.id.toString())) {
+          continue;
+        }
+
         final userPart = noti.id >= 900000
             ? (noti.id - 900000) ~/ 100000
             : noti.id ~/ 100000;
