@@ -5,7 +5,13 @@ import 'cancel_group_dialog.dart';
 
 class GroupTicketQRScreen extends StatefulWidget {
   final int paymentHistoryId;
-  const GroupTicketQRScreen({super.key, required this.paymentHistoryId});
+  final bool showHomeButton;
+
+  const GroupTicketQRScreen({
+    super.key, 
+    required this.paymentHistoryId,
+    this.showHomeButton = false,
+  });
 
   @override
   State<GroupTicketQRScreen> createState() => _GroupTicketQRScreenState();
@@ -173,6 +179,22 @@ class _GroupTicketQRScreenState extends State<GroupTicketQRScreen>
                 letterSpacing: 0.5,
               ),
             ),
+            actions: widget.showHomeButton
+                ? [
+                    IconButton(
+                      icon: const Icon(Icons.home_rounded, color: Colors.white, size: 28),
+                      tooltip: 'Về trang chủ',
+                      onPressed: () {
+                        Navigator.pushNamedAndRemoveUntil(
+                          context, 
+                          '/home', 
+                          (route) => false
+                        );
+                      },
+                    ),
+                    const SizedBox(width: 8),
+                  ]
+                : null,
             bottom: TabBar(
               controller: _tabController,
               labelColor: Colors.white,

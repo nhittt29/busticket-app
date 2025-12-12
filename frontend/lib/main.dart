@@ -126,11 +126,21 @@ class MyApp extends StatelessWidget {
                 );
               },
               '/group-qr': (context) {
-                final args = ModalRoute.of(context)!.settings.arguments as int?;
-                if (args == null) {
+                final args = ModalRoute.of(context)!.settings.arguments;
+                int? id;
+                bool showHomeButton = false;
+
+                if (args is int) {
+                  id = args;
+                } else if (args is Map) {
+                  id = args['id'] as int?;
+                  showHomeButton = (args['showHomeButton'] as bool?) ?? false;
+                }
+
+                if (id == null) {
                   return const Scaffold(body: Center(child: Text('ID nhóm vé không hợp lệ')));
                 }
-                return GroupTicketQRScreen(paymentHistoryId: args);
+                return GroupTicketQRScreen(paymentHistoryId: id, showHomeButton: showHomeButton);
               },
               '/notifications': (context) => const NotificationScreen(),
               '/promotions': (context) => const PromotionsScreen(),

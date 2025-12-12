@@ -93,6 +93,7 @@ class BookingState extends Equatable {
     double? discountAmount,
     double? dropoffDiscount,
     bool clearPromotion = false,
+    bool clearDropoff = false, // Add clear flag
     String? surchargeReason,
   }) {
     return BookingState(
@@ -107,8 +108,8 @@ class BookingState extends Equatable {
       totalPrice: totalPrice ?? this.totalPrice,
       selectedTrip: selectedTrip ?? this.selectedTrip,
       loadingSeats: loadingSeats ?? this.loadingSeats,
-      selectedDropoffPoint: selectedDropoffPoint ?? this.selectedDropoffPoint,
-      dropoffAddress: dropoffAddress ?? this.dropoffAddress,
+      selectedDropoffPoint: clearDropoff ? null : (selectedDropoffPoint ?? this.selectedDropoffPoint), // Handle clear
+      dropoffAddress: clearDropoff ? null : (dropoffAddress ?? this.dropoffAddress), // Handle clear
       surcharge: surcharge ?? this.surcharge,
       finalTotalPrice: finalTotalPrice ?? this.finalTotalPrice,
       selectedPromotion: clearPromotion ? null : (selectedPromotion ?? this.selectedPromotion),
