@@ -149,7 +149,10 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen> {
                     Navigator.pushReplacementNamed(
                       context, 
                       '/group-qr', 
-                      arguments: widget.paymentHistoryId
+                      arguments: {
+                        'id': widget.paymentHistoryId,
+                        'showHomeButton': true,
+                      }
                     );
                   },
                   style: ElevatedButton.styleFrom(

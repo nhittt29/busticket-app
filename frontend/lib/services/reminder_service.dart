@@ -164,8 +164,7 @@ class ReminderService {
       const NotificationDetails details = NotificationDetails(android: androidDetails);
 
       final now = DateTime.now();
-      final bodyText = '$busName • Ghế $seatNumbers • $from → $to • $departureTime\n'
-          'Đặt lúc: ${now.day}/${now.month} ${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+      final bodyText = '$busName • Ghế $seatNumbers • $from → $to • $departureTime';
 
       await _notifications.zonedSchedule(
         notificationId,
@@ -176,7 +175,7 @@ class ReminderService {
         androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
         uiLocalNotificationDateInterpretation:
             UILocalNotificationDateInterpretation.absoluteTime,
-        payload: 'booking_success',
+        payload: 'booking_success|${now.millisecondsSinceEpoch}',
       );
 
       if (kDebugMode) {
@@ -242,14 +241,14 @@ class ReminderService {
 
       await _notifications.zonedSchedule(
         notificationId,
-        'Xe sắp chạy rồi!',
-        '${data['busName']} • Ghế ${data['seatNumbers'].join(', ')} • ${data['from']} → ${data['to']}',
+        'Chuyến đi sắp khởi hành! 🚌',
+        'Xe ${data['busName']} sẽ khởi hành trong 1 giờ nữa. Ghế ${data['seatNumbers'].join(', ')} • ${data['from']} → ${data['to']}',
         tz.TZDateTime.from(reminderTime, tz.local),
         details,
         androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
         uiLocalNotificationDateInterpretation:
             UILocalNotificationDateInterpretation.absoluteTime,
-        payload: reminderTime.toIso8601String(),
+        payload: 'departure_reminder|${reminderTime.millisecondsSinceEpoch}',
       );
 
       if (kDebugMode) {
@@ -307,7 +306,7 @@ class ReminderService {
         androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
         uiLocalNotificationDateInterpretation:
             UILocalNotificationDateInterpretation.absoluteTime,
-        payload: 'payment_reminder',
+        payload: 'payment_reminder|${reminderTime.millisecondsSinceEpoch}',
       );
 
       if (kDebugMode) {
@@ -369,7 +368,7 @@ class ReminderService {
         androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
         uiLocalNotificationDateInterpretation:
             UILocalNotificationDateInterpretation.absoluteTime,
-        payload: 'ticket_expired',
+        payload: 'ticket_expired|${expireTime.millisecondsSinceEpoch}',
       );
 
       if (kDebugMode) {

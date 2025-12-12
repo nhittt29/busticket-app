@@ -128,6 +128,8 @@ class TripListScreen extends StatelessWidget {
                       child: TripCard(
                         trip: trip,
                         onTap: () {
+                          // Reset previous selection (seats, dropoff)
+                          context.read<BookingCubit>().resetSeats();
                           context.read<BookingCubit>().selectTrip(trip);
                           Navigator.pushNamed(context, '/select-bus', arguments: trip.id);
                         },

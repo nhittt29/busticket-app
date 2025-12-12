@@ -26,6 +26,8 @@ class _NotificationScreenState extends State<NotificationScreen> {
   List<PendingNotificationRequest> pendingNotifications = [];
   final Map<int, bool> _readStatus = {};
   int? _currentUserId;
+  String _selectedFilter = 'Tất cả'; // Filter state
+  bool _isNewestFirst = true; // Sort state
 
   @override
   void initState() {
@@ -35,7 +37,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
     // QUAN TRỌNG NHẤT: KHI MỞ TRANG → TỰ ĐỘNG ĐÁNH DẤU ĐÃ ĐỌC → BADGE Ở HOME VỀ 0 NGAY LẬP TỨC
     context.read<NotificationBloc>().add(MarkAllAsReadEvent());
   }
-
+  
   Future<void> _loadCurrentUserIdAndNotifications() async {
     final prefs = await SharedPreferences.getInstance();
     _currentUserId = prefs.getInt('reminder_current_user_id');
@@ -49,6 +51,10 @@ class _NotificationScreenState extends State<NotificationScreen> {
 
     final plugin = FlutterLocalNotificationsPlugin();
     final allPending = await plugin.pendingNotificationRequests();
+    
+    // Load read status from Prefs
+    final prefs = await SharedPreferences.getInstance();
+    final readIds = prefs.getStringList('read_notifications') ?? [];
 
     // SỬA CHÍNH XÁC 100% – DÙNG CÔNG THỨC NHÚNG USER ID ĐÃ ĐƯỢC DÙNG TRONG ReminderService
     final filtered = allPending.where((noti) {
@@ -81,16 +87,36 @@ class _NotificationScreenState extends State<NotificationScreen> {
     setState(() {
       pendingNotifications = filtered;
       for (var noti in filtered) {
-        _readStatus.putIfAbsent(noti.id, () => false);
+        // Check if ID is in saved read list
+        final isRead = readIds.contains(noti.id.toString());
+        _readStatus[noti.id] = isRead;
       }
     });
   }
 
-  void _markAllAsRead() {
+  void _markAllAsRead() async {
     if (_readStatus.values.any((read) => !read)) {
+      final prefs = await SharedPreferences.getInstance();
+      final readIds = prefs.getStringList('read_notifications') ?? [];
+      
+      // Add all current IDs to the list
+      for (var noti in pendingNotifications) {
+        if (!readIds.contains(noti.id.toString())) {
+          readIds.add(noti.id.toString());
+        }
+      }
+      await prefs.setStringList('read_notifications', readIds);
+
       setState(() {
         _readStatus.updateAll((key, value) => true);
       });
+      
+      // Update badge
+      if (mounted) {
+        context.read<NotificationBloc>().add(LoadNotificationsEvent());
+      }
+
+      if (!mounted) return;
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
         ..showSnackBar(
@@ -130,52 +156,107 @@ class _NotificationScreenState extends State<NotificationScreen> {
       );
   }
 
+  List<PendingNotificationRequest> get _filteredNotifications {
+    List<PendingNotificationRequest> list;
+
+    if (_selectedFilter == 'Tất cả') {
+      list = List.from(pendingNotifications);
+    } else {
+      list = pendingNotifications.where((noti) {
+        if (_selectedFilter == 'Chưa đọc') {
+          return !(_readStatus[noti.id] ?? false);
+        }
+        
+        final payload = noti.payload;
+        final isTicketRelated = payload == 'booking_success' || 
+                                payload == 'payment_reminder' || 
+                                payload == 'ticket_expired';
+                                
+        if (_selectedFilter == 'Vé & Thanh toán') {
+          return isTicketRelated;
+        }
+        
+        if (_selectedFilter == 'Nhắc nhở khởi hành') {
+          // Departure reminder usually has date string payload or null, NOT ticket related keywords
+          return !isTicketRelated;
+        }
+          
+        return true;
+      }).toList();
+    }
+    
+    // Sort
+    if (_isNewestFirst) {
+      list.sort((a, b) => b.id.compareTo(a.id)); // Newest first (Assume larger ID = newer)
+    } else {
+      list.sort((a, b) => a.id.compareTo(b.id)); // Oldest first
+    }
+    
+    return list;
+  }
+
   @override
   Widget build(BuildContext context) {
     final unreadCount = _readStatus.values.where((read) => !read).length;
+    final displayList = _filteredNotifications;
 
     return Scaffold(
-      backgroundColor: backgroundLight,
+      extendBodyBehindAppBar: true,
+      backgroundColor: primaryGradientStart,
       appBar: AppBar(
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [primaryGradientStart, primaryGradientEnd],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-        ),
+        backgroundColor: Colors.transparent,
         elevation: 0,
-        centerTitle: true,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text(
-              'Thông báo',
-              style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w800, letterSpacing: 0.5),
-            ),
-            if (unreadCount > 0) ...[
-              const SizedBox(width: 10),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(20)),
-                constraints: const BoxConstraints(minWidth: 24),
-                child: Text(
-                  '$unreadCount',
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-            ],
-          ],
-        ),
         actions: pendingNotifications.isNotEmpty
             ? [
+                // SORT MENU
+                PopupMenuButton<bool>(
+                  icon: const Icon(Icons.sort_rounded, color: Colors.white, size: 28),
+                  tooltip: 'Sắp xếp',
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  offset: const Offset(0, 56),
+                  itemBuilder: (context) => [
+                    PopupMenuItem(
+                      value: true,
+                      child: Row(
+                        children: [
+                          Icon(Icons.arrow_upward_rounded, 
+                               color: _isNewestFirst ? primaryGradientEnd : Colors.grey),
+                          const SizedBox(width: 12),
+                          Text('Mới nhất', 
+                               style: TextStyle(
+                                 fontWeight: _isNewestFirst ? FontWeight.bold : FontWeight.normal,
+                                 color: _isNewestFirst ? primaryGradientEnd : Colors.black87
+                               )),
+                        ],
+                      ),
+                    ),
+                    PopupMenuItem(
+                      value: false,
+                      child: Row(
+                        children: [
+                          Icon(Icons.arrow_downward_rounded, 
+                               color: !_isNewestFirst ? primaryGradientEnd : Colors.grey),
+                          const SizedBox(width: 12),
+                          Text('Cũ nhất', 
+                               style: TextStyle(
+                                 fontWeight: !_isNewestFirst ? FontWeight.bold : FontWeight.normal,
+                                 color: !_isNewestFirst ? primaryGradientEnd : Colors.black87
+                               )),
+                        ],
+                      ),
+                    ),
+                  ],
+                  onSelected: (value) {
+                    setState(() {
+                      _isNewestFirst = value;
+                    });
+                  },
+                ),
+                
                 PopupMenuButton<String>(
                   icon: const Icon(Icons.more_vert_rounded, color: Colors.white, size: 28),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
@@ -212,49 +293,183 @@ class _NotificationScreenState extends State<NotificationScreen> {
               ]
             : null,
       ),
-      body: pendingNotifications.isEmpty
-          ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(32),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                      boxShadow: [BoxShadow(color: Colors.grey.withAlpha(51), blurRadius: 20, offset: const Offset(0, 10))],
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [primaryGradientStart, primaryGradientEnd],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: SafeArea(
+          bottom: false,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // HEADER BANNER
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 10, 24, 24),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.2),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.notifications_active_rounded, color: Colors.white, size: 32),
                     ),
-                    child: Icon(Icons.notifications_off_rounded, size: 90, color: Colors.grey[400]),
-                  ),
-                  const SizedBox(height: 32),
-                  const Text('Chưa có thông báo', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: deepBlue)),
-                  const SizedBox(height: 12),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 40),
-                    child: Text(
-                      'Chúng tôi sẽ gửi thông báo khi bạn đặt vé thành công hoặc nhắc nhở trước giờ xe chạy',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 15, color: Colors.grey[600], height: 1.5),
+                    const SizedBox(width: 16),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Thông báo & Cập nhật',
+                          style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '$unreadCount tin chưa đọc',
+                          style: TextStyle(color: Colors.white.withValues(alpha: 0.9), fontSize: 13),
+                        ),
+                      ],
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            )
-          : RefreshIndicator(
-              onRefresh: _loadPendingNotifications,
-              color: primaryGradientStart,
-              backgroundColor: Colors.white,
-              strokeWidth: 3,
-              child: ListView.builder(
-                padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
-                itemCount: pendingNotifications.length,
-                itemBuilder: (context, index) {
-                  final noti = pendingNotifications[index];
+              
+              // MAIN BODY (White Container)
+              Expanded(
+                child: Container(
+                  width: double.infinity,
+                  decoration: const BoxDecoration(
+                    color: backgroundLight,
+                    borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+                  ),
+                  child: Column(
+                    children: [
+          // FILTER CHIPS
+          Container(
+            color: Colors.white,
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: ['Tất cả', 'Chưa đọc', 'Vé & Thanh toán', 'Nhắc nhở khởi hành'].map((filter) {
+                  final isSelected = _selectedFilter == filter;
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: FilterChip(
+                      label: Text(filter),
+                      labelStyle: TextStyle(
+                        color: isSelected ? Colors.white : deepBlue,
+                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                        fontSize: 13,
+                      ),
+                      selected: isSelected,
+                      onSelected: (bool selected) {
+                        setState(() {
+                          _selectedFilter = filter;
+                        });
+                      },
+                      backgroundColor: Colors.white,
+                      selectedColor: primaryGradientEnd,
+                      checkmarkColor: Colors.white,
+                      side: BorderSide(
+                        color: isSelected ? Colors.transparent : Colors.grey.shade300,
+                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+          ),
+          
+          // LIST
+          Expanded(
+            child: pendingNotifications.isEmpty
+            ? Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(32),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        boxShadow: [BoxShadow(color: Colors.grey.withAlpha(51), blurRadius: 20, offset: const Offset(0, 10))],
+                      ),
+                      child: Icon(Icons.notifications_off_rounded, size: 90, color: Colors.grey[400]),
+                    ),
+                    const SizedBox(height: 32),
+                    const Text('Chưa có thông báo', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: deepBlue)),
+                    const SizedBox(height: 12),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 40),
+                      child: Text(
+                        'Chúng tôi sẽ gửi thông báo khi bạn đặt vé thành công hoặc nhắc nhở trước giờ xe chạy',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(fontSize: 15, color: Colors.grey[600], height: 1.5),
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            : displayList.isEmpty 
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(30.0),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.filter_list_off, size: 64, color: Colors.grey[300]),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Không có thông báo nào trong mục "$_selectedFilter"',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: Colors.grey[600], fontSize: 16),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              : RefreshIndicator(
+                onRefresh: _loadPendingNotifications,
+                color: primaryGradientStart,
+                backgroundColor: Colors.white,
+                strokeWidth: 3,
+                child: ListView.builder(
+                  padding: const EdgeInsets.fromLTRB(20, 10, 20, 100),
+                  itemCount: displayList.length,
+                  itemBuilder: (context, index) {
+                    final noti = displayList[index];
                   final bool isRead = _readStatus[noti.id] ?? false;
-                  final bool isBookingSuccess = noti.payload == 'booking_success';
+                  final payloadParts = noti.payload?.split('|') ?? [];
+                  final rawPayload = payloadParts.isNotEmpty ? payloadParts[0] : (noti.payload ?? '');
+                  
+                  final bool isBookingSuccess = rawPayload == 'booking_success';
 
-                  DateTime? bookingTime;
-                  if (isBookingSuccess && noti.body != null) {
+                  DateTime? timestamp;
+                  
+                  // 1. Try to parse timestamp from payload (New format: TYPE|MILLIS)
+                  if (payloadParts.length > 1) {
+                    try {
+                      final millis = int.tryParse(payloadParts[1]);
+                      if (millis != null) {
+                        timestamp = DateTime.fromMillisecondsSinceEpoch(millis);
+                      }
+                    } catch (_) {}
+                  }
+
+                  // 2. Fallback: Try to parse raw payload as DateTime (Old format for Departure Reminder)
+                  if (timestamp == null) {
+                    timestamp = DateTime.tryParse(rawPayload);
+                  }
+
+                  // 3. Fallback: Parse from body (Old format for booking_success)
+                  if (timestamp == null && isBookingSuccess && noti.body != null) {
                     final lines = noti.body!.split('\n');
                     if (lines.length > 1 && lines[1].startsWith('Đặt lúc:')) {
                       try {
@@ -265,7 +480,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
                           final timeParts = parts[1].split(':');
                           if (dateParts.length == 2 && timeParts.length == 2) {
                             final now = DateTime.now();
-                            bookingTime = DateTime(
+                            timestamp = DateTime(
                               now.year,
                               int.parse(dateParts[1]),
                               int.parse(dateParts[0]),
@@ -289,9 +504,22 @@ class _NotificationScreenState extends State<NotificationScreen> {
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(26)),
                       child: InkWell(
                         borderRadius: BorderRadius.circular(26),
-                        onTap: () {
+                        onTap: () async {
                           if (!isRead) {
                             setState(() => _readStatus[noti.id] = true);
+                            
+                            // Save to prefs
+                            final prefs = await SharedPreferences.getInstance();
+                            final readIds = prefs.getStringList('read_notifications') ?? [];
+                            if (!readIds.contains(noti.id.toString())) {
+                              readIds.add(noti.id.toString());
+                              await prefs.setStringList('read_notifications', readIds);
+                            }
+                            
+                            // Update badge
+                            if (mounted) {
+                              context.read<NotificationBloc>().add(LoadNotificationsEvent());
+                            }
                           }
                         },
                         child: Padding(
@@ -341,7 +569,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      noti.title ?? (isBookingSuccess ? 'Đặt vé thành công!' : 'Xe sắp chạy!'),
+                                      noti.title ?? (isBookingSuccess ? 'Đặt vé thành công!' : 'Sắp khởi hành'),
                                       style: TextStyle(
                                         fontWeight: FontWeight.bold,
                                         fontSize: 18,
@@ -350,7 +578,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
                                     ),
                                     const SizedBox(height: 10),
                                     Text(
-                                      noti.body ?? 'Thông báo từ hệ thống',
+                                      (noti.body ?? 'Thông báo từ hệ thống').replaceAll(RegExp(r'\nĐặt lúc:.*'), ''),
                                       style: TextStyle(
                                         fontSize: 15,
                                         color: isRead ? Colors.black87 : Colors.black,
@@ -358,14 +586,14 @@ class _NotificationScreenState extends State<NotificationScreen> {
                                         fontWeight: isRead ? FontWeight.w500 : FontWeight.w600,
                                       ),
                                     ),
-                                    if (bookingTime != null) ...[
+                                    if (timestamp != null) ...[
                                       const SizedBox(height: 14),
                                       Row(
                                         children: [
                                           Icon(Icons.access_time, size: 20, color: primaryGradientEnd),
                                           const SizedBox(width: 8),
                                           Text(
-                                            'Đặt lúc: ${_formatBookingTime(bookingTime)}',
+                                            'Gửi lúc: ${_formatBookingTime(timestamp)}',
                                             style: TextStyle(
                                               fontSize: 14,
                                               fontWeight: FontWeight.bold,
@@ -379,7 +607,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
                                 ),
                               ),
                               IconButton(
-                                icon: Icon(Icons.close_rounded, color: Colors.redAccent.withOpacity(0.8), size: 26),
+                                icon: const Icon(Icons.close_rounded, color: Colors.redAccent, size: 26),
                                 onPressed: () async {
                                   await FlutterLocalNotificationsPlugin().cancel(noti.id);
                                   setState(() {
@@ -397,14 +625,24 @@ class _NotificationScreenState extends State<NotificationScreen> {
                 },
               ),
             ),
-    );
+          ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
   }
 
   String _formatBookingTime(DateTime date) {
     final now = DateTime.now();
-    if (date.year == now.year && date.month == now.month && date.day == now.day) {
-      return 'Hôm nay, ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+    final localDate = date.toLocal();
+    if (localDate.year == now.year && localDate.month == now.month && localDate.day == now.day) {
+      return 'Hôm nay, ${localDate.hour.toString().padLeft(2, '0')}:${localDate.minute.toString().padLeft(2, '0')}';
     }
-    return '${date.day}/${date.month} ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+    return '${localDate.day}/${localDate.month} ${localDate.hour.toString().padLeft(2, '0')}:${localDate.minute.toString().padLeft(2, '0')}';
   }
 }

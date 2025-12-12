@@ -150,6 +150,9 @@ class BookingCubit extends Cubit<BookingState> {
       dropoffAddress: null,
       surcharge: 0.0,
       dropoffDiscount: 0.0, // Reset
+      clearDropoff: true, // Reset dropoff
+      clearPromotion: true, // Reset promotion
+      discountAmount: 0.0, // Reset discount
     ));
   }
 
