@@ -241,8 +241,8 @@ class ReminderService {
 
       await _notifications.zonedSchedule(
         notificationId,
-        'Xe sắp chạy rồi!',
-        '${data['busName']} • Ghế ${data['seatNumbers'].join(', ')} • ${data['from']} → ${data['to']}',
+        'Chuyến đi sắp khởi hành! 🚌',
+        'Xe ${data['busName']} sẽ khởi hành trong 1 giờ nữa. Ghế ${data['seatNumbers'].join(', ')} • ${data['from']} → ${data['to']}',
         tz.TZDateTime.from(reminderTime, tz.local),
         details,
         androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
