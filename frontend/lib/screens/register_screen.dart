@@ -9,7 +9,7 @@ import '../bloc/auth/auth_state.dart';
 
 const Color primaryBlue = Color(0xFF6AB7F5);
 const Color accentBlue = Color(0xFF4A9EFF);
-const Color deepBlue = Color(0xFF1976D4);
+const Color deepBlue = Color(0xFF1976D2);
 const Color pastelBlue = Color(0xFFA0D8F1);
 const Color backgroundLight = Color(0xFFEAF6FF);
 const Color successGreen = Color(0xFF4CAF50);
@@ -63,15 +63,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
           'Đăng ký',
           style: TextStyle(
             color: Colors.white,
-            fontSize: 23,
-            fontWeight: FontWeight.w800,
-            letterSpacing: 0.5,
+            fontSize: 22,
+            fontWeight: FontWeight.w700,
           ),
         ),
       ),
       body: Center(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 5),
+          padding: const EdgeInsets.all(20),
           child: BlocListener<AuthBloc, AuthState>(
             listener: (context, state) {
               if (state.error != null) {
@@ -97,239 +96,178 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 Navigator.pushReplacementNamed(context, '/login');
               }
             },
-            child: BlocBuilder<AuthBloc, AuthState>(
-              builder: (context, state) {
-                return Column(
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  children: [
-                    // Avatar Picker
-                    GestureDetector(
-                      onTap: _pickAvatar,
-                      child: CircleAvatar(
-                        radius: 60,
-                        backgroundColor: pastelBlue.withAlpha(150),
-                        backgroundImage: _avatarFile != null ? FileImage(_avatarFile!) : null,
-                        child: _avatarFile == null
-                            ? Icon(Icons.camera_alt, size: 35, color: Colors.white.withAlpha(220))
-                            : null,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'Chọn ảnh đại diện',
-                      style: TextStyle(color: Colors.black54, fontSize: 14),
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Logo & Title
-                    const Text(
-                      'BUSTICKET',
-                      style: TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                        color: deepBlue,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                    const SizedBox(height: 5),
-                    const Text(
-                      'Tạo tài khoản mới',
-                      style: TextStyle(fontSize: 16, color: Colors.black87),
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Form Container
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(14),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.grey.withAlpha(60),
-                            blurRadius: 12,
-                            offset: const Offset(0, 6),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // Avatar (Compact)
+                  GestureDetector(
+                    onTap: _pickAvatar,
+                    child: Stack(
+                      children: [
+                        CircleAvatar(
+                          radius: 65,
+                          backgroundColor: Colors.white,
+                          child: CircleAvatar(
+                            radius: 61,
+                            backgroundColor: pastelBlue.withAlpha(100),
+                            backgroundImage: _avatarFile != null ? FileImage(_avatarFile!) : null,
+                            child: _avatarFile == null
+                                ? Icon(Icons.camera_alt, size: 40, color: Colors.white.withOpacity(0.9))
+                                : null,
                           ),
-                        ],
-                      ),
-                      child: Form(
-                        key: _formKey,
-                        child: Column(
+                        ),
+                        Positioned(
+                          bottom: 0,
+                          right: 4,
+                          child: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: const BoxDecoration(
+                              color: primaryBlue,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.edit, size: 18, color: Colors.white),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 30),
+
+                  // Compact Card Form
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: deepBlue.withAlpha(60),
+                          blurRadius: 20,
+                          offset: const Offset(0, 10),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      children: [
+                        const Text(
+                          'Tạo tài khoản mới',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: deepBlue,
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+
+                        // Name
+                        _buildCompactField(
+                          label: 'Họ và tên',
+                          icon: Icons.person_outline,
+                          onChanged: (v) => name = v,
+                          validator: (v) => (v == null || v.isEmpty) ? 'Nhập họ tên' : null,
+                        ),
+                        const SizedBox(height: 12),
+
+                        // Phone
+                        _buildCompactField(
+                          label: 'Số điện thoại',
+                          icon: Icons.phone_android_outlined,
+                          inputType: TextInputType.phone,
+                          onChanged: (v) => phone = v,
+                          validator: (v) => (v != null && !RegExp(r'^\d{10}$').hasMatch(v)) ? 'SDT 10 số' : null,
+                        ),
+                        const SizedBox(height: 12),
+
+                        // Row: DOB + Gender
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // Email
-                            TextFormField(
-                              decoration: InputDecoration(
-                                labelText: 'Email',
-                                prefixIcon: Icon(Icons.email_outlined, color: deepBlue),
-                                filled: true,
-                                fillColor: pastelBlue.withAlpha(50),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                  borderSide: BorderSide.none,
-                                ),
+                            Expanded(
+                              flex: 3,
+                              child: _buildCompactField(
+                                label: 'Ngày sinh',
+                                hintText: 'YYYY-MM-DD',
+                                icon: Icons.calendar_today_outlined,
+                                inputType: TextInputType.datetime,
+                                onChanged: (v) => dob = v,
+                                validator: (v) {
+                                   if (v == null || v.isEmpty) return 'Nhập ngày';
+                                   if (!RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(v)) return 'YYYY-MM-DD';
+                                   return null;
+                                },
                               ),
-                              style: const TextStyle(color: Colors.black),
-                              onChanged: (value) => email = value,
-                              validator: (value) {
-                                if (value == null || value.isEmpty) {
-                                  return 'Bắt buộc nhập email';
-                                }
-                                if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
-                                  return 'Email không hợp lệ';
-                                }
-                                return null;
-                              },
                             ),
-                            const SizedBox(height: 12),
-
-                            // Password
-                            TextFormField(
-                              decoration: InputDecoration(
-                                labelText: 'Mật khẩu',
-                                prefixIcon: Icon(Icons.lock_outline, color: deepBlue),
-                                filled: true,
-                                fillColor: pastelBlue.withAlpha(50),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                  borderSide: BorderSide.none,
+                            const SizedBox(width: 12),
+                            Expanded(
+                              flex: 2,
+                              child: DropdownButtonFormField<String>(
+                                value: gender,
+                                isExpanded: true,
+                                decoration: InputDecoration(
+                                  labelText: 'Giới tính',
+                                  isDense: true,
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: BorderSide(color: Colors.grey.shade300),
+                                  ),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: BorderSide(color: Colors.grey.shade300),
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: const BorderSide(color: primaryBlue, width: 1.5),
+                                  ),
+                                  filled: true,
+                                  fillColor: pastelBlue.withAlpha(50),
                                 ),
+                                icon: const Icon(Icons.arrow_drop_down, color: deepBlue),
+                                items: const [
+                                  DropdownMenuItem(value: 'MALE', child: Text('Nam', style: TextStyle(fontSize: 14))),
+                                  DropdownMenuItem(value: 'FEMALE', child: Text('Nữ', style: TextStyle(fontSize: 14))),
+                                  DropdownMenuItem(value: 'OTHER', child: Text('Khác', style: TextStyle(fontSize: 14))),
+                                ],
+                                onChanged: (v) => setState(() => gender = v!),
                               ),
-                              obscureText: true,
-                              style: const TextStyle(color: Colors.black),
-                              onChanged: (value) => password = value,
-                              validator: (value) {
-                                if (value == null || value.isEmpty) {
-                                  return 'Bắt buộc nhập mật khẩu';
-                                }
-                                if (!RegExp(r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$')
-                                    .hasMatch(value)) {
-                                  return 'Mật khẩu phải có ít nhất 8 ký tự, chữ hoa, chữ thường, số và ký tự đặc biệt';
-                                }
-                                return null;
-                              },
                             ),
-                            const SizedBox(height: 12),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
 
-                            // Name
-                            TextFormField(
-                              decoration: InputDecoration(
-                                labelText: 'Họ và tên',
-                                prefixIcon: Icon(Icons.person_outline, color: deepBlue),
-                                filled: true,
-                                fillColor: pastelBlue.withAlpha(50),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                  borderSide: BorderSide.none,
-                                ),
-                              ),
-                              style: const TextStyle(color: Colors.black),
-                              onChanged: (value) => name = value,
-                              validator: (value) {
-                                if (value == null || value.isEmpty) {
-                                  return 'Bắt buộc nhập họ tên';
-                                }
-                                if (value.length < 2 || value.length > 50) {
-                                  return 'Họ tên phải từ 2 đến 50 ký tự';
-                                }
-                                return null;
-                              },
-                            ),
-                            const SizedBox(height: 12),
+                        // Email
+                        _buildCompactField(
+                          label: 'Email',
+                          icon: Icons.email_outlined,
+                          inputType: TextInputType.emailAddress,
+                          onChanged: (v) => email = v,
+                          validator: (v) => (v == null || !v.contains('@')) ? 'Email sai' : null,
+                        ),
+                        const SizedBox(height: 12),
 
-                            // Phone
-                            TextFormField(
-                              decoration: InputDecoration(
-                                labelText: 'Số điện thoại',
-                                prefixIcon: Icon(Icons.phone, color: deepBlue),
-                                filled: true,
-                                fillColor: pastelBlue.withAlpha(50),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                  borderSide: BorderSide.none,
-                                ),
-                              ),
-                              keyboardType: TextInputType.phone,
-                              style: const TextStyle(color: Colors.black),
-                              onChanged: (value) => phone = value,
-                              validator: (value) {
-                                if (value != null && value.isNotEmpty) {
-                                  if (!RegExp(r'^\d{10}$').hasMatch(value)) {
-                                    return 'Số điện thoại phải là 10 chữ số';
-                                  }
-                                }
-                                return null;
-                              },
-                            ),
-                            const SizedBox(height: 12),
+                        // Password
+                        _buildCompactField(
+                          label: 'Mật khẩu',
+                          icon: Icons.lock_outline,
+                          obscure: true,
+                          onChanged: (v) => password = v,
+                          validator: (v) => (v == null || v.length < 6) ? 'Min 6 ký tự' : null,
+                        ),
+                        const SizedBox(height: 24),
 
-                            // Date of Birth
-                            TextFormField(
-                              decoration: InputDecoration(
-                                labelText: 'Ngày sinh (YYYY-MM-DD)',
-                                prefixIcon: Icon(Icons.calendar_today, color: deepBlue),
-                                filled: true,
-                                fillColor: pastelBlue.withAlpha(50),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                  borderSide: BorderSide.none,
-                                ),
-                              ),
-                              keyboardType: TextInputType.datetime,
-                              style: const TextStyle(color: Colors.black),
-                              onChanged: (value) => dob = value,
-                              validator: (value) {
-                                if (value == null || value.isEmpty) {
-                                  return 'Bắt buộc nhập ngày sinh';
-                                }
-                                if (!RegExp(r'^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$').hasMatch(value)) {
-                                  return 'Định dạng ngày phải là YYYY-MM-DD';
-                                }
-                                try {
-                                  DateTime.parse(value);
-                                } catch (e) {
-                                  return 'Ngày sinh không hợp lệ';
-                                }
-                                return null;
-                              },
-                            ),
-                            const SizedBox(height: 12),
-
-                            // Gender Dropdown
-                            DropdownButtonFormField<String>(
-                              value: gender,
-                              decoration: InputDecoration(
-                                labelText: 'Giới tính',
-                                prefixIcon: Icon(Icons.wc, color: deepBlue),
-                                filled: true,
-                                fillColor: pastelBlue.withAlpha(50),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                  borderSide: BorderSide.none,
-                                ),
-                              ),
-                              items: const [
-                                DropdownMenuItem(value: 'MALE', child: Text('Nam')),
-                                DropdownMenuItem(value: 'FEMALE', child: Text('Nữ')),
-                                DropdownMenuItem(value: 'OTHER', child: Text('Khác')),
-                              ],
-                              onChanged: (value) {
-                                if (value != null) {
-                                  setState(() => gender = value);
-                                }
-                              },
-                              validator: (value) => value == null ? 'Bắt buộc chọn giới tính' : null,
-                            ),
-                            const SizedBox(height: 16),
-
-                            // Register Button
-                            SizedBox(
-                              width: double.infinity,
-                              child: ElevatedButton(
+                        // Register Button
+                        SizedBox(
+                          width: double.infinity,
+                          height: 50,
+                          child: BlocBuilder<AuthBloc, AuthState>(
+                            builder: (context, state) {
+                              return ElevatedButton(
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: primaryBlue,
-                                  padding: const EdgeInsets.symmetric(vertical: 12),
                                   shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(10),
+                                    borderRadius: BorderRadius.circular(14),
                                   ),
                                   elevation: 8,
                                   shadowColor: primaryBlue.withAlpha(100),
@@ -341,18 +279,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                           DateTime? dobDate;
                                           try {
                                             dobDate = DateTime.parse(dob);
-                                          } catch (e) {
-                                            ScaffoldMessenger.of(context).showSnackBar(
-                                              SnackBar(
-                                                content: const Text('Định dạng ngày sinh không hợp lệ'),
-                                                backgroundColor: Colors.redAccent,
-                                                behavior: SnackBarBehavior.floating,
-                                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                                                margin: const EdgeInsets.all(16),
-                                              ),
-                                            );
-                                            return;
-                                          }
+                                          } catch (_) {}
 
                                           context.read<AuthBloc>().add(RegisterEvent(
                                             email,
@@ -366,43 +293,87 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                         }
                                       },
                                 child: state.isLoading
-                                    ? const CircularProgressIndicator(color: Colors.white, strokeWidth: 3)
+                                    ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
                                     : const Text(
-                                        'Đăng ký',
-                                        style: TextStyle(fontSize: 16, color: Colors.white, fontWeight: FontWeight.bold),
+                                        'ĐĂNG KÝ',
+                                        style: TextStyle(fontSize: 16, color: Colors.white, fontWeight: FontWeight.bold, letterSpacing: 1),
                                       ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Login Link
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Text(
-                          'Đã có tài khoản? ',
-                          style: TextStyle(color: Colors.black87),
-                        ),
-                        TextButton(
-                          onPressed: () => Navigator.pop(context),
-                          child: Text(
-                            'Đăng nhập',
-                            style: TextStyle(color: primaryBlue, fontWeight: FontWeight.bold),
+                              );
+                            },
                           ),
                         ),
                       ],
                     ),
-                  ],
-                );
-              },
+                  ),
+
+                  // Login Link
+                  Padding(
+                    padding: const EdgeInsets.only(top: 20),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          'Đã có tài khoản? ',
+                          style: TextStyle(color: Colors.grey.shade600, fontSize: 15),
+                        ),
+                        GestureDetector(
+                          onTap: () => Navigator.pop(context),
+                          child: Text(
+                            'Đăng nhập ngay',
+                            style: TextStyle(color: primaryBlue, fontWeight: FontWeight.bold, fontSize: 15),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                ],
+              ),
             ),
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildCompactField({
+    required String label,
+    required IconData icon,
+    required Function(String) onChanged,
+    required String? Function(String?) validator,
+    TextInputType inputType = TextInputType.text,
+    bool obscure = false,
+    String? hintText,
+  }) {
+    return TextFormField(
+      decoration: InputDecoration(
+        labelText: label,
+        hintText: hintText,
+        hintStyle: TextStyle(color: Colors.black38, fontSize: 13),
+        prefixIcon: Icon(icon, color: deepBlue, size: 22),
+        filled: true,
+        fillColor: pastelBlue.withAlpha(50),
+        isDense: true,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey.shade300),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey.shade300),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: primaryBlue, width: 1.5),
+        ),
+        errorStyle: const TextStyle(height: 0.8, fontSize: 12),
+      ),
+      style: const TextStyle(color: Colors.black87, fontSize: 15),
+      keyboardType: inputType,
+      obscureText: obscure,
+      onChanged: onChanged,
+      validator: validator,
     );
   }
 }
