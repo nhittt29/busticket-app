@@ -252,8 +252,9 @@ class _UnreviewedTab extends StatelessWidget {
                 Align(
                   alignment: Alignment.centerRight,
                   child: ElevatedButton.icon(
-                    onPressed: () => _navigateToWriteReview(context, ticket['id'], bus['id']),
+                    onPressed: () => _navigateToWriteReview(context, ticket['id'], bus['id'], ticket['paymentHistoryId']),
                     icon: const Icon(Icons.star_rounded, size: 20),
+
                     label: const Text("Đánh giá ngay", style: TextStyle(fontWeight: FontWeight.bold)),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: reviewGradientStart,
@@ -273,16 +274,18 @@ class _UnreviewedTab extends StatelessWidget {
     );
   }
 
-  void _navigateToWriteReview(BuildContext context, int ticketId, int busId) {
+  void _navigateToWriteReview(BuildContext context, int ticketId, int busId, int? paymentHistoryId) {
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => WriteReviewScreen(
           ticketId: ticketId,
           busId: busId,
+          paymentHistoryId: paymentHistoryId,
         ),
       ),
     ).then((_) {
+
       if (context.mounted) {
         context.read<ReviewBloc>().add(LoadReviewsEvent());
       }

@@ -1,6 +1,8 @@
 // lib/screens/home_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../services/reminder_service.dart';
+
 import 'package:intl/intl.dart';
 import '../bloc/home/home_bloc.dart';
 import '../bloc/home/home_event.dart';
@@ -13,6 +15,7 @@ import '../ticket/screens/ticket_detail_screen.dart';
 import 'package:curved_navigation_bar/curved_navigation_bar.dart';
 import 'package:badges/badges.dart' as badges;
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'my_reviews_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -31,6 +34,27 @@ class _HomeScreenState extends State<HomeScreen> {
       context.read<HomeBloc>().add(LoadUserEvent());
       context.read<HomeBloc>().add(LoadHomeDataEvent()); // Load thêm data mới
       context.read<NotificationBloc>().add(LoadNotificationsEvent());
+      
+      // Kiểm tra vé chưa đánh giá
+      ReminderService().checkAndShowUnreviewedNotification();
+    });
+
+    // Lắng nghe click thông báo
+    ReminderService.selectNotificationStream.stream.listen((payload) {
+        if (!mounted) return;
+        if (payload == 'open_my_reviews') {
+          // Chuyển sang tab "Vé của tôi" (index 1) trước, rồi có thể chuyển tab Reviews?
+          // Hoặc push screen mới
+          // Yêu cầu: "on tap, navigate to MyReviewsScreen" which implies logic within "Vé của tôi"?
+          // MyReviewsScreen là screen riêng? -> YES `MyReviewsScreen` has route? 
+          // Check routes in main.dart: Not registered as named route directly?
+          // Wait, main.dart doesn't have `/my-reviews`. 
+          // `MyReviewsScreen` is likely part of `MyTicketsScreen` or separate.
+          // Checked `MyReviewsScreen` file path: lib/screens/my_reviews_screen.dart.
+          // In main.dart? No.
+          
+          Navigator.push(context, MaterialPageRoute(builder: (_) => const MyReviewsScreen()));
+        }
     });
   }
 

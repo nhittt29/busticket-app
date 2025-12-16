@@ -1,3 +1,4 @@
+// lib/auth/screens/register_screen.dart
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -5,6 +6,13 @@ import 'package:image_picker/image_picker.dart';
 import '../bloc/auth/auth_bloc.dart';
 import '../bloc/auth/auth_event.dart';
 import '../bloc/auth/auth_state.dart';
+
+const Color primaryBlue = Color(0xFF6AB7F5);
+const Color accentBlue = Color(0xFF4A9EFF);
+const Color deepBlue = Color(0xFF1976D4);
+const Color pastelBlue = Color(0xFFA0D8F1);
+const Color backgroundLight = Color(0xFFEAF6FF);
+const Color successGreen = Color(0xFF4CAF50);
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -34,11 +42,32 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFEAF6FF),
+      backgroundColor: backgroundLight,
       appBar: AppBar(
-        title: const Text('Đăng ký'),
-        backgroundColor: Colors.white,
-        elevation: 2,
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [primaryBlue, accentBlue],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
+        elevation: 0,
+        centerTitle: true,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: const Text(
+          'Đăng ký',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 23,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 0.5,
+          ),
+        ),
       ),
       body: Center(
         child: SingleChildScrollView(
@@ -47,9 +76,24 @@ class _RegisterScreenState extends State<RegisterScreen> {
             listener: (context, state) {
               if (state.error != null) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(state.error!), backgroundColor: Colors.red),
+                  SnackBar(
+                    content: Text(state.error!, style: const TextStyle(color: Colors.white)),
+                    backgroundColor: Colors.redAccent,
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    margin: const EdgeInsets.all(16),
+                  ),
                 );
               } else if (state.success && state.message == "Đăng ký thành công") {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: const Text('Đăng ký thành công! Vui lòng đăng nhập', style: TextStyle(fontWeight: FontWeight.w600)),
+                    backgroundColor: successGreen,
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    margin: const EdgeInsets.all(16),
+                  ),
+                );
                 Navigator.pushReplacementNamed(context, '/login');
               }
             },
@@ -58,15 +102,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 return Column(
                   mainAxisAlignment: MainAxisAlignment.start,
                   children: [
-                    // Avatar Picker - GIẢM 70→60
+                    // Avatar Picker
                     GestureDetector(
                       onTap: _pickAvatar,
                       child: CircleAvatar(
                         radius: 60,
-                        backgroundColor: const Color(0xFFBFD7ED),
+                        backgroundColor: pastelBlue.withAlpha(150),
                         backgroundImage: _avatarFile != null ? FileImage(_avatarFile!) : null,
                         child: _avatarFile == null
-                            ? const Icon(Icons.camera_alt, size: 35, color: Colors.white)
+                            ? Icon(Icons.camera_alt, size: 35, color: Colors.white.withAlpha(220))
                             : null,
                       ),
                     ),
@@ -83,7 +127,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       style: TextStyle(
                         fontSize: 28,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFF023E8A),
+                        color: deepBlue,
                         letterSpacing: 0.5,
                       ),
                     ),
@@ -94,7 +138,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
                     const SizedBox(height: 16),
 
-                    // Form Container - NHỎ LẠI
+                    // Form Container
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
@@ -102,9 +146,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         borderRadius: BorderRadius.circular(14),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.grey.withOpacity(0.15),
-                            blurRadius: 8,
-                            offset: const Offset(0, 4),
+                            color: Colors.grey.withAlpha(60),
+                            blurRadius: 12,
+                            offset: const Offset(0, 6),
                           ),
                         ],
                       ),
@@ -116,9 +160,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             TextFormField(
                               decoration: InputDecoration(
                                 labelText: 'Email',
-                                prefixIcon: const Icon(Icons.email_outlined, color: Color(0xFF0077B6)),
+                                prefixIcon: Icon(Icons.email_outlined, color: deepBlue),
                                 filled: true,
-                                fillColor: const Color(0xFFF7F9FB),
+                                fillColor: pastelBlue.withAlpha(50),
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(10),
                                   borderSide: BorderSide.none,
@@ -142,9 +186,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             TextFormField(
                               decoration: InputDecoration(
                                 labelText: 'Mật khẩu',
-                                prefixIcon: const Icon(Icons.lock_outline, color: Color(0xFF0077B6)),
+                                prefixIcon: Icon(Icons.lock_outline, color: deepBlue),
                                 filled: true,
-                                fillColor: const Color(0xFFF7F9FB),
+                                fillColor: pastelBlue.withAlpha(50),
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(10),
                                   borderSide: BorderSide.none,
@@ -170,9 +214,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             TextFormField(
                               decoration: InputDecoration(
                                 labelText: 'Họ và tên',
-                                prefixIcon: const Icon(Icons.person_outline, color: Color(0xFF0077B6)),
+                                prefixIcon: Icon(Icons.person_outline, color: deepBlue),
                                 filled: true,
-                                fillColor: const Color(0xFFF7F9FB),
+                                fillColor: pastelBlue.withAlpha(50),
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(10),
                                   borderSide: BorderSide.none,
@@ -196,9 +240,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             TextFormField(
                               decoration: InputDecoration(
                                 labelText: 'Số điện thoại',
-                                prefixIcon: const Icon(Icons.phone, color: Color(0xFF0077B6)),
+                                prefixIcon: Icon(Icons.phone, color: deepBlue),
                                 filled: true,
-                                fillColor: const Color(0xFFF7F9FB),
+                                fillColor: pastelBlue.withAlpha(50),
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(10),
                                   borderSide: BorderSide.none,
@@ -222,9 +266,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             TextFormField(
                               decoration: InputDecoration(
                                 labelText: 'Ngày sinh (YYYY-MM-DD)',
-                                prefixIcon: const Icon(Icons.calendar_today, color: Color(0xFF0077B6)),
+                                prefixIcon: Icon(Icons.calendar_today, color: deepBlue),
                                 filled: true,
-                                fillColor: const Color(0xFFF7F9FB),
+                                fillColor: pastelBlue.withAlpha(50),
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(10),
                                   borderSide: BorderSide.none,
@@ -252,17 +296,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                             // Gender Dropdown
                             DropdownButtonFormField<String>(
+                              value: gender,
                               decoration: InputDecoration(
                                 labelText: 'Giới tính',
-                                prefixIcon: const Icon(Icons.wc, color: Color(0xFF0077B6)),
+                                prefixIcon: Icon(Icons.wc, color: deepBlue),
                                 filled: true,
-                                fillColor: const Color(0xFFF7F9FB),
+                                fillColor: pastelBlue.withAlpha(50),
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(10),
                                   borderSide: BorderSide.none,
                                 ),
                               ),
-                              value: gender,
                               items: const [
                                 DropdownMenuItem(value: 'MALE', child: Text('Nam')),
                                 DropdownMenuItem(value: 'FEMALE', child: Text('Nữ')),
@@ -277,16 +321,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             ),
                             const SizedBox(height: 16),
 
-                            // Register Button - NHỎ LẠI
+                            // Register Button
                             SizedBox(
                               width: double.infinity,
                               child: ElevatedButton(
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF0077B6),
+                                  backgroundColor: primaryBlue,
                                   padding: const EdgeInsets.symmetric(vertical: 12),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(10),
                                   ),
+                                  elevation: 8,
+                                  shadowColor: primaryBlue.withAlpha(100),
                                 ),
                                 onPressed: state.isLoading
                                     ? null
@@ -297,9 +343,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                             dobDate = DateTime.parse(dob);
                                           } catch (e) {
                                             ScaffoldMessenger.of(context).showSnackBar(
-                                              const SnackBar(
-                                                content: Text('Định dạng ngày sinh không hợp lệ'),
-                                                backgroundColor: Colors.red,
+                                              SnackBar(
+                                                content: const Text('Định dạng ngày sinh không hợp lệ'),
+                                                backgroundColor: Colors.redAccent,
+                                                behavior: SnackBarBehavior.floating,
+                                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                                margin: const EdgeInsets.all(16),
                                               ),
                                             );
                                             return;
@@ -317,10 +366,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                         }
                                       },
                                 child: state.isLoading
-                                    ? const CircularProgressIndicator(color: Colors.white)
+                                    ? const CircularProgressIndicator(color: Colors.white, strokeWidth: 3)
                                     : const Text(
                                         'Đăng ký',
-                                        style: TextStyle(fontSize: 16, color: Colors.white),
+                                        style: TextStyle(fontSize: 16, color: Colors.white, fontWeight: FontWeight.bold),
                                       ),
                               ),
                             ),
@@ -340,9 +389,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         ),
                         TextButton(
                           onPressed: () => Navigator.pop(context),
-                          child: const Text(
+                          child: Text(
                             'Đăng nhập',
-                            style: TextStyle(color: Color(0xFF0077B6)),
+                            style: TextStyle(color: primaryBlue, fontWeight: FontWeight.bold),
                           ),
                         ),
                       ],

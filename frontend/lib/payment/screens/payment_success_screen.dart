@@ -78,6 +78,14 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen> {
         userId: userId,
       );
 
+      // 5. Lên lịch nhắc nhở ĐÁNH GIÁ (Sau chuyến đi)
+      await ReminderService().scheduleReviewReminders(
+        scheduleId: schedule['id'],
+        paymentHistoryId: widget.paymentHistoryId,
+        userId: userId,
+      );
+
+
     } catch (e) {
       debugPrint('Lỗi gửi thông báo thành công: $e');
     }

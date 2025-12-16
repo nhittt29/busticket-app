@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException, Logger } from '@nestjs/common';
 import { ReviewsRepository } from '../repositories/reviews.repository';
 import { PrismaService } from './prisma.service';
 import { CreateReviewDto } from '../dtos/create-review.dto';
@@ -6,6 +6,8 @@ import { UpdateReviewDto } from '../dtos/update-review.dto';
 
 @Injectable()
 export class ReviewsService {
+    private readonly logger = new Logger(ReviewsService.name);
+
     constructor(
         private reviewsRepository: ReviewsRepository,
         private prisma: PrismaService,
@@ -38,7 +40,7 @@ export class ReviewsService {
         }
 
         // 4. Create
-        console.log(`Creating review for ticket ${ticket.id}, user ${userId}, bus ${ticket.schedule.busId}`);
+        this.logger.log(`Creating review for ticket ${ticket.id}, user ${userId}, bus ${ticket.schedule.busId}`);
         const review = await this.reviewsRepository.create({
             rating: dto.rating,
             comment: dto.comment,
@@ -47,7 +49,7 @@ export class ReviewsService {
             bus: { connect: { id: ticket.schedule.busId } },
             ticket: { connect: { id: ticket.id } },
         });
-        console.log('Review created:', review);
+        this.logger.log(`Review created: ${JSON.stringify(review)}`);
         return review;
     }
 
@@ -60,7 +62,7 @@ export class ReviewsService {
     }
 
     async findUnreviewedTickets(userId: number) {
-        console.log(`Finding unreviewed tickets for user ${userId}`);
+        this.logger.log(`Checking unreviewed tickets for user ${userId} on login/startup`);
         const tickets = await this.prisma.ticket.findMany({
             where: {
                 userId,
@@ -85,7 +87,13 @@ export class ReviewsService {
                 schedule: { departureAt: 'desc' },
             },
         });
-        console.log(`Found ${tickets.length} unreviewed tickets`);
+
+        if (tickets.length > 0) {
+            this.logger.warn(`User ${userId} has ${tickets.length} unreviewed tickets! Notifying user immediately.`);
+        } else {
+            this.logger.log(`User ${userId} has no unreviewed tickets.`);
+        }
+
         return tickets;
     }
 
@@ -96,8 +104,6 @@ export class ReviewsService {
     async getStats(busId: number) {
         return this.reviewsRepository.getStats(busId);
     }
-
-
 
     async findById(id: number) {
         return this.reviewsRepository.findById(id);
