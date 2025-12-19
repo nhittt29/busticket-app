@@ -5,6 +5,7 @@ import 'home_event.dart';
 import 'home_state.dart';
 import '../../repositories/user_repository.dart';
 import '../../services/promotion_api_service.dart';
+import '../../services/reminder_service.dart';
 import '../../ticket/services/ticket_api_service.dart';
 
 class HomeBloc extends Bloc<HomeEvent, HomeState> {
@@ -83,6 +84,12 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
 
         userData['avatar'] = avatar;
         emit(state.copyWith(loading: false, user: userData));
+
+        // Check for unreviewed tickets and show notification
+        try {
+           // We ignore result, just trigger it
+           ReminderService().checkAndShowUnreviewedNotification();
+        } catch (_) {}
       } else {
         emit(state.copyWith(loading: false, user: null));
       }

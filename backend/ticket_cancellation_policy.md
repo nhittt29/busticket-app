@@ -11,7 +11,7 @@
 |--------------|---------|-----------|
 | Trước giờ khởi hành > 24 giờ | 10% giá vé | 90% |
 | Trước giờ khởi hành 4–24 giờ | 30% giá vé | 70% |
-| Trước giờ khởi hành < 4 giờ | ❌ Không được hủy (Hệ thống sẽ chặn) | — |
+| Trước giờ khởi hành < 2 giờ | ❌ Không được hủy (Hệ thống sẽ chặn) | — |
 
 ### 1.2. Vé Đặt Chỗ (Booked – Chưa thanh toán)
 

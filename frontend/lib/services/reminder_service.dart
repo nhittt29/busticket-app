@@ -59,11 +59,14 @@ class ReminderService {
 
     int userPart;
 
-    if (notificationId >= 900000) {
+    if (notificationId >= 2000000) {
+      // Thông báo hệ thống (Unreviewed...): có +2000000
+      userPart = (notificationId - 2000000) ~/ 100000;
+    } else if (notificationId >= 900000) {
       // Thông báo đặt vé thành công: có +900000
       userPart = (notificationId - 900000) ~/ 100000;
     } else {
-      // Thông báo nhắc nhở khởi hành: không có +900000
+      // Thông báo nhắc nhở khởi hành: không có offset lớn
       userPart = notificationId ~/ 100000;
     }
 
@@ -564,8 +567,12 @@ class ReminderService {
           );
           const NotificationDetails details = NotificationDetails(android: androidDetails);
 
+          // ID MỚI: 2000000 + (userId * 100000) để đảm bảo đúng user filter
+          final userId = _currentUserId ?? 0; // Fallback 0 nhưng logic gọi hàm này sau khi login
+          final notificationId = 2000000 + (userId * 100000);
+
           await _notifications.zonedSchedule(
-            888888, // Fixed ID for summary notification
+            notificationId,
             'Chuyến đi chưa đánh giá 📝',
             'Bạn có $count chuyến đi đã hoàn thành nhưng chưa đánh giá. Nhấn để xem ngay!',
             tz.TZDateTime.now(tz.local).add(const Duration(seconds: 1)),

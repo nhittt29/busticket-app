@@ -192,26 +192,7 @@ class PaymentScreen extends StatelessWidget {
                               onPressed: () async {
                                 final result = await Navigator.pushNamed(context, '/promotions');
                                 if (result != null && result is Promotion && context.mounted) {
-                                  // Calculate discount
-                                  final totalBeforeDiscount = (selectedSeats.length * (bookingState.selectedTrip?.price ?? 0)) + 
-                                                            (bookingState.surcharge * selectedSeats.length);
-                                  
-                                  double discount = 0;
-                                  if (result.discountType == 'PERCENTAGE') {
-                                    discount = totalBeforeDiscount * (result.discountValue / 100);
-                                    if (result.maxDiscount != null && discount > result.maxDiscount!) {
-                                      discount = result.maxDiscount!;
-                                    }
-                                  } else {
-                                    discount = result.discountValue;
-                                  }
-
-                                  // Ensure discount doesn't exceed total
-                                  if (discount > totalBeforeDiscount) {
-                                    discount = totalBeforeDiscount;
-                                  }
-
-                                  context.read<BookingCubit>().applyPromotion(result, discount);
+                                  context.read<BookingCubit>().applyPromotion(result);
                                   
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(

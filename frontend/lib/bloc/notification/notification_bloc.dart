@@ -64,9 +64,14 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
         } catch (_) {}
 
         // Check User
-        final userPart = noti.id >= 900000
-            ? (noti.id - 900000) ~/ 100000
-            : noti.id ~/ 100000;
+        final int userPart;
+        if (noti.id >= 2000000) {
+          userPart = (noti.id - 2000000) ~/ 100000;
+        } else if (noti.id >= 900000) {
+          userPart = (noti.id - 900000) ~/ 100000;
+        } else {
+          userPart = noti.id ~/ 100000;
+        }
 
         if (userPart == currentUserId) {
           unreadIds.add(noti.id);
@@ -80,9 +85,14 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
            if (readIds.contains(id.toString())) continue;
            
            // Check User
-           final userPart = id >= 900000
-              ? (id - 900000) ~/ 100000
-              : id ~/ 100000;
+           final int userPart;
+           if (id >= 2000000) {
+             userPart = (id - 2000000) ~/ 100000;
+           } else if (id >= 900000) {
+             userPart = (id - 900000) ~/ 100000;
+           } else {
+             userPart = id ~/ 100000;
+           }
               
            if (userPart == currentUserId) {
               unreadIds.add(id);

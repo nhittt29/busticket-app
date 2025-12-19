@@ -118,7 +118,9 @@ class _NotificationScreenState extends State<NotificationScreen> {
   bool _isUserMatch(int id) {
       if (_currentUserId == null) return false;
       int userPart;
-      if (id >= 900000) {
+      if (id >= 2000000) {
+        userPart = (id - 2000000) ~/ 100000;
+      } else if (id >= 900000) {
         userPart = (id - 900000) ~/ 100000;
       } else {
         userPart = id ~/ 100000;

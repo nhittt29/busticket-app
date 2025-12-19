@@ -75,6 +75,60 @@ class BookingCubit extends Cubit<BookingState> {
     }
   }
 
+  // ================== HELPER: TÍNH TOÁN LẠI GIÁ CUỐI CÙNG ==================
+  // Hàm này trả về 1 state mới với các giá trị tiền đã được tính toán lại
+  BookingState _recalculateState(BookingState currentState) {
+    // 1. Tính tổng tiền ghế
+    final totalSeatsPrice = currentState.selectedSeats.fold<double>(0.0, (sum, s) => sum + s.price);
+    
+    // 2. Tính phụ thu
+    final totalSurcharge = currentState.surcharge * currentState.selectedSeats.length;
+    
+    // 3. Tính giảm giá điểm trả (chặng ngắn)
+    final totalDropoffDiscount = currentState.dropoffDiscount * currentState.selectedSeats.length;
+
+    // 4. Tổng trước khuyến mãi
+    double totalBeforePromotion = totalSeatsPrice + totalSurcharge - totalDropoffDiscount;
+    if (totalBeforePromotion < 0) totalBeforePromotion = 0;
+
+    // 5. Tính khuyến mãi voucher
+    double discountAmount = 0.0;
+    final promo = currentState.selectedPromotion;
+    
+    if (promo != null) {
+      // Kiểm tra điều kiện tối thiểu
+      if (totalBeforePromotion >= promo.minOrderValue) {
+        if (promo.discountType == 'PERCENTAGE') {
+          discountAmount = totalBeforePromotion * (promo.discountValue / 100);
+          if (promo.maxDiscount != null && discountAmount > promo.maxDiscount!) {
+            discountAmount = promo.maxDiscount!;
+          }
+        } else {
+          // FIXED
+          discountAmount = promo.discountValue;
+        }
+
+        // Không giảm quá tổng tiền
+        if (discountAmount > totalBeforePromotion) {
+          discountAmount = totalBeforePromotion;
+        }
+      } else {
+        // Nếu không đủ điều kiện đơn tối thiểu -> Discount = 0
+        discountAmount = 0.0;
+      }
+    }
+
+    // 6. Tổng cuối cùng
+    double finalTotalPrice = totalBeforePromotion - discountAmount;
+    if (finalTotalPrice < 0) finalTotalPrice = 0;
+
+    return currentState.copyWith(
+      totalPrice: totalSeatsPrice,
+      discountAmount: discountAmount,
+      finalTotalPrice: finalTotalPrice,
+    );
+  }
+
   void selectSeat(Seat seat) {
     if (!seat.isAvailable) return;
 
@@ -89,17 +143,11 @@ class BookingCubit extends Cubit<BookingState> {
 
     final selected = List<Seat>.from(state.selectedSeats);
     if (selected.contains(seat)) {
-      // VALIDATE: Kiểm tra xem BỎ CHỌN có tạo ra ghế lẻ không?
-      // Logic mới: Auto-Correction (Tự động bỏ chọn các ghế bị lẻ theo)
-      
       final simulatedList = List<Seat>.from(selected)..removeWhere((s) => s.id == seat.id);
-      
-      // Tìm các ghế không hợp lệ còn lại
       final invalidSeats = SeatLogic.findInvalidSeats(state.seats, simulatedList, isCoach45: isSeat45, isCoach28: isSeat28);
       
-      // Nếu có ghế không hợp lệ -> Bỏ chọn luôn chúng nó
       if (invalidSeats.isNotEmpty) {
-         selected.removeWhere((s) => s.id == seat.id); // Bỏ ghế chính
+         selected.removeWhere((s) => s.id == seat.id);
          for (final invalid in invalidSeats) {
            selected.removeWhere((s) => s.id == invalid.id);
          }
@@ -108,35 +156,21 @@ class BookingCubit extends Cubit<BookingState> {
          selected.removeWhere((s) => s.id == seat.id);
       }
     } else {
-      // VALIDATE: Kiểm tra ghế lẻ (Orphan Logic)
       if (SeatLogic.wouldCreateOrphan(seat, state.seats, selected, isCoach45: isSeat45, isCoach28: isSeat28)) {
         emit(state.copyWith(error: 'Vui lòng chọn ghế liên tiếp, không để trống 1 ghế ở giữa hoặc bìa.'));
         return;
       }
       selected.add(seat);
     }
-    final total = selected.fold<double>(0.0, (sum, s) => sum + s.price);
-
-    // Tính lại finalTotalPrice khi thay đổi số ghế
-    final totalSurcharge = state.surcharge * selected.length;
-    final totalDropoffDiscount = state.dropoffDiscount * selected.length; // Mới
     
-    double newFinalTotalPrice = total + totalSurcharge - totalDropoffDiscount - state.discountAmount;
-    if (newFinalTotalPrice < 0) newFinalTotalPrice = 0;
-
-    emit(state.copyWith(
-      selectedSeats: selected,
-      totalPrice: total,
-      finalTotalPrice: newFinalTotalPrice,
-    ));
+    // Update seats list first, then recalculate prices
+    final tempState = state.copyWith(selectedSeats: selected);
+    emit(_recalculateState(tempState));
   }
 
   void clearSelection() {
-    emit(state.copyWith(
-      selectedSeats: [],
-      totalPrice: 0.0,
-      finalTotalPrice: 0.0,
-    ));
+    final tempState = state.copyWith(selectedSeats: []); // Total reset to 0
+    emit(_recalculateState(tempState)); 
   }
 
   void resetSeats() {
@@ -149,10 +183,10 @@ class BookingCubit extends Cubit<BookingState> {
       selectedDropoffPoint: null,
       dropoffAddress: null,
       surcharge: 0.0,
-      dropoffDiscount: 0.0, // Reset
-      clearDropoff: true, // Reset dropoff
-      clearPromotion: true, // Reset promotion
-      discountAmount: 0.0, // Reset discount
+      dropoffDiscount: 0.0, 
+      clearDropoff: true, 
+      clearPromotion: true, 
+      discountAmount: 0.0, 
     ));
   }
 
@@ -173,21 +207,18 @@ class BookingCubit extends Cubit<BookingState> {
       selectedDropoffPoint: null,
       dropoffAddress: null,
       surcharge: 0.0,
-      dropoffDiscount: 0.0, // Reset
+      dropoffDiscount: 0.0,
     ));
   }
 
   // ================== MỚI: ĐIỂM TRẢ KHÁCH ==================
-  // ================== MỚI: ĐIỂM TRẢ KHÁCH ==================
   void selectDropoffPoint(DropoffPoint point) {
     double surcharge = point.surcharge;
-    double dropoffDiscount = 0.0; // Tách riêng khoản giảm giá
+    double dropoffDiscount = 0.0; 
     final trip = state.selectedTrip;
     String reason = 'Giá vé tiêu chuẩn';
 
-    // CLIENT-SIDE PRICING LOGIC (Match Backend)
-    // 1. Check 24h window
-    // 2. Check Occupancy < 80% (Available > 20%)
+    // CLIENT-SIDE PRICING LOGIC
     if (trip != null && point.priceDifference != 0) {
        final departureTime = DateTime.parse(trip.departure).toLocal();
        final diffHours = departureTime.difference(DateTime.now()).inHours;
@@ -195,10 +226,7 @@ class BookingCubit extends Cubit<BookingState> {
        if (diffHours < 24 && trip.totalSeats > 0) {
           final occupancyRate = (trip.totalSeats - trip.availableSeats) / trip.totalSeats;
           if (occupancyRate < 0.8) {
-             // Đủ điều kiện: Tách phần giảm giá riêng
-             dropoffDiscount = point.priceDifference.abs(); // Lấy số dương
-             // Lưu ý: Backend cộng số âm, còn Frontend mình tách ra làm 2 biến dương để dễ hiển thị
-             
+             dropoffDiscount = point.priceDifference.abs(); 
              reason = 'Đang áp dụng giá ưu đãi chặng ngắn';
           } else {
              reason = 'Đang áp dụng giá giữ chỗ toàn chặng (Do xe sắp đầy)';
@@ -208,77 +236,54 @@ class BookingCubit extends Cubit<BookingState> {
        }
     }
 
-    final totalSurcharge = surcharge * state.selectedSeats.length;
-    final totalDropoffDiscount = dropoffDiscount * state.selectedSeats.length;
-
-    double newFinalTotalPrice = state.totalPrice + totalSurcharge - totalDropoffDiscount - state.discountAmount;
-    if (newFinalTotalPrice < 0) newFinalTotalPrice = 0;
-
-    emit(state.copyWith(
+    final tempState = state.copyWith(
       selectedDropoffPoint: point,
       dropoffAddress: null,
       surcharge: surcharge,
-      dropoffDiscount: dropoffDiscount, // Lưu vào state
-      finalTotalPrice: newFinalTotalPrice,
+      dropoffDiscount: dropoffDiscount,
       surchargeReason: reason,
-    ));
+      // NOTE: We don't set finalTotalPrice here, logic handles it
+    );
+
+    emit(_recalculateState(tempState));
   }
 
   void selectDropoffAddress(String address) {
-    const deliveryFee = 150000.0; // phụ thu tận nơi
-    final totalSurcharge = deliveryFee * state.selectedSeats.length;
-    double newFinalTotalPrice = state.totalPrice + totalSurcharge - state.discountAmount;
-    if (newFinalTotalPrice < 0) newFinalTotalPrice = 0;
-
-    emit(state.copyWith(
+    const deliveryFee = 150000.0; 
+    final tempState = state.copyWith(
       selectedDropoffPoint: null,
       dropoffAddress: address,
       surcharge: deliveryFee,
-      dropoffDiscount: 0.0, // Reset discount
-      finalTotalPrice: newFinalTotalPrice,
-    ));
+      dropoffDiscount: 0.0, 
+    );
+    emit(_recalculateState(tempState));
   }
 
   void clearDropoff() {
-    emit(state.copyWith(
+    final tempState = state.copyWith(
       selectedDropoffPoint: null,
       dropoffAddress: null,
       surcharge: 0.0,
-      dropoffDiscount: 0.0, // Reset discount
-      finalTotalPrice: state.totalPrice - state.discountAmount, // Vẫn giữ discount khuyến mãi nếu có
-    ));
+      dropoffDiscount: 0.0,
+      clearDropoff: true,
+    );
+    emit(_recalculateState(tempState));
   }
 
-  // ================== MỚI: KHUYẾN MÃI ==================
-  void applyPromotion(Promotion promotion, double discountAmount) {
-    // Tính lại tổng tiền
-    // Tính lại tổng tiền
-    final totalSurcharge = state.surcharge * state.selectedSeats.length;
-    final totalDropoffDiscount = state.dropoffDiscount * state.selectedSeats.length;
-
-    final totalBeforeDiscount = state.totalPrice + totalSurcharge - totalDropoffDiscount;
-    
-    double newFinalTotalPrice = totalBeforeDiscount - discountAmount;
-    if (newFinalTotalPrice < 0) newFinalTotalPrice = 0;
-
-    emit(state.copyWith(
+  // ================== MỚI: KHUYẾN MÃI (AUTO-CALCULATE) ==================
+  // Changed: Removed manual 'discountAmount' param. Now logic calculates it.
+  void applyPromotion(Promotion promotion) {
+    final tempState = state.copyWith(
       selectedPromotion: promotion,
-      discountAmount: discountAmount,
-      finalTotalPrice: newFinalTotalPrice,
-    ));
+    );
+    emit(_recalculateState(tempState));
   }
 
   void removePromotion() {
-    // Tính lại tổng tiền (bỏ discount)
-    final totalSurcharge = state.surcharge * state.selectedSeats.length;
-    final totalDropoffDiscount = state.dropoffDiscount * state.selectedSeats.length;
-
-    final newFinalTotalPrice = state.totalPrice + totalSurcharge - totalDropoffDiscount;
-
-    emit(state.copyWith(
+    final tempState = state.copyWith(
       clearPromotion: true,
-      discountAmount: 0.0,
-      finalTotalPrice: newFinalTotalPrice,
-    ));
+      discountAmount: 0.0, 
+    );
+    emit(_recalculateState(tempState));
   }
 }

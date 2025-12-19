@@ -5,18 +5,18 @@ import { GetSeatsByScheduleResponse } from '../dtos/get-seats-by-schedule.dto';
 
 @Injectable()
 export class SeatService {
-  constructor(private readonly seatRepo: SeatRepository) { }
+    constructor(private readonly seatRepo: SeatRepository) { }
 
-  // LẤY DANH SÁCH GHẾ + TRẠNG THÁI CỦA MỘT CHUYẾN XE THEO SCHEDULEID – DÙNG CHO CHỌN GHẾ TRÊN APP/WEB
-  async getSeatsBySchedule(scheduleId: number): Promise<GetSeatsByScheduleResponse> {
-    const result = await this.seatRepo.findSeatsByScheduleId(scheduleId);
+    // LẤY DANH SÁCH GHẾ + TRẠNG THÁI CỦA MỘT CHUYẾN XE THEO SCHEDULEID – DÙNG CHO CHỌN GHẾ TRÊN APP/WEB
+    async getSeatsBySchedule(scheduleId: number): Promise<GetSeatsByScheduleResponse> {
+        const result = await this.seatRepo.findSeatsByScheduleId(scheduleId);
 
-    return {
-      busId: result.busId,
-      busName: result.busName,
-      seatType: result.seatType,
-      totalSeats: result.totalSeats,
-      seats: result.seats,
-    };
-  }
+        return {
+            busId: result.busId,
+            busName: result.busName,
+            seatType: result.seatType,
+            totalSeats: result.totalSeats,
+            seats: result.seats,
+        };
+    }
 }
