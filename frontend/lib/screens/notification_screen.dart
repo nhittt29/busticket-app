@@ -50,36 +50,57 @@ class _NotificationScreenState extends State<NotificationScreen> {
     tz.setLocalLocation(tz.getLocation('Asia/Ho_Chi_Minh'));
 
     final plugin = FlutterLocalNotificationsPlugin();
-    final allPending = await plugin.pendingNotificationRequests();
+    // 1. Lấy danh sách đang chờ (Pending) - CHỨA CẢ Future VÀ Delivered (tùy OS/Plugin)
+    final pendingList = await plugin.pendingNotificationRequests();
     
+    // 2. Lấy danh sách đã hiển thị trên thanh trạng thái (Active/Delivered) - Chỉ Android
+    List<ActiveNotification>? activeList;
+    final androidPlugin = plugin.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+    if (androidPlugin != null) {
+      try {
+        activeList = await androidPlugin.getActiveNotifications();
+      } catch (_) {}
+    }
+
     // Load read status from Prefs
     final prefs = await SharedPreferences.getInstance();
     final readIds = prefs.getStringList('read_notifications') ?? [];
 
-    // SỬA CHÍNH XÁC 100% – DÙNG CÔNG THỨC NHÚNG USER ID ĐÃ ĐƯỢC DÙNG TRONG ReminderService
-    final filtered = allPending.where((noti) {
-      if (_currentUserId == null) return false;
+    // GỘP DANH SÁCH:
+    // Cần convert ActiveNotification sang PendingNotificationRequest hoặc tạo model chung.
+    // Ở đây ta dùng PendingNotificationRequest làm model hiển thị tạm (vì UI đang dùng nó).
+    
+    final Map<int, PendingNotificationRequest> combinedMap = {};
 
-      int userPart;
-      if (noti.id >= 900000) {
-        // Thông báo đặt vé thành công: +900000
-        userPart = (noti.id - 900000) ~/ 100000;
-      } else {
-        // Nhắc nhở khởi hành: không +900000
-        userPart = noti.id ~/ 100000;
-      }
-
-      final match = userPart == _currentUserId;
-      if (kDebugMode && match) {
-        debugPrint('NOTIFICATION_SCREEN: HIỆN THÔNG BÁO ID ${noti.id} → userPart: $userPart == currentUser: $_currentUserId');
-      }
-      return match;
-    }).toList();
-
-    if (kDebugMode) {
-      debugPrint('NOTIFICATION_SCREEN: TỔNG PENDING: ${allPending.length} → LỌC ĐƯỢC: ${filtered.length} (userId: $_currentUserId)');
+    // A. Add Pending (Filter Future out)
+    for (var noti in pendingList) {
+       // Filter Logic (User/Future)
+       if (_isValidNotification(noti)) {
+          combinedMap[noti.id] = noti;
+       }
     }
 
+    // B. Add Active (Always show because they are DELIVERED)
+    if (activeList != null) {
+      for (var active in activeList) {
+         // ActiveNotification có id, title, body, payload.
+         final converted = PendingNotificationRequest(
+            active.id ?? 0,
+            active.title,
+            active.body,
+            active.payload,
+         );
+         
+         // Active luôn hợp lệ về thời gian (vì đã hiện rồi), chỉ cần check User
+         if (_isUserMatch(converted.id)) {
+            combinedMap[active.id ?? 0] = converted;
+         }
+      }
+    }
+
+    final filtered = combinedMap.values.toList();
+
+    // Sort
     filtered.sort((a, b) => b.id.compareTo(a.id));
 
     if (!mounted) return;
@@ -92,6 +113,41 @@ class _NotificationScreenState extends State<NotificationScreen> {
         _readStatus[noti.id] = isRead;
       }
     });
+  }
+
+  bool _isUserMatch(int id) {
+      if (_currentUserId == null) return false;
+      int userPart;
+      if (id >= 2000000) {
+        userPart = (id - 2000000) ~/ 100000;
+      } else if (id >= 900000) {
+        userPart = (id - 900000) ~/ 100000;
+      } else {
+        userPart = id ~/ 100000;
+      }
+      return userPart == _currentUserId;
+  }
+
+  bool _isValidNotification(PendingNotificationRequest noti) {
+      if (!_isUserMatch(noti.id)) return false;
+
+      // Check Future
+      try {
+           final payload = noti.payload ?? '';
+           final parts = payload.split('|');
+           if (parts.length > 1) {
+              final millis = int.tryParse(parts[1]);
+              if (millis != null) {
+                 final notifyTime = DateTime.fromMillisecondsSinceEpoch(millis);
+                 // Nếu thời gian > hiện tại => Ẩn (Chờ đến giờ mới hiện)
+                 if (notifyTime.isAfter(DateTime.now())) {
+                    return false; 
+                 }
+              }
+           }
+      } catch (_) {}
+      
+      return true;
   }
 
   void _markAllAsRead() async {
@@ -167,18 +223,19 @@ class _NotificationScreenState extends State<NotificationScreen> {
           return !(_readStatus[noti.id] ?? false);
         }
         
-        final payload = noti.payload;
-        final isTicketRelated = payload == 'booking_success' || 
-                                payload == 'payment_reminder' || 
-                                payload == 'ticket_expired';
-                                
+        final payload = noti.payload ?? '';
+        final isTicketRelated = payload.startsWith('booking_success') || 
+                                payload.startsWith('payment_reminder') || 
+                                payload.startsWith('ticket_expired') ||
+                                payload.startsWith('review_reminder') || 
+                                payload.startsWith('open_my_reviews');
+
         if (_selectedFilter == 'Vé & Thanh toán') {
           return isTicketRelated;
         }
         
         if (_selectedFilter == 'Nhắc nhở khởi hành') {
-          // Departure reminder usually has date string payload or null, NOT ticket related keywords
-          return !isTicketRelated;
+          return !isTicketRelated && payload.startsWith('departure_reminder');
         }
           
         return true;

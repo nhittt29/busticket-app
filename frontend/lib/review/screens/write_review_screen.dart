@@ -7,6 +7,9 @@ import 'package:image_picker/image_picker.dart';
 import '../cubit/review_cubit.dart';
 import '../cubit/review_state.dart';
 import '../models/review.dart';
+import '../../bloc/auth/auth_bloc.dart';
+import '../../services/reminder_service.dart';
+
 
 const Color primaryBlue = Color(0xFF6AB7F5);
 const Color accentBlue = Color(0xFF4A9EFF);
@@ -23,13 +26,16 @@ class WriteReviewScreen extends StatefulWidget {
   final int ticketId;
   final int busId;
   final Review? existingReview;
+  final int? paymentHistoryId;
 
   const WriteReviewScreen({
     super.key,
     required this.ticketId,
     required this.busId,
     this.existingReview,
+    this.paymentHistoryId,
   });
+
 
   @override
   State<WriteReviewScreen> createState() => _WriteReviewScreenState();
@@ -107,6 +113,7 @@ class _WriteReviewScreenState extends State<WriteReviewScreen> {
             _commentController.text,
             images,
           );
+      // Sửa đánh giá thì không cần hủy nhắc nhở (vì đã đánh giá rồi)
     } else {
       context.read<ReviewCubit>().createReview(
             widget.ticketId,
@@ -114,7 +121,12 @@ class _WriteReviewScreenState extends State<WriteReviewScreen> {
             _commentController.text,
             images,
           );
+      
+      // HỦY NHẮC NHỞ NGAY SAU KHI GỬI (NẾU CÓ PAYMENT ID)
+      // Logic đã chuyển sang BlocListener để đảm bảo chỉ hủy khi thành công
     }
+
+
   }
 
   void _showImageSourceModal() {
@@ -205,7 +217,21 @@ class _WriteReviewScreenState extends State<WriteReviewScreen> {
                   margin: const EdgeInsets.all(16),
                 ),
               );
+            
+            // HỦY NHẮC NHỞ NẾU CÓ
+            if (widget.paymentHistoryId != null) {
+               final authState = context.read<AuthBloc>().state;
+               final userId = authState.user?['id'];
+               if (userId != null) {
+                  ReminderService().cancelReviewReminders(
+                    paymentHistoryId: widget.paymentHistoryId!, 
+                    userId: userId
+                  );
+               }
+            }
+
             Navigator.pop(context);
+
           } else if (state is ReviewError) {
             ScaffoldMessenger.of(context)
               ..hideCurrentSnackBar()

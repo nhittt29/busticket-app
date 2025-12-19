@@ -120,7 +120,16 @@ export default function PromotionCreatePage() {
             </div>
 
             <Form {...form}>
-                <form onSubmit={handleSubmit(submitHandler, onInvalid)} className="space-y-8">
+                <form onSubmit={(e) => {
+                    console.log("🚀 [DEBUG] Form submitting...");
+                    handleSubmit((values: any) => {
+                        console.log("✅ [DEBUG] Validated Values:", values);
+                        submitHandler(values);
+                    }, (errors: any) => {
+                        console.error("❌ [DEBUG] Validation Failed:", errors);
+                        onInvalid(errors);
+                    })(e);
+                }} className="space-y-8">
 
                     {/* 1. Thông tin chung */}
                     <Card>
@@ -205,7 +214,10 @@ export default function PromotionCreatePage() {
                                     render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>Loại giảm giá</FormLabel>
-                                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                            <Select
+                                                onValueChange={field.onChange}
+                                                value={field.value}
+                                            >
                                                 <FormControl>
                                                     <SelectTrigger>
                                                         <SelectValue placeholder="Chọn loại" />

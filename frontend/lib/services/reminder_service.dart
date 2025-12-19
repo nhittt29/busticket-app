@@ -1,6 +1,8 @@
 // lib/services/reminder_service.dart
 import 'dart:convert';
+import 'dart:async';
 import 'package:http/http.dart' as http;
+
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
@@ -57,11 +59,14 @@ class ReminderService {
 
     int userPart;
 
-    if (notificationId >= 900000) {
+    if (notificationId >= 2000000) {
+      // Thông báo hệ thống (Unreviewed...): có +2000000
+      userPart = (notificationId - 2000000) ~/ 100000;
+    } else if (notificationId >= 900000) {
       // Thông báo đặt vé thành công: có +900000
       userPart = (notificationId - 900000) ~/ 100000;
     } else {
-      // Thông báo nhắc nhở khởi hành: không có +900000
+      // Thông báo nhắc nhở khởi hành: không có offset lớn
       userPart = notificationId ~/ 100000;
     }
 
@@ -72,6 +77,8 @@ class ReminderService {
     return match;
   }
 
+  static final StreamController<String?> selectNotificationStream = StreamController<String?>.broadcast();
+
   Future<void> initialize() async {
     if (_initialized) return;
 
@@ -80,9 +87,21 @@ class ReminderService {
 
     const AndroidInitializationSettings android =
         AndroidInitializationSettings('@mipmap/ic_launcher');
-    const InitializationSettings settings =
-        InitializationSettings(android: android);
-    await _notifications.initialize(settings);
+    
+    final InitializationSettings settings = InitializationSettings(
+      android: android,
+    );
+
+    // Xử lý khi click vào thông báo (Foreground/Background)
+    await _notifications.initialize(
+      settings,
+      onDidReceiveNotificationResponse: (NotificationResponse notificationResponse) {
+        if (kDebugMode) {
+          debugPrint('CLICK THÔNG BÁO: ${notificationResponse.payload}');
+        }
+         selectNotificationStream.add(notificationResponse.payload);
+      },
+    );
 
     const AndroidNotificationChannel successChannel = AndroidNotificationChannel(
       'booking_success_channel',
@@ -101,11 +120,22 @@ class ReminderService {
       playSound: true,
       enableVibration: true,
     );
+    
+    // Channel riêng cho Review (nếu muốn tách biệt)
+    const AndroidNotificationChannel reviewChannel = AndroidNotificationChannel(
+      'review_channel',
+      'Nhắc nhở đánh giá',
+      description: 'Nhắc khách hàng đánh giá sau chuyến đi',
+      importance: Importance.max,
+      playSound: true,
+      enableVibration: true,
+    );
 
     final androidPlugin = _notifications.resolvePlatformSpecificImplementation<
         AndroidFlutterLocalNotificationsPlugin>();
     await androidPlugin?.createNotificationChannel(successChannel);
     await androidPlugin?.createNotificationChannel(reminderChannel);
+    await androidPlugin?.createNotificationChannel(reviewChannel);
 
     await _loadCurrentUserId();
 
@@ -117,6 +147,20 @@ class ReminderService {
       }
       if (kDebugMode) {
         debugPrint('REMINDER_SERVICE: ĐÃ TỰ ĐỘNG XÓA ${pending.length} THÔNG BÁO CŨ ĐỂ TRÁNH LỖI HIỂN THỊ!');
+      }
+    }
+    
+    // Check launch details (App launched by notification)
+    final NotificationAppLaunchDetails? notificationAppLaunchDetails =
+        await _notifications.getNotificationAppLaunchDetails();
+    if (notificationAppLaunchDetails?.didNotificationLaunchApp ?? false) {
+      final payload = notificationAppLaunchDetails!.notificationResponse?.payload;
+      if (payload != null) {
+        if (kDebugMode) debugPrint('APP LAUNCHED BY NOTIFICATION: $payload');
+        // Thêm delay nhỏ để UI kịp lắng nghe
+        Future.delayed(const Duration(milliseconds: 500), () {
+           selectNotificationStream.add(payload);
+        });
       }
     }
 
@@ -390,4 +434,159 @@ class ReminderService {
       debugPrint('ĐÃ HỦY LỊCH BÁO VÉ HỦY (ID: $notificationId)');
     }
   }
+
+  // ===========================================================================
+  // NHẮC NHỞ ĐÁNH GIÁ (SAU KHI HOÀN THÀNH CHUYẾN ĐI)
+  // ===========================================================================
+  Future<void> scheduleReviewReminders({
+    required int scheduleId,
+    required int paymentHistoryId,
+    required int userId,
+  }) async {
+    await initialize();
+    await _setCurrentUserId(userId);
+
+    try {
+      // 1. Lấy thông tin chuyến đi (bao gồm ArrivalAt)
+      final response = await http.get(
+        Uri.parse('http://10.0.2.2:3000/api/bookings/reminder-info/$scheduleId'),
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      if (response.statusCode != 200) return;
+
+      final data = jsonDecode(response.body);
+      final arrivalAt = DateTime.parse(data['arrivalAt']).toLocal();
+
+      // Chỉ nhắc khi chuyến đi ĐÃ HOÀN THÀNH (Arrival Time < Now, hoặc sắp đến).
+      // Logic: Lên lịch 3 lần nhắc:
+      // - Lần 1: Ngay lúc đến nơi (ArrivalAt).
+      // - Lần 2: ArrivalAt + 3 giờ.
+      // - Lần 3: ArrivalAt + 6 giờ.
+
+      // Base ID cho Review Reminder: paymentHistoryId + (userId * 100000) + 700000 (Dải 700k)
+      // Các lần nhắc sẽ cộng thêm 10000, 20000... (hoặc đơn giản là +1, +2, +3 nhưng cẩn thận trùng)
+      // Tốt nhất: Base + 0, Base + 1, Base + 2.
+
+      final baseNotificationId = paymentHistoryId + (userId * 100000) + 700000;
+      final times = [
+        arrivalAt, // Ngay khi đến
+        arrivalAt.add(const Duration(hours: 3)),
+        arrivalAt.add(const Duration(hours: 6)),
+      ];
+
+      const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
+        'review_channel', 
+        'Nhắc nhở đánh giá',
+        channelDescription: 'Nhắc khách hàng đánh giá sau chuyến đi',
+        importance: Importance.max,
+        priority: Priority.high,
+      );
+      const NotificationDetails details = NotificationDetails(android: androidDetails);
+
+      for (int i = 0; i < times.length; i++) {
+        final time = times[i];
+        final id = baseNotificationId + i;
+
+        if (time.isBefore(DateTime.now())) {
+          // Nếu đã qua thời điểm nhắc nhưng chưa quá lâu (ví dụ trong vòng 1 tiếng), có thể nhắc ngay?
+          // Nhưng theo yêu cầu: "nếu khách hàng quên thì 3 tiếng nhắc 1 lần".
+          // Nếu ArrivalAt là hôm qua, thì hôm nay không nên nhắc ngay lập tức 3 cái dồn dập.
+          // Ta chỉ nhắc các mốc trong tương lai.
+          continue;
+        }
+
+        await _notifications.zonedSchedule(
+          id,
+          'Chuyến đi đã hoàn thành! 🏁',
+          i == 0 
+              ? 'Xe đã đến nơi. Bạn cảm thấy chuyến đi thế nào? Hãy đánh giá ngay nhé!'
+              : 'Bạn chưa đánh giá chuyến đi vừa rồi. Hãy dành chút thời gian chia sẻ cảm nhận nhé! ⭐',
+          tz.TZDateTime.from(time, tz.local),
+          details,
+          androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+          uiLocalNotificationDateInterpretation:
+              UILocalNotificationDateInterpretation.absoluteTime,
+          payload: 'review_reminder|$paymentHistoryId|${time.millisecondsSinceEpoch}',
+        );
+        
+        if (kDebugMode) {
+          debugPrint('ĐÃ LÊN LỊCH NHẮC ĐÁNH GIÁ #${i+1} (ID: $id) LÚC $time');
+        }
+      }
+
+    } catch (e) {
+      if (kDebugMode) debugPrint('LỖI LÊN LỊCH NHẮC ĐÁNH GIÁ: $e');
+    }
+  }
+
+  // HỦY NHẮC NHỞ ĐÁNH GIÁ (KHI ĐÃ ĐÁNH GIÁ XONG)
+  Future<void> cancelReviewReminders({
+    required int paymentHistoryId,
+    required int userId,
+  }) async {
+    final baseNotificationId = paymentHistoryId + (userId * 100000) + 700000;
+    // Hủy cả 3 mốc (0, 1, 2)
+    for (int i = 0; i < 3; i++) {
+      await _notifications.cancel(baseNotificationId + i);
+    }
+    if (kDebugMode) {
+      debugPrint('ĐÃ HỦY TẤT CẢ NHẮC NHỞ ĐÁNH GIÁ CHO PAYMENT $paymentHistoryId');
+    }
+  }
+
+  // ===========================================================================
+  // THÔNG BÁO SỐ LƯỢNG VÉ CHƯA ĐÁNH GIÁ (KHI MỞ APP)
+  // ===========================================================================
+  Future<void> checkAndShowUnreviewedNotification() async {
+    try {
+      await initialize();
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('idToken');
+      if (token == null) return;
+
+      final response = await http.get(
+        Uri.parse('http://10.0.2.2:3000/api/reviews/unreviewed'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(response.body);
+        final count = data.length;
+
+        if (count > 0) {
+          const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
+            'review_channel',
+            'Nhắc nhở đánh giá',
+            channelDescription: 'Nhắc khách hàng đánh giá sau chuyến đi',
+            importance: Importance.defaultImportance,
+            priority: Priority.defaultPriority,
+          );
+          const NotificationDetails details = NotificationDetails(android: androidDetails);
+
+          // ID MỚI: 2000000 + (userId * 100000) để đảm bảo đúng user filter
+          final userId = _currentUserId ?? 0; // Fallback 0 nhưng logic gọi hàm này sau khi login
+          final notificationId = 2000000 + (userId * 100000);
+
+          await _notifications.zonedSchedule(
+            notificationId,
+            'Chuyến đi chưa đánh giá 📝',
+            'Bạn có $count chuyến đi đã hoàn thành nhưng chưa đánh giá. Nhấn để xem ngay!',
+            tz.TZDateTime.now(tz.local).add(const Duration(seconds: 1)),
+            details,
+            androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+            uiLocalNotificationDateInterpretation:
+                UILocalNotificationDateInterpretation.absoluteTime,
+            payload: 'open_my_reviews|${DateTime.now().millisecondsSinceEpoch}',
+          );
+        }
+      }
+    } catch (e) {
+      if (kDebugMode) debugPrint('Lỗi kiểm tra vé chưa đánh giá: $e');
+    }
+  }
 }
+

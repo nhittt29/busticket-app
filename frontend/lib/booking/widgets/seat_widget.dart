@@ -8,6 +8,7 @@ class SeatWidget extends StatelessWidget {
   final VoidCallback onTap;
   final bool isVip;
   final double scale;
+  final bool isInvalid;
 
   const SeatWidget({
     super.key,
@@ -16,6 +17,7 @@ class SeatWidget extends StatelessWidget {
     required this.onTap,
     this.isVip = false,
     this.scale = 1.0,
+    this.isInvalid = false,
   });
 
   @override
@@ -68,72 +70,92 @@ class SeatWidget extends StatelessWidget {
         splashColor: baseColor.withOpacity(0.3),
         highlightColor: baseColor.withOpacity(0.15),
         onTap: canTap ? onTap : null,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          width: 28,
-          height: 28,
-          margin: const EdgeInsets.all(1),
-          decoration: BoxDecoration(
-            color: backgroundColor,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: borderColor,
-              width: isSelected ? 2.5 : 1.8,
-            ),
-            boxShadow: isSelected
-                ? [
-                    BoxShadow(
-                      color: orangeSelected.withOpacity(0.45),
-                      blurRadius: 9,
-                      offset: const Offset(0, 4),
-                    ),
-                  ]
-                : [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.08),
-                      blurRadius: 3,
-                      offset: const Offset(0, 1),
-                    ),
-                  ],
-          ),
-          child: FittedBox(
-            fit: BoxFit.scaleDown,
-            child: SizedBox(
-              width: 28 / scale,
-              height: 28 / scale,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    seat.type == 'SEAT' ? Icons.event_seat_rounded : Icons.bed_rounded,
-                    size: 13,
-                    color: iconColor,
-                  ),
-                  const SizedBox(height: 1),
-                  Text(
-                    seat.seatNumber,
-                    style: TextStyle(
-                      fontSize: 6.5,
-                      color: textColor,
-                      fontWeight: FontWeight.bold,
-                      height: 1.0,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                    maxLines: 1,
-                  ),
-                  if (seat.floor != null)
-                    Text(
-                      'T${seat.floor}',
-                      style: const TextStyle(
-                        fontSize: 5,
-                        color: Colors.grey,
-                        fontWeight: FontWeight.w600,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              width: 28,
+              height: 28,
+              margin: const EdgeInsets.all(1),
+              decoration: BoxDecoration(
+                color: backgroundColor,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: borderColor,
+                  width: isSelected ? 2.5 : 1.8,
+                ),
+                boxShadow: isSelected
+                    ? [
+                        BoxShadow(
+                          color: orangeSelected.withOpacity(0.45),
+                          blurRadius: 9,
+                          offset: const Offset(0, 4),
+                        ),
+                      ]
+                    : [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.08),
+                          blurRadius: 3,
+                          offset: const Offset(0, 1),
+                        ),
+                      ],
+              ),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: SizedBox(
+                  width: 28 / scale,
+                  height: 28 / scale,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        seat.type == 'SEAT' ? Icons.event_seat_rounded : Icons.bed_rounded,
+                        size: 13,
+                        color: iconColor,
                       ),
-                    ),
-                ],
+                      const SizedBox(height: 1),
+                      Text(
+                        seat.seatNumber,
+                        style: TextStyle(
+                          fontSize: 6.5,
+                          color: textColor,
+                          fontWeight: FontWeight.bold,
+                          height: 1.0,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                      ),
+                      if (seat.floor != null)
+                        Text(
+                          'T${seat.floor}',
+                          style: const TextStyle(
+                            fontSize: 5,
+                            color: Colors.grey,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
               ),
             ),
-          ),
+            // HIỆU ỨNG CẢNH BÁO GHẾ LẺ (X ĐỎ)
+            if (isInvalid)
+              Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.3), // Nền tối nhẹ để nổi bật X
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.close,
+                  color: Colors.redAccent,
+                  size: 20,
+                ),
+              ),
+          ],
         ),
       ),
     );

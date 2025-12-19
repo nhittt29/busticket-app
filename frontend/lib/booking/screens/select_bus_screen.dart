@@ -77,6 +77,12 @@ class _SelectBusScreenState extends State<SelectBusScreen> {
               letterSpacing: 0.5,
             ),
           ),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.info_outline, color: Colors.white),
+              onPressed: () => _showPolicyDialog(context),
+            ),
+          ],
         ),
         body: BlocListener<BookingCubit, BookingState>(
           listener: (context, state) {
@@ -97,7 +103,8 @@ class _SelectBusScreenState extends State<SelectBusScreen> {
                 prev.seats != curr.seats ||
                 prev.selectedSeats != curr.selectedSeats ||
                 prev.loadingSeats != curr.loadingSeats ||
-                prev.selectedTrip != curr.selectedTrip,
+                prev.selectedTrip != curr.selectedTrip ||
+                prev.invalidSeatId != curr.invalidSeatId,
             builder: (context, state) {
               if (state.loadingSeats) {
                 return const Center(
@@ -131,13 +138,13 @@ class _SelectBusScreenState extends State<SelectBusScreen> {
                       child: SizedBox(
                         height: MediaQuery.of(context).size.height * 0.55,
                         child: isBerth41
-                            ? SeatLayout41Form(context, state.seats, state.selectedSeats)
+                            ? SeatLayout41Form(context, state.seats, state.selectedSeats, state.invalidSeatId)
                             : isBerth34
-                                ? SeatLayout34Form(context, state.seats, state.selectedSeats)
+                                ? SeatLayout34Form(context, state.seats, state.selectedSeats, state.invalidSeatId)
                                 : isSeat28
-                                    ? SeatLayout28Form(context, state.seats, state.selectedSeats)
+                                    ? SeatLayout28Form(context, state.seats, state.selectedSeats, state.invalidSeatId)
                                     : isSeat45
-                                        ? SeatLayout45Form(context, state.seats, state.selectedSeats)
+                                        ? SeatLayout45Form(context, state.seats, state.selectedSeats, state.invalidSeatId)
                                         : isBerth45
                                             ? SeatLayoutDefaultForm(context, state.seats, state.selectedSeats)
                                             : SeatLayoutDefaultForm(context, state.seats, state.selectedSeats),
@@ -290,6 +297,157 @@ class _SelectBusScreenState extends State<SelectBusScreen> {
       ),
     );
   }
+
+  void _showPolicyDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 20),
+              width: double.infinity,
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [primaryGradientStart, primaryGradientEnd],
+                ),
+                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+              ),
+              child: const Text(
+                'Quy Định & Chính Sách',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
+              ),
+            ),
+            Flexible(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildSectionTitle('1. Quy Định Chọn Ghế'),
+                    const SizedBox(height: 8),
+                    _buildRuleItem('Không để trống ghế lẻ (Orphan Seat):',
+                        'Vui lòng chọn ghế liên tiếp nhau. Hệ thống không cho phép để trống 1 ghế ở giữa hoặc lẻ 1 ghế ở đầu/cuối dãy.'),
+                    const SizedBox(height: 16),
+                    const Divider(),
+                    const SizedBox(height: 16),
+                    _buildSectionTitle('2. Chính Sách Hủy Vé'),
+                    const SizedBox(height: 8),
+                    const Text('Vé đã thanh toán (Online):', style: TextStyle(fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 8),
+                    _buildTable([
+                      ['Thời điểm hủy', 'Phí hủy', 'Hoàn tiền'],
+                      ['> 24 giờ', '10%', '90%'],
+                      ['4h - 24 giờ', '30%', '70%'],
+                      ['< 2 giờ', 'Không hủy', '0%'],
+                    ]),
+                    const SizedBox(height: 12),
+                    const Text('Vé giữ chỗ (Chưa thanh toán):', style: TextStyle(fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 4),
+                    const Text('- Hủy miễn phí trước giờ khởi hành 02 tiếng.', style: TextStyle(fontSize: 14)),
+                    const SizedBox(height: 16),
+                    const Divider(),
+                    const SizedBox(height: 16),
+                    _buildSectionTitle('3. Quy Định Chung'),
+                    const SizedBox(height: 8),
+                    _buildBulletPoint('Có mặt tại điểm đón trước 15 phút.'),
+                    _buildBulletPoint('Chính sách hủy vé Lễ/Tết có thể thay đổi.'),
+                  ],
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: primaryGradientStart,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                  child: const Text('Đã Hiểu', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSectionTitle(String title) {
+    return Text(
+      title,
+      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: primaryBlue),
+    );
+  }
+
+  Widget _buildRuleItem(String title, String content) {
+    return RichText(
+      text: TextSpan(
+        style: const TextStyle(fontSize: 14, color: Colors.black87, height: 1.4),
+        children: [
+          TextSpan(text: '• $title ', style: const TextStyle(fontWeight: FontWeight.bold)),
+          TextSpan(text: content),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBulletPoint(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('• ', style: TextStyle(fontWeight: FontWeight.bold)),
+          Expanded(child: Text(text, style: const TextStyle(fontSize: 14, height: 1.3))),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTable(List<List<String>> data) {
+    return Container(
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey.shade300),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Table(
+        border: TableBorder.symmetric(inside: BorderSide(color: Colors.grey.shade200)),
+        columnWidths: const {
+          0: FlexColumnWidth(1.2),
+          1: FlexColumnWidth(0.8),
+          2: FlexColumnWidth(0.8),
+        },
+        children: data.map((row) {
+          final isHeader = data.indexOf(row) == 0;
+          return TableRow(
+            decoration: isHeader ? BoxDecoration(color: Colors.grey.shade100) : null,
+            children: row.map((cell) {
+              return Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Text(
+                  cell,
+                  style: TextStyle(
+                    fontWeight: isHeader ? FontWeight.bold : FontWeight.normal,
+                    fontSize: 13,
+                    color: isHeader ? Colors.black87 : Colors.black54,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              );
+            }).toList(),
+          );
+        }).toList(),
+      ),
+    );
+  }
 }
 
 // ======================
@@ -298,7 +456,8 @@ class SeatLayout41Form extends StatefulWidget {
   final BuildContext blocContext;
   final List<Seat> seats;
   final List<Seat> selectedSeats;
-  const SeatLayout41Form(this.blocContext, this.seats, this.selectedSeats, {super.key});
+  final int? invalidSeatId; // Update this
+  const SeatLayout41Form(this.blocContext, this.seats, this.selectedSeats, this.invalidSeatId, {super.key});
 
   @override
   State<SeatLayout41Form> createState() => _SeatLayout41FormState();
@@ -362,12 +521,16 @@ class _SeatLayout41FormState extends State<SeatLayout41Form> {
                                 child: Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: lastRowUpperSeats.map((seat) {
-                                    return SeatWidget(
-                                      seat: seat,
-                                      isSelected: widget.selectedSeats.contains(seat),
-                                      onTap: seat.status == 'AVAILABLE'
-                                          ? () => widget.blocContext.read<BookingCubit>().selectSeat(seat)
-                                          : () {},
+                                    return Padding(
+                                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                                      child: SeatWidget(
+                                        seat: seat,
+                                        isSelected: widget.selectedSeats.contains(seat),
+                                        isInvalid: widget.invalidSeatId == seat.id,
+                                        onTap: seat.status == 'AVAILABLE'
+                                            ? () => widget.blocContext.read<BookingCubit>().selectSeat(seat)
+                                            : () {},
+                                      ),
                                     );
                                   }).toList(),
                                 ),
@@ -442,6 +605,7 @@ class _SeatLayout41FormState extends State<SeatLayout41Form> {
                     child: SeatWidget(
                       seat: seat,
                       isSelected: widget.selectedSeats.contains(seat),
+                      isInvalid: widget.invalidSeatId == seat.id,
                       onTap: seat.status == 'AVAILABLE'
                           ? () => widget.blocContext.read<BookingCubit>().selectSeat(seat)
                           : () {},
@@ -465,7 +629,8 @@ class SeatLayout34Form extends StatefulWidget {
   final BuildContext blocContext;
   final List<Seat> seats;
   final List<Seat> selectedSeats;
-  const SeatLayout34Form(this.blocContext, this.seats, this.selectedSeats, {super.key});
+  final int? invalidSeatId; // Thêm tham số
+  const SeatLayout34Form(this.blocContext, this.seats, this.selectedSeats, this.invalidSeatId, {super.key});
 
   @override
   State<SeatLayout34Form> createState() => _SeatLayout34FormState();
@@ -578,6 +743,7 @@ class _SeatLayout34FormState extends State<SeatLayout34Form> {
                     child: SeatWidget(
                       seat: seat,
                       isSelected: widget.selectedSeats.contains(seat),
+                      isInvalid: widget.invalidSeatId == seat.id,
                       onTap: seat.status == 'AVAILABLE'
                           ? () => widget.blocContext.read<BookingCubit>().selectSeat(seat)
                           : () {},
@@ -600,7 +766,8 @@ class SeatLayout28Form extends StatefulWidget {
   final BuildContext blocContext;
   final List<Seat> seats;
   final List<Seat> selectedSeats;
-  const SeatLayout28Form(this.blocContext, this.seats, this.selectedSeats, {super.key});
+  final int? invalidSeatId; // Thêm tham số
+  const SeatLayout28Form(this.blocContext, this.seats, this.selectedSeats, this.invalidSeatId, {super.key});
 
   @override
   State<SeatLayout28Form> createState() => _SeatLayout28FormState();
@@ -708,6 +875,7 @@ class _SeatLayout28FormState extends State<SeatLayout28Form> {
                             child: SeatWidget(
                               seat: seat,
                               isSelected: widget.selectedSeats.contains(seat),
+                              isInvalid: widget.invalidSeatId == seat.id,
                               onTap: seat.status == 'AVAILABLE'
                                   ? () => widget.blocContext.read<BookingCubit>().selectSeat(seat)
                                   : () {},
@@ -754,7 +922,8 @@ class SeatLayout45Form extends StatefulWidget {
   final BuildContext blocContext;
   final List<Seat> seats;
   final List<Seat> selectedSeats;
-  const SeatLayout45Form(this.blocContext, this.seats, this.selectedSeats, {super.key});
+  final int? invalidSeatId; // Thêm tham số
+  const SeatLayout45Form(this.blocContext, this.seats, this.selectedSeats, this.invalidSeatId, {super.key});
 
   @override
   State<SeatLayout45Form> createState() => _SeatLayout45FormState();
@@ -943,6 +1112,7 @@ class _SeatLayout45FormState extends State<SeatLayout45Form> {
                             child: SeatWidget(
                               seat: seat,
                               isSelected: widget.selectedSeats.contains(seat),
+                              isInvalid: widget.invalidSeatId == seat.id,
                               onTap: seat.status == 'AVAILABLE'
                                   ? () => widget.blocContext.read<BookingCubit>().selectSeat(seat)
                                   : () {},
