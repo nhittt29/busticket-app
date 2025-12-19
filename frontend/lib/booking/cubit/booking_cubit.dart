@@ -157,7 +157,15 @@ class BookingCubit extends Cubit<BookingState> {
       }
     } else {
       if (SeatLogic.wouldCreateOrphan(seat, state.seats, selected, isCoach45: isSeat45, isCoach28: isSeat28)) {
-        emit(state.copyWith(error: 'Vui lòng chọn ghế liên tiếp, không để trống 1 ghế ở giữa hoặc bìa.'));
+        // THAY ĐỔI: Không hiện SnackBar lỗi nữa, mà báo hiệu ghế này bị invalid (hiện X)
+        emit(state.copyWith(invalidSeatId: seat.id));
+        
+        // Tự động tắt trạng thái invalid sau 1s
+        Future.delayed(const Duration(milliseconds: 1000), () {
+          if (!isClosed) {
+            emit(state.copyWith(clearInvalidSeat: true));
+          }
+        });
         return;
       }
       selected.add(seat);

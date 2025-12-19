@@ -97,7 +97,8 @@ class _SelectBusScreenState extends State<SelectBusScreen> {
                 prev.seats != curr.seats ||
                 prev.selectedSeats != curr.selectedSeats ||
                 prev.loadingSeats != curr.loadingSeats ||
-                prev.selectedTrip != curr.selectedTrip,
+                prev.selectedTrip != curr.selectedTrip ||
+                prev.invalidSeatId != curr.invalidSeatId,
             builder: (context, state) {
               if (state.loadingSeats) {
                 return const Center(
@@ -131,13 +132,13 @@ class _SelectBusScreenState extends State<SelectBusScreen> {
                       child: SizedBox(
                         height: MediaQuery.of(context).size.height * 0.55,
                         child: isBerth41
-                            ? SeatLayout41Form(context, state.seats, state.selectedSeats)
+                            ? SeatLayout41Form(context, state.seats, state.selectedSeats, state.invalidSeatId)
                             : isBerth34
-                                ? SeatLayout34Form(context, state.seats, state.selectedSeats)
+                                ? SeatLayout34Form(context, state.seats, state.selectedSeats, state.invalidSeatId)
                                 : isSeat28
-                                    ? SeatLayout28Form(context, state.seats, state.selectedSeats)
+                                    ? SeatLayout28Form(context, state.seats, state.selectedSeats, state.invalidSeatId)
                                     : isSeat45
-                                        ? SeatLayout45Form(context, state.seats, state.selectedSeats)
+                                        ? SeatLayout45Form(context, state.seats, state.selectedSeats, state.invalidSeatId)
                                         : isBerth45
                                             ? SeatLayoutDefaultForm(context, state.seats, state.selectedSeats)
                                             : SeatLayoutDefaultForm(context, state.seats, state.selectedSeats),
@@ -298,7 +299,8 @@ class SeatLayout41Form extends StatefulWidget {
   final BuildContext blocContext;
   final List<Seat> seats;
   final List<Seat> selectedSeats;
-  const SeatLayout41Form(this.blocContext, this.seats, this.selectedSeats, {super.key});
+  final int? invalidSeatId; // Update this
+  const SeatLayout41Form(this.blocContext, this.seats, this.selectedSeats, this.invalidSeatId, {super.key});
 
   @override
   State<SeatLayout41Form> createState() => _SeatLayout41FormState();
@@ -362,12 +364,16 @@ class _SeatLayout41FormState extends State<SeatLayout41Form> {
                                 child: Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: lastRowUpperSeats.map((seat) {
-                                    return SeatWidget(
-                                      seat: seat,
-                                      isSelected: widget.selectedSeats.contains(seat),
-                                      onTap: seat.status == 'AVAILABLE'
-                                          ? () => widget.blocContext.read<BookingCubit>().selectSeat(seat)
-                                          : () {},
+                                    return Padding(
+                                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                                      child: SeatWidget(
+                                        seat: seat,
+                                        isSelected: widget.selectedSeats.contains(seat),
+                                        isInvalid: widget.invalidSeatId == seat.id,
+                                        onTap: seat.status == 'AVAILABLE'
+                                            ? () => widget.blocContext.read<BookingCubit>().selectSeat(seat)
+                                            : () {},
+                                      ),
                                     );
                                   }).toList(),
                                 ),
@@ -442,6 +448,7 @@ class _SeatLayout41FormState extends State<SeatLayout41Form> {
                     child: SeatWidget(
                       seat: seat,
                       isSelected: widget.selectedSeats.contains(seat),
+                      isInvalid: widget.invalidSeatId == seat.id,
                       onTap: seat.status == 'AVAILABLE'
                           ? () => widget.blocContext.read<BookingCubit>().selectSeat(seat)
                           : () {},
@@ -465,7 +472,8 @@ class SeatLayout34Form extends StatefulWidget {
   final BuildContext blocContext;
   final List<Seat> seats;
   final List<Seat> selectedSeats;
-  const SeatLayout34Form(this.blocContext, this.seats, this.selectedSeats, {super.key});
+  final int? invalidSeatId; // Thêm tham số
+  const SeatLayout34Form(this.blocContext, this.seats, this.selectedSeats, this.invalidSeatId, {super.key});
 
   @override
   State<SeatLayout34Form> createState() => _SeatLayout34FormState();
@@ -578,6 +586,7 @@ class _SeatLayout34FormState extends State<SeatLayout34Form> {
                     child: SeatWidget(
                       seat: seat,
                       isSelected: widget.selectedSeats.contains(seat),
+                      isInvalid: widget.invalidSeatId == seat.id,
                       onTap: seat.status == 'AVAILABLE'
                           ? () => widget.blocContext.read<BookingCubit>().selectSeat(seat)
                           : () {},
@@ -600,7 +609,8 @@ class SeatLayout28Form extends StatefulWidget {
   final BuildContext blocContext;
   final List<Seat> seats;
   final List<Seat> selectedSeats;
-  const SeatLayout28Form(this.blocContext, this.seats, this.selectedSeats, {super.key});
+  final int? invalidSeatId; // Thêm tham số
+  const SeatLayout28Form(this.blocContext, this.seats, this.selectedSeats, this.invalidSeatId, {super.key});
 
   @override
   State<SeatLayout28Form> createState() => _SeatLayout28FormState();
@@ -708,6 +718,7 @@ class _SeatLayout28FormState extends State<SeatLayout28Form> {
                             child: SeatWidget(
                               seat: seat,
                               isSelected: widget.selectedSeats.contains(seat),
+                              isInvalid: widget.invalidSeatId == seat.id,
                               onTap: seat.status == 'AVAILABLE'
                                   ? () => widget.blocContext.read<BookingCubit>().selectSeat(seat)
                                   : () {},
@@ -754,7 +765,8 @@ class SeatLayout45Form extends StatefulWidget {
   final BuildContext blocContext;
   final List<Seat> seats;
   final List<Seat> selectedSeats;
-  const SeatLayout45Form(this.blocContext, this.seats, this.selectedSeats, {super.key});
+  final int? invalidSeatId; // Thêm tham số
+  const SeatLayout45Form(this.blocContext, this.seats, this.selectedSeats, this.invalidSeatId, {super.key});
 
   @override
   State<SeatLayout45Form> createState() => _SeatLayout45FormState();
@@ -943,6 +955,7 @@ class _SeatLayout45FormState extends State<SeatLayout45Form> {
                             child: SeatWidget(
                               seat: seat,
                               isSelected: widget.selectedSeats.contains(seat),
+                              isInvalid: widget.invalidSeatId == seat.id,
                               onTap: seat.status == 'AVAILABLE'
                                   ? () => widget.blocContext.read<BookingCubit>().selectSeat(seat)
                                   : () {},

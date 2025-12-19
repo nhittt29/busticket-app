@@ -25,6 +25,7 @@ class BookingState extends Equatable {
   // ==== MỚI THÊM: KHUYẾN MÃI ====
   final Promotion? selectedPromotion;
   final double discountAmount;
+  final int? invalidSeatId; // ID ghế gây lỗi (ghế lẻ) để hiển thị effect X
 
   const BookingState({
     required this.from,
@@ -46,6 +47,7 @@ class BookingState extends Equatable {
     this.discountAmount = 0.0,
     this.dropoffDiscount = 0.0, // Thêm: Giảm giá do điểm trả
     this.surchargeReason,
+    this.invalidSeatId,
   });
 
   final String? surchargeReason;
@@ -71,6 +73,7 @@ class BookingState extends Equatable {
         discountAmount: 0.0,
         dropoffDiscount: 0.0,
         surchargeReason: null,
+        invalidSeatId: null,
       );
 
   BookingState copyWith({
@@ -95,6 +98,8 @@ class BookingState extends Equatable {
     bool clearPromotion = false,
     bool clearDropoff = false, // Add clear flag
     String? surchargeReason,
+    int? invalidSeatId,
+    bool clearInvalidSeat = false,
   }) {
     return BookingState(
       from: from ?? this.from,
@@ -102,7 +107,7 @@ class BookingState extends Equatable {
       date: date ?? this.date,
       loading: loading ?? this.loading,
       trips: trips ?? this.trips,
-      error: error,
+      error: error, // Allow null to clear error
       seats: seats ?? this.seats,
       selectedSeats: selectedSeats ?? this.selectedSeats,
       totalPrice: totalPrice ?? this.totalPrice,
@@ -116,6 +121,7 @@ class BookingState extends Equatable {
       discountAmount: discountAmount ?? this.discountAmount,
       dropoffDiscount: dropoffDiscount ?? this.dropoffDiscount,
       surchargeReason: surchargeReason ?? this.surchargeReason,
+      invalidSeatId: clearInvalidSeat ? null : (invalidSeatId ?? this.invalidSeatId),
     );
   }
 
@@ -140,6 +146,7 @@ class BookingState extends Equatable {
         discountAmount,
         dropoffDiscount,
         surchargeReason,
+        invalidSeatId,
       ];
 }
 
