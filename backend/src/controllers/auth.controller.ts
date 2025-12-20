@@ -160,6 +160,51 @@ export class AuthController {
   }
 
   // ========================================
+  // 🔹 ĐĂNG KÝ FACE ID (UPLOAD ẢNH KHUÔN MẶT)
+  // ========================================
+  @Put('update-face-auth')
+  @HttpCode(HttpStatus.OK)
+  @UseInterceptors(
+    FileInterceptor('faceImage', {
+      storage: diskStorage({
+        destination: './uploads/faces',
+        filename: (req, file, callback) => {
+          const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+          const ext = extname(file.originalname);
+          callback(null, `face-${uniqueSuffix}${ext}`);
+        },
+      }),
+      limits: { fileSize: 10 * 1024 * 1024 }, // Giới hạn 10MB cho ảnh chất lượng cao
+      fileFilter: (req, file, callback) => {
+        if (!file.mimetype.startsWith('image/')) {
+          return callback(
+            new Error('Chỉ chấp nhận file ảnh hợp lệ'),
+            false,
+          );
+        }
+        callback(null, true);
+      },
+    }),
+  )
+  async updateFaceAuth(
+    @UploadedFile() file: Express.Multer.File,
+    @Headers('Authorization') authHeader: string,
+  ) {
+    if (!authHeader) throw new UnauthorizedException('Missing Authorization header');
+    const token = authHeader.split(' ')[1];
+    const decodedToken = await auth.verifyIdToken(token);
+    const uid = decodedToken.uid;
+
+    const user = await this.authService.findUserByUid(uid);
+    if (!user) throw new NotFoundException('Người dùng không tồn tại');
+
+    if (!file) throw new BadRequestException('Vui lòng tải lên ảnh khuôn mặt');
+
+    const faceUrl = file.path;
+    return this.authService.updateFaceAuth(user.id, faceUrl);
+  }
+
+  // ========================================
   // 🔹 LẤY THÔNG TIN NGƯỜI DÙNG HIỆN TẠI (ME)
   // ========================================
   @Get('me')

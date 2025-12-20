@@ -23,7 +23,7 @@ export class QrService {
       const payload = { ticketId, iat: Math.floor(Date.now() / 1000) };
       const token = jwt.sign(payload, process.env.JWT_SECRET!, { expiresIn: '7d' });
 
-      const verifyUrl = `${frontendUrl}/verify-qr?token=${token}`;
+      const verifyUrl = `${frontendUrl}/api/qr/verify?token=${token}`;
       this.logger.log(`QR URL: ${verifyUrl}`);
 
       const qrDataUrl = await QRCode.toDataURL(verifyUrl);

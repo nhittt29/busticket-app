@@ -435,7 +435,8 @@ export class TicketService {
     if (diffHours < 1)
       throw new BadRequestException('Chỉ được thanh toán trước 1 giờ khởi hành');
 
-    const qrCodeUrl = await this.qrService.generateSecureTicketQR(paymentHistoryId);
+    // FIX: Generate QR for the Ticket ID, not PaymentHistory ID
+    const qrCodeUrl = await this.qrService.generateSecureTicketQR(firstTicket.id);
 
     await this.prism.paymentHistory.update({
       where: { id: paymentHistoryId },

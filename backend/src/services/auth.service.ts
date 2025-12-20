@@ -16,7 +16,7 @@ export class AuthService {
   constructor(
     private prisma: PrismaService,
     private userRepository: UserRepository,
-  ) {}
+  ) { }
 
   // Type guard to check if error is an Axios error
   private isAxiosError(error: any): error is { response?: { status: number } } {
@@ -207,6 +207,11 @@ export class AuthService {
       throw new BadRequestException('Ngày sinh không hợp lệ');
     }
     const updatedUser = await this.userRepository.updateUser(id, data);
+    return updatedUser;
+  }
+
+  async updateFaceAuth(id: number, faceUrl: string): Promise<User> {
+    const updatedUser = await this.userRepository.updateUser(id, { faceUrl });
     return updatedUser;
   }
 }

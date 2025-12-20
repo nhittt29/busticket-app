@@ -10,6 +10,7 @@ import { QrController } from '../controllers/qr.controller'; // THÊM DÒNG NÀY
 import { MomoService } from '../services/momo.service';
 import { EmailService } from '../services/email.service';
 import { QrService } from '../services/qr.service';
+import { NotificationModule } from './notification.module';
 import { ZaloPayModule } from './zalopay.module';
 
 @Module({
@@ -17,7 +18,8 @@ import { ZaloPayModule } from './zalopay.module';
     BullModule.registerQueue({
       name: 'ticket',
     }),
-    forwardRef(() => ZaloPayModule), // Use forwardRef to avoid circular dependency
+    forwardRef(() => ZaloPayModule),
+    NotificationModule, // Include imported module
   ],
   controllers: [TicketController, QrController], // THÊM QrController
   providers: [

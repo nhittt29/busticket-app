@@ -133,6 +133,7 @@ CREATE TABLE "DropoffPoint" (
     "name" TEXT NOT NULL,
     "address" TEXT,
     "surcharge" DOUBLE PRECISION NOT NULL DEFAULT 0,
+    "priceDifference" DOUBLE PRECISION NOT NULL DEFAULT 0,
     "isDefault" BOOLEAN NOT NULL DEFAULT false,
     "order" INTEGER NOT NULL DEFAULT 0,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
