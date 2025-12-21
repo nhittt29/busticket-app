@@ -8,6 +8,7 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../bloc/notification/notification_bloc.dart';               // THÊM DÒNG NÀY
 import '../bloc/notification/notification_event.dart';              // THÊM DÒNG NÀY
+import '../repositories/notification_repository.dart';
 
 const Color primaryGradientStart = Color(0xFF6AB7F5);
 const Color primaryGradientEnd = Color(0xFF4A9EFF);
@@ -62,6 +63,17 @@ class _NotificationScreenState extends State<NotificationScreen> {
       } catch (_) {}
     }
 
+    // 3. FETCH SERVER NOTIFICATIONS
+    List<Map<String, dynamic>> serverNotis = [];
+    if (_currentUserId != null) {
+      try {
+        // Simple manual repo instantiation or get from provider if available
+        // For now, simple instantiation to avoid major DI refactor
+        final repo = NotificationRepository();
+        serverNotis = await repo.fetchNotifications(_currentUserId!);
+      } catch (_) {}
+    }
+
     // Load read status from Prefs
     final prefs = await SharedPreferences.getInstance();
     final readIds = prefs.getStringList('read_notifications') ?? [];
@@ -98,6 +110,39 @@ class _NotificationScreenState extends State<NotificationScreen> {
       }
     }
 
+    // C. Add Server Notifications
+    // Map Server ID (1, 2, 3...) -> UI ID (3,000,000 + ID) to avoid conflict
+    // and store "isRead" state initial from server
+    // Payload from server: needs to map to existing formats if possible or be generic
+    for (var sNoti in serverNotis) {
+       final sId = sNoti['id'] as int;
+       final uiId = 3000000 + sId; // 3M offset for server
+       
+       final isReadServer = sNoti['isRead'] as bool;
+       _readStatus[uiId] = isReadServer; // Set server read status
+       
+       // Handle payload for type
+       String type = sNoti['type'] ?? 'SYSTEM'; // BOARDING_SUCCESS, etc.
+       String payload = '';
+       if (type == 'BOARDING_SUCCESS') payload = 'booking_success'; // Reuse existing style
+       
+       // Handle time
+       String? createdAt = sNoti['createdAt'];
+       int millis = 0;
+       if (createdAt != null) {
+          millis = DateTime.parse(createdAt).millisecondsSinceEpoch;
+          payload += '|$millis';
+       }
+
+       final converted = PendingNotificationRequest(
+          uiId,
+          sNoti['title'],
+          sNoti['message'],
+          payload,
+       );
+       combinedMap[uiId] = converted;
+    }
+
     final filtered = combinedMap.values.toList();
 
     // Sort
@@ -109,8 +154,12 @@ class _NotificationScreenState extends State<NotificationScreen> {
       pendingNotifications = filtered;
       for (var noti in filtered) {
         // Check if ID is in saved read list
-        final isRead = readIds.contains(noti.id.toString());
-        _readStatus[noti.id] = isRead;
+        // Note: For Server items, we already set _readStatus above.
+        // But local items need prefs check.
+        if (noti.id < 3000000) {
+           final isRead = readIds.contains(noti.id.toString());
+           _readStatus[noti.id] = isRead;
+        }
       }
     });
   }
@@ -565,17 +614,27 @@ class _NotificationScreenState extends State<NotificationScreen> {
                           if (!isRead) {
                             setState(() => _readStatus[noti.id] = true);
                             
-                            // Save to prefs
-                            final prefs = await SharedPreferences.getInstance();
-                            final readIds = prefs.getStringList('read_notifications') ?? [];
-                            if (!readIds.contains(noti.id.toString())) {
-                              readIds.add(noti.id.toString());
-                              await prefs.setStringList('read_notifications', readIds);
+                            // SERVER NOTIFICATION (ID >= 3M)
+                            if (noti.id >= 3000000) {
+                               if (_currentUserId != null) {
+                                  final repo = NotificationRepository();
+                                  await repo.markAsRead(noti.id - 3000000, _currentUserId!);
+                               }
+                            } 
+                            // LOCAL NOTIFICATION
+                            else {
+                                // Save to prefs
+                                final prefs = await SharedPreferences.getInstance();
+                                final readIds = prefs.getStringList('read_notifications') ?? [];
+                                if (!readIds.contains(noti.id.toString())) {
+                                  readIds.add(noti.id.toString());
+                                  await prefs.setStringList('read_notifications', readIds);
+                                }
                             }
                             
                             // Update badge
                             if (mounted) {
-                              context.read<NotificationBloc>().add(LoadNotificationsEvent());
+                              context.read<NotificationBloc>().add(LoadNotificationsEvent(userId: _currentUserId));
                             }
                           }
                         },

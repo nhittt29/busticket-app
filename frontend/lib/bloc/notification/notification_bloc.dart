@@ -1,21 +1,37 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../repositories/notification_repository.dart';
 import 'notification_event.dart';
 import 'notification_state.dart';
 
 class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
+  final NotificationRepository _repository = NotificationRepository();
+
   NotificationBloc() : super(const NotificationState(unreadCount: 0)) { 
     on<LoadNotificationsEvent>(_onLoad);
     on<MarkAllAsReadEvent>(_onMarkAllAsRead);
   }
 
   Future<void> _onLoad(LoadNotificationsEvent event, Emitter<NotificationState> emit) async {
-    final count = await _getUnreadCount();
+    // 1. Get Unread Count from Local
+    int count = await _getUnreadCount();
+
+    // 2. Get Server Notifications if userId is provided
+    if (event.userId != null) {
+      try {
+        final serverNotis = await _repository.fetchNotifications(event.userId!);
+        // Count unread server notis
+        final unreadServer = serverNotis.where((n) => n['isRead'] == false).length;
+        count += unreadServer;
+      } catch (e) {
+        // Ignore server error for unread count, just show local
+      }
+    }
+
     emit(state.copyWith(unreadCount: count));
   }
 
-  // SỬA TÊN HÀM ĐÚNG VỚI EVENT
   Future<void> _onMarkAllAsRead(MarkAllAsReadEvent event, Emitter<NotificationState> emit) async {
     emit(state.copyWith(unreadCount: 0));
   }
