@@ -6,16 +6,20 @@ import { PrismaService } from '../services/prisma.service';
 
 import { NotificationService } from '../services/notification.service';
 
+import { HttpService } from '@nestjs/axios';
+import { lastValueFrom } from 'rxjs';
+
 @Controller('qr')
 export class QrController {
   constructor(
     private readonly qrService: QrService,
     private readonly prisma: PrismaService,
     private readonly notificationService: NotificationService,
+    private readonly httpService: HttpService,
   ) { }
 
   @Post('confirm')
-  async confirmBoarding(@Body() body: { ticketId: number }) {
+  async confirmBoarding(@Body() body: { ticketId: number; image: string }) {
     const ticket = await this.prisma.ticket.findUnique({
       where: { id: Number(body.ticketId) },
       include: { user: true }
@@ -23,7 +27,40 @@ export class QrController {
 
     if (!ticket) throw new BadRequestException('Vé không tồn tại');
 
-    // Create Notification
+    // 1. Verify with DeepFace (Python Service)
+    if (!ticket.user.faceUrl) throw new BadRequestException('User chưa đăng ký FaceID');
+
+    // Fix path resolution
+    let facePath = ticket.user.faceUrl;
+    if (facePath.startsWith('/')) facePath = facePath.substring(1); // Remove leading slash
+    if (facePath.startsWith('\\')) facePath = facePath.substring(1);
+
+    // Ensure we are pointing to d:\busticket-app\backend
+    const absoluteFacePath = require('path').join(process.cwd(), facePath);
+    try {
+      console.log(`[DEEPFACE] Verifying... Ticket ${ticket.id}`);
+      const response = await lastValueFrom(
+        this.httpService.post('http://127.0.0.1:5000/verify', {
+          img1: absoluteFacePath,
+          img2: body.image, // Base64 from client
+          model_name: "VGG-Face",
+        })
+      );
+
+      const result = response.data;
+      console.log('[DEEPFACE] Result:', result);
+
+      if (!result.verified) {
+        throw new BadRequestException('Khuôn mặt không khớp (AI Reject)');
+      }
+
+    } catch (error) {
+      console.error('[DEEPFACE] Error:', error.message);
+      if (error.response) console.error(error.response.data);
+      throw new BadRequestException('Lỗi xác thực khuôn mặt: ' + (error.response?.data?.exception || error.message));
+    }
+
+    // 2. If Verified -> Create Notification
     await this.notificationService.create({
       userId: ticket.userId,
       title: 'Lên xe thành công! 🚌',
@@ -63,19 +100,19 @@ export class QrController {
 
     console.log(`[VERIFY-DEBUG] Found Ticket #${ticket?.id}, Status: ${ticket?.status}`);
     if (ticket) {
-        console.log(`[VERIFY-DEBUG] Payments:`, JSON.stringify(ticket.ticketPayments));
+      console.log(`[VERIFY-DEBUG] Payments:`, JSON.stringify(ticket.ticketPayments));
     }
 
     if (!ticket) {
-       throw new BadRequestException('Vé không tồn tại');
+      throw new BadRequestException('Vé không tồn tại');
     }
 
     // CHECK VALIDITY: Either Status is PAID OR has a successful payment linked
     const isPaid = ticket.status === 'PAID' || ticket.ticketPayments.some(tp => tp.payment.status === 'SUCCESS' || tp.payment.status === 'COMPLETED');
-    
+
     if (!isPaid) {
-       console.log(`[VERIFY-FAILURE] Ticket ${ticket.id} is NOT PAID. Status: ${ticket.status}`);
-       throw new BadRequestException('Vé không hợp lệ hoặc chưa thanh toán');
+      console.log(`[VERIFY-FAILURE] Ticket ${ticket.id} is NOT PAID. Status: ${ticket.status}`);
+      throw new BadRequestException('Vé không hợp lệ hoặc chưa thanh toán');
     }
 
     const departure = new Date(ticket.schedule.departureAt).toLocaleString('vi-VN', {
@@ -96,26 +133,27 @@ export class QrController {
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
         <style>
-          * { margin: 0; padding: 0; box-sizing: border-box; }
-          body { font-family: 'Roboto', sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
-          .card { background: white; border-radius: 20px; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.2); max-width: 420px; width: 100%; animation: slideUp 0.6s ease-out; }
-          @keyframes slideUp { from { transform: translateY(30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-          .header { background: linear-gradient(135deg, #43a047, #66bb6a); padding: 25px; text-align: center; color: white; position: relative; }
-          .header::after { content: ''; position: absolute; bottom: -15px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 20px solid transparent; border-right: 20px solid transparent; border-top: 20px solid #43a047; }
-          .header h1 { font-size: 28px; font-weight: 700; margin-bottom: 8px; }
-          .header p { font-size: 16px; opacity: 0.9; }
-          .content { padding: 30px 25px 25px; }
-          .valid-badge { background: #e8f5e8; border: 2px solid #4caf50; border-radius: 50px; padding: 12px 20px; text-align: center; margin-bottom: 20px; }
-          .valid-badge h2 { color: #2e7d32; font-size: 24px; margin: 0; }
-          .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 20px 0; }
-          .info-item { background: #f8f9fa; padding: 12px; border-radius: 10px; }
-          .info-item strong { display: block; color: #424242; font-size: 13px; margin-bottom: 4px; }
-          .info-item span { color: #212121; font-weight: 500; }
-          .highlight { background: linear-gradient(135deg, #fff176, #ffd54f); padding: 16px; border-radius: 12px; text-align: center; margin: 20px 0; }
-          .highlight strong { color: #5d4037; font-size: 18px; }
-          .action { text-align: center; margin-top: 25px; }
-          .action p { background: #e8f5e8; color: #2e7d32; padding: 16px; border-radius: 12px; font-weight: 700; font-size: 20px; border: 3px solid #4caf50; }
-          .footer { background: #f5f5f5; padding: 20px; text-align: center; font-size: 13px; color: #666; }
+          body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #CDEEF3, #DAF1DE); display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 20px; }
+          .card { background: white; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 420px; overflow: hidden; position: relative; }
+          .header { background: #96DFD8; padding: 30px 20px; text-align: center; color: #004d40; }
+          .header h1 { margin: 0; font-size: 28px; text-transform: uppercase; letter-spacing: 1px; }
+          .header p { margin: 5px 0 0; opacity: 0.9; font-size: 14px; font-weight: 500; }
+          .content { padding: 25px; }
+          .valid-badge { background: #D6E9AA; border-radius: 50px; padding: 12px 20px; text-align: center; margin-bottom: 20px; color: #33691e; }
+          .valid-badge h2 { font-size: 22px; margin: 0; }
+          .highlight { text-align: center; margin-bottom: 25px; color: #00796b; font-size: 18px; background: #CDEEF3; padding: 8px; border-radius: 8px; }
+          .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 20px 0; }
+          .info-item { background: #DAF1DE; padding: 12px; border-radius: 12px; border: 1px solid #AEE6CB; }
+          .info-item strong { display: block; color: #2e7d32; font-size: 12px; margin-bottom: 4px; text-transform: uppercase; }
+          .info-item span { color: #1b5e20; font-weight: 600; font-size: 14px; }
+          .action { margin-top: 25px; text-align: center; }
+          .action p { font-size: 18px; font-weight: bold; color: #00695c; background: #85D4BE; display: inline-block; padding: 10px 25px; border-radius: 30px; margin: 0; }
+          .footer { text-align: center; margin-top: 20px; font-size: 12px; color: #555; padding-bottom: 20px; }
+          
+          /* Button Styles */
+          #btn-verify { background: #85D4BE !important; color: #004d40 !important; font-weight: bold; box-shadow: 0 4px 10px rgba(133, 212, 190, 0.4); }
+          #btn-verify:disabled { background: #ccc !important; color: #666 !important; box-shadow: none; }
+          
           @media (max-width: 480px) {
             .info-grid { grid-template-columns: 1fr; }
             .card { margin: 10px; }
@@ -214,7 +252,7 @@ export class QrController {
 
                 <!-- Action Button -->
                 <div style="margin-top: 20px;">
-                   <button id="btn-verify" onclick="startVerification()" disabled style="background: #ccc; color: white; border: none; padding: 12px 25px; border-radius: 25px; font-weight: 500; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: background 0.3s;">
+                   <button id="btn-verify" onclick="startScanning()" disabled style="background: #ccc; color: white; border: none; padding: 12px 25px; border-radius: 25px; font-weight: 500; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: background 0.3s;">
                       <span id="btn-text">Đang khởi động AI...</span>
                    </button>
                    <p id="error-msg" style="color: red; font-size: 13px; margin-top: 8px; display: none;"></p>
@@ -235,8 +273,10 @@ export class QrController {
             // Public models URL
             const MODEL_URL = 'https://justadudewhohacks.github.io/face-api.js/models';
 
+            let isScanning = false;
+            
             function logToServer(message, type = 'INFO') {
-              console.log(message); // Log to browser console too
+              console.log(message);
               fetch('/api/qr/log', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -244,153 +284,105 @@ export class QrController {
               }).catch(e => console.error('Log failed', e));
             }
             
-            function confirmBoarding() {
-               fetch('/api/qr/confirm', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ ticketId: ${ticket.id} })
-              }).then(res => res.json())
-                .then(data => {
-                   logToServer('Đã gửi thông báo xác thực thành công cho User', 'SUCCESS');
-                })
-                .catch(e => console.error('Confirm failed', e));
+            // Start Camera
+            async function startCamera() {
+               try {
+                   const video = document.getElementById('live-video');
+                   stream = await navigator.mediaDevices.getUserMedia({ video: {} });
+                   video.srcObject = stream;
+                   
+                   document.getElementById('loading-models').style.display = 'none';
+                   document.getElementById('verification-ui').style.display = 'block';
+                   
+                   // Enable Button
+                   const btn = document.getElementById('btn-verify');
+                   btn.disabled = false;
+                   btn.style.background = '#1976d2';
+                   document.getElementById('btn-text').innerText = 'Bắt đầu Xác thực';
+               } catch (err) {
+                   logToServer('Lỗi mở Camera: ' + err.message, 'ERROR');
+                   document.getElementById('loading-models').innerText = 'Lỗi Camera: ' + err.message;
+               }
             }
 
-            async function loadModels() {
-              try {
-                logToServer('Bắt đầu tải Model AI...', 'SYSTEM');
-                await faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL);
-                await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
-                await faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL);
-                modelsLoaded = true;
-                logToServer('Tải Model AI thành công!', 'SUCCESS');
+            // Capture and Verify Loop
+            async function startScanning() {
+                if(isScanning) return;
+                isScanning = true;
                 
-                document.getElementById('loading-models').style.display = 'none';
-                document.getElementById('verification-ui').style.display = 'block';
-                
-                // Active button
+                const video = document.getElementById('live-video');
                 const btn = document.getElementById('btn-verify');
-                btn.style.background = '#1976d2';
-                btn.disabled = false;
-                document.getElementById('btn-text').innerText = 'Bắt đầu Quét & So Sánh';
-
-                // Pre-process registered image
-                processRegisteredImage();
-              } catch (err) {
-                console.error(err);
-                logToServer('Lỗi tải Model AI: ' + err.message, 'ERROR');
-                document.getElementById('loading-models').innerText = 'Lỗi tải AI: ' + err.message;
-              }
-            }
-
-            async function processRegisteredImage() {
-              const img = document.getElementById('registered-img');
-              if (!img) {
-                logToServer('Không tìm thấy ảnh đăng ký (User chưa có ảnh)', 'WARN');
-                return;
-              }
-              
-              // Wait for image to be fully loaded
-              if (!img.complete || img.naturalHeight === 0) {
-                 await new Promise(r => img.onload = r);
-              }
-              
-              try {
-                logToServer('Đang học khuôn mặt từ ảnh đăng ký...', 'PROCESS');
-                // Retry detection a few times if needed
-                for (let i = 0; i < 3; i++) {
-                   const detection = await faceapi.detectSingleFace(img).withFaceLandmarks().withFaceDescriptor();
-                   if (detection) {
-                     registeredDescriptor = detection.descriptor;
-                     console.log('Registered face processed success');
-                     logToServer('Đã học xong khuôn mặt đăng ký!', 'SUCCESS');
-                     return;
-                   }
+                const btnText = document.getElementById('btn-text');
+                
+                // COUNTDOWN 3s
+                for(let i = 3; i > 0; i--) {
+                    btn.style.background = '#f57c00';
+                    btnText.innerText = 'Giữ nguyên... ' + i + 's';
+                    await new Promise(r => setTimeout(r, 1000));
+                }
+                
+                // Wait for video to be ready
+                if (video.readyState !== 4) {
                    await new Promise(r => setTimeout(r, 500));
                 }
-                
-                logToServer('Không tìm thấy khuôn mặt trong ảnh đăng ký sau 3 lần thử', 'ERROR');
-                document.getElementById('result-message').innerText = '⚠️ Không tìm thấy khuôn mặt trong ảnh đăng ký. Vui lòng chọn ảnh rõ nét hơn.';
-                document.getElementById('result-message').style.display = 'block';
-                document.getElementById('result-message').style.color = '#f57c00';
-              } catch (e) {
-                logToServer('Lỗi xử lý ảnh đăng ký: ' + e.message, 'ERROR');
-                console.error('Error processing registered image', e);
-              }
-            }
 
-            async function startVerification() {
-              const video = document.getElementById('live-video');
-              const btn = document.getElementById('btn-verify');
-              const msg = document.getElementById('result-message');
-              const errorMsg = document.getElementById('error-msg');
-              
-              msg.style.display = 'none';
-              errorMsg.style.display = 'none';
-              
-              // Open Camera
-              if (!stream) {
-                try {
-                  logToServer('Đang yêu cầu quyền Camera...', 'SYSTEM');
-                  stream = await navigator.mediaDevices.getUserMedia({ video: {} });
-                  video.srcObject = stream;
-                  btn.style.background = '#f57c00';
-                  document.getElementById('btn-text').innerText = 'Đang soi... Giữ nguyên nhé!';
-                  logToServer('Đã mở Camera thành công', 'SUCCESS');
-                  
-                  // Start detecting loop
-                  detectLoop();
-                } catch (err) {
-                  logToServer('Không mở được Camera: ' + err.message, 'ERROR');
-                  errorMsg.innerText = 'Không mở được Camera: ' + err.message;
-                  errorMsg.style.display = 'block';
+                // Loop
+                while (true) {
+                   if (!stream) break; // Stop if stream closed
+
+                   try {
+                       // 1. Capture & Resize
+                       const canvas = document.createElement('canvas');
+                       const MAX_WIDTH = 500; // Limit width to 500px for speed
+                       const scale = MAX_WIDTH / video.videoWidth;
+                       canvas.width = MAX_WIDTH;
+                       canvas.height = video.videoHeight * scale;
+                       
+                       canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+                       const imageBase64 = canvas.toDataURL('image/jpeg', 0.8);
+
+                       // 2. Send to Server
+                       btnText.innerText = 'Đang gửi AI (Python)...';
+                       const res = await fetch('/api/qr/confirm', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ ticketId: ${ticket.id}, image: imageBase64 })
+                       });
+                       const data = await res.json();
+                       
+                       if (data.success) {
+                           logToServer('DeepFace Verified Success!', 'SUCCESS');
+                           showSuccess();
+                           break; // STOP LOOP
+                       } else {
+                           // Failed match
+                           logToServer('DeepFace: Không khớp', 'WARN');
+                           btnText.innerText = 'Không khớp. Thử lại...';
+                           // Continue loop
+                       }
+
+                   } catch (e) {
+                       console.error(e);
+                       // 400 Bad Request usually means prediction failed
+                   }
+                   
+                   // Wait 2 seconds before next try
+                   await new Promise(r => setTimeout(r, 2000));
                 }
-              }
             }
-
-            let consecutiveMatches = 0;
-            const REQUIRED_MATCHES = 10; // Cần 10 khung hình khớp liên tiếp (~1-2 giây)
             
-            async function detectLoop() {
-              const video = document.getElementById('live-video');
-              const btn = document.getElementById('btn-verify');
-              if (!stream) return;
-
-              // Check if video is playing
-              if (video.paused || video.ended || !faceapi.nets.ssdMobilenetv1.params) {
-                 return setTimeout(() => detectLoop(), 100);
-              }
-              
-              // Detect face in video
-              const detection = await faceapi.detectSingleFace(video).withFaceLandmarks().withFaceDescriptor();
-              
-              if (detection) {
-                 if (!registeredDescriptor) {
-                    logToServer('WARN: Chưa có ảnh đăng ký', 'WARN');
-                    return;
+            function showSuccess() {
+                // STOP STREAM
+                 if (stream) {
+                   stream.getTracks().forEach(track => track.stop());
+                   stream = null;
                  }
-
-                 const distance = faceapi.euclideanDistance(registeredDescriptor, detection.descriptor);
                  
-                  // Stricter Threshold: 0.5 (Default is 0.6)
-                 if (distance < 0.5) {
-                    consecutiveMatches++;
-                    const percent = Math.round((1 - distance) * 100);
-                    
-                    // UI Feedback for progress
-                    document.getElementById('btn-text').innerText = 'Đang xác thực... ' + (consecutiveMatches*10) + '%';
-                    btn.style.background = 'linear-gradient(90deg, #4caf50 ' + (consecutiveMatches*10) + '%, #f57c00 ' + (consecutiveMatches*10) + '%)';
-
-                    if (consecutiveMatches >= REQUIRED_MATCHES) {
-                        logToServer('Xác thực THÀNH CÔNG! Độ lệch: ' + distance.toFixed(4) + ' (' + percent + '%)', 'SUCCESS');
-                        // NEW MESSAGE HERE
-                        showResult(true, '✅ XÁC THỰC THÀNH CÔNG! Chúc bạn có chuyến đi vui vẻ! 🚌');
-                        // CALL CONFIRM API
-                        confirmBoarding();
-                        
-                        // Show Full Screen Success Modal
+                 document.getElementById('btn-verify').style.display = 'none';
+                 
+                 // Show Full Screen Success Modal
                         const modal = document.createElement('div');
-                        modal.id = 'success-modal'; // Assign ID
+                        modal.id = 'success-modal';
                         modal.style.position = 'fixed';
                         modal.style.top = '0';
                         modal.style.left = '0';
@@ -410,58 +402,10 @@ export class QrController {
                             '</div>' +
                             '<style>@keyframes popIn { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }</style>';
                         document.body.appendChild(modal);
-
-                        return; // Stop loop
-                    }
-                 } else {
-                    consecutiveMatches = 0; // Reset if any frame fails
-                    document.getElementById('btn-text').innerText = 'Đang soi... Giữ nguyên nhé!';
-                    btn.style.background = '#f57c00';
-                 }
-                 
-                 setTimeout(() => detectLoop(), 100);
-              } else {
-                 consecutiveMatches = 0;
-                 document.getElementById('btn-text').innerText = 'Không thấy mặt...';
-                 setTimeout(() => detectLoop(), 100);
-              }
-            }
-
-            function showResult(isMatch, text) {
-              const msg = document.getElementById('result-message');
-              const img = document.getElementById('registered-img');
-              const lock = document.getElementById('lock-icon');
-              const btn = document.getElementById('btn-verify');
-              
-              msg.innerText = text;
-              msg.style.display = 'block';
-              msg.style.color = isMatch ? '#2e7d32' : '#c62828';
-
-              if (isMatch) {
-                // Reveal image
-                if (img) img.style.filter = 'none';
-                if (lock) lock.style.display = 'none';
-                
-                // Stop camera
-                if (stream) {
-                  stream.getTracks().forEach(track => track.stop());
-                  stream = null;
-                }
-                btn.style.display = 'none'; // Hide button on success
-              } else {
-                 // Stop camera ? Only if definitive fail? 
-                 // For now let's stop for simple UX flow
-                 if (stream) {
-                   stream.getTracks().forEach(track => track.stop());
-                   stream = null;
-                 }
-                 document.getElementById('btn-text').innerText = 'Thử lại';
-                 btn.style.background = '#1976d2';
-              }
             }
 
             // Init
-            window.onload = loadModels;
+            window.onload = startCamera;
           </script>
           
           <div class="footer">

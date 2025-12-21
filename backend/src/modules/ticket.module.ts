@@ -1,12 +1,12 @@
-// src/modules/ticket.module.ts
 import { Module, forwardRef } from '@nestjs/common';
+import { HttpModule } from '@nestjs/axios';
 import { BullModule } from '@nestjs/bull';
 import { TicketService } from '../services/ticket.service';
 import { TicketRepository } from '../repositories/ticket.repository';
 import { PrismaService } from '../services/prisma.service';
 import { TicketProcessor } from '../queues/ticket.processor';
 import { TicketController } from '../controllers/ticket.controller';
-import { QrController } from '../controllers/qr.controller'; // THÊM DÒNG NÀY
+import { QrController } from '../controllers/qr.controller';
 import { MomoService } from '../services/momo.service';
 import { EmailService } from '../services/email.service';
 import { QrService } from '../services/qr.service';
@@ -18,10 +18,11 @@ import { ZaloPayModule } from './zalopay.module';
     BullModule.registerQueue({
       name: 'ticket',
     }),
+    HttpModule,
     forwardRef(() => ZaloPayModule),
-    NotificationModule, // Include imported module
+    NotificationModule,
   ],
-  controllers: [TicketController, QrController], // THÊM QrController
+  controllers: [TicketController, QrController],
   providers: [
     TicketService,
     TicketRepository,
