@@ -81,3 +81,12 @@ class UpdateUserEvent extends AuthEvent {
   @override
   List<Object?> get props => [name, phone, dob, gender, avatarPath];
 }
+
+class UpdateFaceAuthEvent extends AuthEvent {
+  final String facePath;
+
+  const UpdateFaceAuthEvent(this.facePath);
+
+  @override
+  List<Object?> get props => [facePath];
+}

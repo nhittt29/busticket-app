@@ -78,6 +78,7 @@ export class UserRepository {
       isActive?: boolean;
       roleId?: number;
       avatar?: string;
+      faceUrl?: string;
       dob?: Date;
       gender?: 'MALE' | 'FEMALE' | 'OTHER';
     }>,

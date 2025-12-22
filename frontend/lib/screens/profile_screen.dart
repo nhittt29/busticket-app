@@ -7,6 +7,7 @@ import '../bloc/home/home_state.dart';
 import '../bloc/home/home_event.dart';
 import 'my_reviews_screen.dart';
 import 'profile_detail_screen.dart';
+import 'face_registration_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -177,6 +178,20 @@ class ProfileScreen extends StatelessWidget {
                     ),
 
                     const SizedBox(height: 30),
+
+                    _buildSectionHeader("Bảo mật & Xác thực"),
+                    _buildMenuItem(
+                      icon: Icons.face_retouching_natural,
+                      label: "Đăng ký khuôn mặt (Face ID)",
+                      onTap: () {
+                         Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => FaceRegistrationScreen(user: state.user),
+                          ),
+                        );
+                      },
+                    ),
 
                     _buildSectionHeader("Thông tin thành viên"),
                     _buildMenuItem(

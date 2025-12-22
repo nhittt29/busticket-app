@@ -20,6 +20,7 @@ import { MomoService } from './momo.service';
 import { EmailService } from './email.service';
 import { QrService } from './qr.service';
 import { ZaloPayService } from './zalopay.service';
+import { VnPayService } from './vnpay.service';
 import {
   CreateResponse,
   BulkCreateResponse,
@@ -36,6 +37,7 @@ export class TicketService {
     private readonly momoService: MomoService,
     private readonly emailService: EmailService,
     private readonly qrService: QrService,
+    private readonly vnpayService: VnPayService,
     @Inject(forwardRef(() => ZaloPayService)) private readonly zaloPayService: ZaloPayService,
     @InjectQueue('ticket') private readonly ticketQueue: Queue,
   ) { }
@@ -160,6 +162,14 @@ export class TicketService {
         console.log('ZALOPAY ORDER FAILED:', res);
         throw new BadRequestException(`ZaloPay Error: ${res.return_message}`);
       }
+    } else if (paymentMethod === AppPaymentMethod.VNPAY) {
+      paymentResponse = {
+        payUrl: this.vnpayService.createPaymentUrl(
+          paymentGroup.id,
+          totalAmount,
+          '127.0.0.1'
+        )
+      };
     } else {
       paymentResponse = await this.momoService.createPayment(
         paymentGroup.id,
@@ -324,6 +334,14 @@ export class TicketService {
         console.log('ZALOPAY ORDER FAILED:', res);
         throw new BadRequestException(`ZaloPay Error: ${res.return_message} (Code: ${res.return_code}, SubCode: ${res.sub_return_code})`);
       }
+    } else if (dtos[0].paymentMethod === AppPaymentMethod.VNPAY) {
+      paymentResponse = {
+        payUrl: this.vnpayService.createPaymentUrl(
+          paymentGroup.id,
+          calculatedTotal,
+          '127.0.0.1'
+        )
+      };
     } else {
       paymentResponse = await this.momoService.createPayment(
         paymentGroup.id,
@@ -435,7 +453,8 @@ export class TicketService {
     if (diffHours < 1)
       throw new BadRequestException('Chỉ được thanh toán trước 1 giờ khởi hành');
 
-    const qrCodeUrl = await this.qrService.generateSecureTicketQR(paymentHistoryId);
+    // FIX: Generate QR for the Ticket ID, not PaymentHistory ID
+    const qrCodeUrl = await this.qrService.generateSecureTicketQR(firstTicket.id);
 
     await this.prism.paymentHistory.update({
       where: { id: paymentHistoryId },

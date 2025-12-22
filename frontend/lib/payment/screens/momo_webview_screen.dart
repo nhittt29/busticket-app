@@ -3,7 +3,8 @@ import 'package:webview_flutter/webview_flutter.dart';
 
 class MomoWebViewScreen extends StatefulWidget {
   final String paymentUrl;
-  const MomoWebViewScreen({super.key, required this.paymentUrl});
+  final String? title;
+  const MomoWebViewScreen({super.key, required this.paymentUrl, this.title});
 
   @override
   State<MomoWebViewScreen> createState() => _MomoWebViewScreenState();
@@ -45,7 +46,7 @@ class _MomoWebViewScreenState extends State<MomoWebViewScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Thanh toán MoMo'),
+        title: Text(widget.title ?? 'Thanh toán MoMo'),
         centerTitle: true,
         backgroundColor: const Color(0xFFD82D8B), // MoMo pink color
         foregroundColor: Colors.white,

@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bull';
 import { ScheduleModule as NestScheduleModule } from '@nestjs/schedule';
+import { ConfigModule } from '@nestjs/config';
 
 import { AuthController } from './controllers/auth.controller';
 import { AuthService } from './services/auth.service';
@@ -22,9 +23,13 @@ import { ReviewsModule } from './modules/reviews.module';
 import { PromotionsModule } from './modules/promotions.module';
 import { StatsModule } from './stats/stats.module';
 import { ZaloPayModule } from './modules/zalopay.module';
+import { NotificationModule } from './modules/notification.module';
+import { VnPayModule } from './modules/vnpay.module';
 
 @Module({
   imports: [
+    NotificationModule,
+    ConfigModule.forRoot({ isGlobal: true }),
     // Kết nối Redis cho tất cả Bull queues
     BullModule.forRoot({
       redis: {
@@ -54,6 +59,7 @@ import { ZaloPayModule } from './modules/zalopay.module';
     PromotionsModule,
     StatsModule,
     ZaloPayModule,
+    VnPayModule,
   ],
   controllers: [AuthController],
   providers: [AuthService, PrismaService, UserRepository],

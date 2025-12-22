@@ -1,7 +1,7 @@
 // lib/payment/cubit/payment_state.dart
 import 'package:equatable/equatable.dart';
 
-enum PaymentMethod { momo, cash, zalopay }
+enum PaymentMethod { momo, cash, zalopay, vnpay }
 
 sealed class PaymentState extends Equatable {
   const PaymentState();

@@ -22,6 +22,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<LoadUserEvent>(_onLoadUser);
     on<LogoutEvent>(_onLogout);
     on<UpdateUserEvent>(_onUpdateUser);
+    on<UpdateFaceAuthEvent>(_onUpdateFaceAuth);
   }
 
   Future<void> _onLogin(LoginEvent event, Emitter<AuthState> emit) async {
@@ -294,5 +295,64 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       ));
     }
     logger.i('State after _onUpdateUser: isLoading=${state.isLoading}, success=${state.success}, user=${state.user}');
+  }
+
+  Future<void> _onUpdateFaceAuth(UpdateFaceAuthEvent event, Emitter<AuthState> emit) async {
+    emit(state.copyWith(isLoading: true, success: false, error: null));
+    logger.i('Starting _onUpdateFaceAuth with event: $event');
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final idToken = prefs.getString('idToken');
+      final user = state.user;
+      
+      if (idToken == null || user == null) {
+        throw Exception('Không tìm thấy token hoặc thông tin người dùng');
+      }
+
+      var uri = Uri.parse('http://10.0.2.2:3000/api/auth/update-face-auth');
+      var request = http.MultipartRequest('PUT', uri);
+      request.headers['Authorization'] = 'Bearer $idToken';
+
+      final file = File(event.facePath);
+      if (await file.exists()) {
+        final mimeType = lookupMimeType(file.path) ?? 'image/*';
+        request.files.add(await http.MultipartFile.fromPath(
+          'faceImage',
+          file.path,
+          contentType: MediaType.parse(mimeType),
+        ));
+      } else {
+        throw Exception('File ảnh không tồn tại');
+      }
+
+      final response = await request.send();
+      final body = await response.stream.bytesToString();
+      logger.i('Response status: ${response.statusCode}, body: $body');
+
+      if (response.statusCode == 200) {
+        final updatedUser = jsonDecode(body);
+        // Helper update urls
+        if (updatedUser['avatar'] != null && !updatedUser['avatar'].toString().startsWith('http')) {
+           updatedUser['avatar'] = 'http://10.0.2.2:3000/${updatedUser['avatar']}';
+        }
+        await prefs.setString('user', jsonEncode(updatedUser));
+        
+        emit(state.copyWith(
+          isLoading: false,
+          success: true,
+          message: 'Đăng ký khuôn mặt thành công',
+          user: updatedUser,
+        ));
+      } else {
+        throw Exception('Đăng ký thất bại: ${jsonDecode(body)['message'] ?? body}');
+      }
+    } catch (e) {
+      logger.e('Error in _onUpdateFaceAuth: $e');
+      emit(state.copyWith(
+        isLoading: false,
+        success: false,
+        error: e.toString(),
+      ));
+    }
   }
 }

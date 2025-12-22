@@ -16,11 +16,13 @@ model User {
   dob       DateTime? @default(dbgenerated("'1970-01-01'::date"))
   gender    String?   @default("OTHER")
   avatar    String?
+  faceUrl   String?   // URL ảnh khuôn mặt dùng cho xác thực FaceID
   isActive  Boolean   @default(true)
   role      Role      @relation(fields: [roleId], references: [id])
   roleId    Int
   tickets   Ticket[]
   reviews   Review[]
+  notifications Notification[]
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   @@index([roleId])
@@ -290,4 +292,20 @@ enum PaymentMethod {
   CREDIT_CARD
   MOMO
   ZALOPAY
+  VNPAY
+}
+
+model Notification {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
+  title     String
+  message   String
+  type      String   @default("SYSTEM")
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([userId])
+  @@index([createdAt])
 }

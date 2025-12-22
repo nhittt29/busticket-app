@@ -156,6 +156,15 @@ class BookingCubit extends Cubit<BookingState> {
          selected.removeWhere((s) => s.id == seat.id);
       }
     } else {
+      if (selected.length >= 8) {
+        emit(state.copyWith(error: 'Bạn chỉ được đặt tối đa 8 vé/ngày'));
+        // Clear error after 2s
+        Future.delayed(const Duration(seconds: 2), () {
+           if (!isClosed) emit(state.copyWith(error: null));
+        });
+        return;
+      }
+      
       if (SeatLogic.wouldCreateOrphan(seat, state.seats, selected, isCoach45: isSeat45, isCoach28: isSeat28)) {
         // THAY ĐỔI: Không hiện SnackBar lỗi nữa, mà báo hiệu ghế này bị invalid (hiện X)
         emit(state.copyWith(invalidSeatId: seat.id));
