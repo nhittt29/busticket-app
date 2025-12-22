@@ -25,9 +25,11 @@ import { StatsModule } from './stats/stats.module';
 import { ZaloPayModule } from './modules/zalopay.module';
 import { NotificationModule } from './modules/notification.module';
 import { VnPayModule } from './modules/vnpay.module';
+import { AiModule } from './modules/ai.module';
 
 @Module({
   imports: [
+    AiModule,
     NotificationModule,
     ConfigModule.forRoot({ isGlobal: true }),
     // Kết nối Redis cho tất cả Bull queues

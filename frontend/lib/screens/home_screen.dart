@@ -26,6 +26,8 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
+  bool _showChatIcon = true;
+  Offset _fabOffset = const Offset(300, 600); // Vị trí mặc định
   
   @override
   void initState() {
@@ -164,55 +166,114 @@ class _HomeScreenState extends State<HomeScreen> {
           preferredSize: const Size.fromHeight(60),
           child: _buildCustomAppBar(),
         ),
-        body: BlocBuilder<HomeBloc, HomeState>(
-          builder: (context, state) {
-            if (state.loading && state.user == null) {
-              return const Center(child: CircularProgressIndicator());
-            }
+        body: Stack(
+          children: [
+            BlocBuilder<HomeBloc, HomeState>(
+              builder: (context, state) {
+                if (state.loading && state.user == null) {
+                  return const Center(child: CircularProgressIndicator());
+                }
 
-            return RefreshIndicator(
-              onRefresh: () async {
-                 context.read<HomeBloc>().add(LoadHomeDataEvent());
-                 context.read<NotificationBloc>().add(LoadNotificationsEvent());
+                return RefreshIndicator(
+                  onRefresh: () async {
+                     context.read<HomeBloc>().add(LoadHomeDataEvent());
+                     context.read<NotificationBloc>().add(LoadNotificationsEvent());
+                  },
+                  child: SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.only(bottom: 80),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // 1. CHUYẾN ĐI SẮP TỚI (NẾU CÓ)
+                        if (state.upcomingTrip != null)
+                          _buildUpcomingTripCard(state.upcomingTrip!),
+
+                        // 2. KHUYẾN MÃI HOT
+                        if (state.promotions != null && state.promotions!.isNotEmpty)
+                          _buildPromotionSection(state.promotions!),
+
+                        // 3. TÌM KIẾM
+                        _buildSearchSection(),
+
+                        // 4. CHỨC NĂNG NHANH (Grid gọn gàng hơn)
+                        const Padding(
+                          padding: EdgeInsets.fromLTRB(16, 24, 16, 12),
+                          child: Text("Tiện ích", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87)),
+                        ),
+                        _buildFeatureGrid(),
+
+                        // 5. ĐIỂM ĐẾN PHỔ BIẾN
+                        const Padding(
+                          padding: EdgeInsets.fromLTRB(16, 24, 16, 12),
+                          child: Text("Điểm đến hàng đầu", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87)),
+                        ),
+                        _buildPopularDestinations(),
+                      ],
+                    ),
+                  ),
+                );
               },
-              child: SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.only(bottom: 30),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // 1. CHUYẾN ĐI SẮP TỚI (NẾU CÓ)
-                    if (state.upcomingTrip != null)
-                      _buildUpcomingTripCard(state.upcomingTrip!),
+            ),
 
-                    // 2. KHUYẾN MÃI HOT
-                    if (state.promotions != null && state.promotions!.isNotEmpty)
-                      _buildPromotionSection(state.promotions!),
-
-                    // 3. TÌM KIẾM
-                    _buildSearchSection(),
-
-                    // 4. CHỨC NĂNG NHANH (Grid gọn gàng hơn)
-                    const Padding(
-                      padding: EdgeInsets.fromLTRB(16, 24, 16, 12),
-                      child: Text("Tiện ích", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87)),
-                    ),
-                    _buildFeatureGrid(),
-
-                    // 5. ĐIỂM ĐẾN PHỔ BIẾN
-                    const Padding(
-                      padding: EdgeInsets.fromLTRB(16, 24, 16, 12),
-                      child: Text("Điểm đến hàng đầu", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87)),
-                    ),
-                    _buildPopularDestinations(),
-                  ],
+            // DRAGGABLE CHAT ICON
+            if (_showChatIcon)
+              Positioned(
+                left: _fabOffset.dx,
+                top: _fabOffset.dy,
+                child: Draggable(
+                  feedback: _buildChatFab(isDragging: true),
+                  childWhenDragging: Container(),
+                  onDraggableCanceled: (Velocity velocity, Offset offset) {
+                    setState(() {
+                      double newTop = offset.dy - 80;
+                      double newLeft = offset.dx;
+                      if (newTop < 0) newTop = 0;
+                      if (newLeft < 0) newLeft = 0;
+                      if (newLeft > MediaQuery.of(context).size.width - 60) newLeft = MediaQuery.of(context).size.width - 60;
+                      if (newTop > MediaQuery.of(context).size.height - 150) newTop = MediaQuery.of(context).size.height - 150;
+                      _fabOffset = Offset(newLeft, newTop);
+                    });
+                  },
+                  child: _buildChatFab(),
                 ),
               ),
-            );
-          },
+          ],
         ),
         bottomNavigationBar: _buildBottomNavBar(),
       ),
+    );
+  }
+
+  Widget _buildChatFab({bool isDragging = false}) {
+    return Stack(
+      children: [
+        FloatingActionButton(
+          heroTag: 'chatBtn',
+          backgroundColor: const Color(0xFF1976D2).withOpacity(isDragging ? 0.7 : 1.0),
+          onPressed: () {
+            Navigator.pushNamed(context, '/chat');
+          },
+          child: const Icon(Icons.support_agent, color: Colors.white, size: 30),
+        ),
+        Positioned(
+          right: 0,
+          top: 0,
+          child: GestureDetector(
+            onTap: () {
+               setState(() => _showChatIcon = false);
+            },
+            child: Container(
+              padding: const EdgeInsets.all(2),
+              decoration: const BoxDecoration(
+                color: Colors.red,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.close, color: Colors.white, size: 12),
+            ),
+          ),
+        )
+      ],
     );
   }
 
@@ -543,7 +604,8 @@ class _HomeScreenState extends State<HomeScreen> {
     final List<Map<String, dynamic>> features = [
       {"icon": Icons.search, "label": "Tìm chuyến", "route": "/search-trips", "color": Colors.blue},
       {"icon": Icons.confirmation_number, "label": "Vé của tôi", "route": "/my-tickets", "color": Colors.orange},
-      {"icon": Icons.history, "label": "Lịch sử", "route": "/search-history", "color": Colors.green},
+      // Thêm nút mở lại Chatbot
+      {"icon": Icons.support_agent, "label": "Trợ lý ảo", "action": "open_chat", "color": Colors.pinkAccent},
       {"icon": Icons.explore, "label": "Khám phá", "route": "/explore-trips", "color": Colors.purple},
     ];
 
@@ -558,7 +620,18 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildFeatureItem(Map<String, dynamic> item) {
      return GestureDetector(
-        onTap: () => Navigator.pushNamed(context, item['route']),
+        onTap: () {
+          if (item.containsKey('route')) {
+            Navigator.pushNamed(context, item['route']);
+          } else if (item['action'] == 'open_chat') {
+            setState(() {
+              _showChatIcon = true;
+              _fabOffset = const Offset(300, 500); // Reset position
+            });
+            // Có thể tự mở chat luôn nếu muốn
+             Navigator.pushNamed(context, '/chat');
+          }
+        },
         child: Column(
            children: [
               Container(

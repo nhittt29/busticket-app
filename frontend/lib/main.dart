@@ -34,6 +34,7 @@ import 'payment/screens/payment_success_screen.dart';
 import 'payment/services/deep_link_service.dart';
 import 'theme/app_theme.dart';
 import 'services/reminder_service.dart';
+import 'ai_chat/screens/chat_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -151,6 +152,7 @@ class MyApp extends StatelessWidget {
                  }
                  return PaymentSuccessScreen(paymentHistoryId: args);
               },
+              '/chat': (context) => const ChatScreen(),
             },
             onUnknownRoute: (settings) => MaterialPageRoute(
               builder: (context) => Scaffold(
