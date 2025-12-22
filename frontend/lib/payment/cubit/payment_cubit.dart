@@ -147,6 +147,13 @@ class PaymentCubit extends Cubit<PaymentState> {
           paymentHistoryId: paymentHistoryId,
           method: PaymentMethod.zalopay,
         ));
+      } else if (currentMethod == PaymentMethod.vnpay && momoUrl != null && momoUrl.isNotEmpty) {
+        emit(PaymentSuccess(
+          ticketId: data['tickets'][0]['id'] as int,
+          momoPayUrl: momoUrl,
+          paymentHistoryId: paymentHistoryId,
+          method: PaymentMethod.vnpay,
+        ));
       } else {
         emit(PaymentSuccess(
           ticketId: data['tickets'][0]['id'] as int,

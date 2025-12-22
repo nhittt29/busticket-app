@@ -354,6 +354,14 @@ class PaymentScreen extends StatelessWidget {
                             isSelected: method == PaymentMethod.zalopay,
                             onTap: () => context.read<PaymentCubit>().selectMethod(PaymentMethod.zalopay),
                           ),
+                          const SizedBox(height: 14),
+
+                          PaymentMethodTile(
+                            assetPath: 'assets/images/vnpay.png',
+                            title: 'Ví VNPAY',
+                            isSelected: method == PaymentMethod.vnpay,
+                            onTap: () => context.read<PaymentCubit>().selectMethod(PaymentMethod.vnpay),
+                          ),
                         ],
                       );
                     },
@@ -404,6 +412,20 @@ class PaymentScreen extends StatelessWidget {
                       // Nếu trả về true (thanh toán thành công & redirect đúng)
                       if (!context.mounted) return;
                       if (result == true) {
+                         Navigator.pushReplacementNamed(context, '/payment-success', arguments: state.paymentHistoryId);
+                      }
+                    });
+                  } else if (state.method == PaymentMethod.vnpay && state.momoPayUrl != null) {
+                    // VNPAY
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => MomoWebViewScreen(paymentUrl: state.momoPayUrl!, title: 'Thanh toán VNPAY'),
+                      ),
+                    ).then((result) {
+                      if (!context.mounted) return;
+                      // VNPAY redirect return handling
+                      if (result == true) { // Assuming WebView returns true on success redirect
                          Navigator.pushReplacementNamed(context, '/payment-success', arguments: state.paymentHistoryId);
                       }
                     });

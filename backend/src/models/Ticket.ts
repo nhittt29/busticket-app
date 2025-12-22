@@ -16,6 +16,7 @@ export enum PaymentMethod {
   CREDIT_CARD = 'CREDIT_CARD',
   MOMO = 'MOMO',
   ZALOPAY = 'ZALOPAY',
+  VNPAY = 'VNPAY',
 }
 
 export interface Ticket {

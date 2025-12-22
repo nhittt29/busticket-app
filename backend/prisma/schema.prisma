@@ -292,6 +292,7 @@ enum PaymentMethod {
   CREDIT_CARD
   MOMO
   ZALOPAY
+  VNPAY
 }
 
 model Notification {

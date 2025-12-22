@@ -12,6 +12,7 @@ import { EmailService } from '../services/email.service';
 import { QrService } from '../services/qr.service';
 import { NotificationModule } from './notification.module';
 import { ZaloPayModule } from './zalopay.module';
+import { VnPayModule } from './vnpay.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { ZaloPayModule } from './zalopay.module';
     HttpModule,
     forwardRef(() => ZaloPayModule),
     NotificationModule,
+    forwardRef(() => VnPayModule),
   ],
   controllers: [TicketController, QrController],
   providers: [

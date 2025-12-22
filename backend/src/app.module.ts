@@ -24,6 +24,7 @@ import { PromotionsModule } from './modules/promotions.module';
 import { StatsModule } from './stats/stats.module';
 import { ZaloPayModule } from './modules/zalopay.module';
 import { NotificationModule } from './modules/notification.module';
+import { VnPayModule } from './modules/vnpay.module';
 
 @Module({
   imports: [
@@ -58,6 +59,7 @@ import { NotificationModule } from './modules/notification.module';
     PromotionsModule,
     StatsModule,
     ZaloPayModule,
+    VnPayModule,
   ],
   controllers: [AuthController],
   providers: [AuthService, PrismaService, UserRepository],
