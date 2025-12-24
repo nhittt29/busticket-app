@@ -39,7 +39,8 @@ class BookingApiService {
         debugPrint('RESPONSE: ${response.statusCode} - ${response.body}');
       }
       if (response.statusCode == 200) {
-        final List<dynamic> data = jsonDecode(response.body);
+        final Map<String, dynamic> jsonResponse = jsonDecode(response.body);
+        final List<dynamic> data = jsonResponse['data'] ?? [];
         final trips = data.map((json) => Trip.fromJson(json)).toList();
 
         final now = DateTime.now();
