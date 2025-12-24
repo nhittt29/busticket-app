@@ -27,6 +27,10 @@ class BookingState extends Equatable {
   final Promotion? selectedPromotion;
   final double discountAmount;
   final int? invalidSeatId; // ID ghế gây lỗi (ghế lẻ) để hiển thị effect X
+  
+  final int page;
+  final bool hasReachedMax;
+
 
   final List<RouteModel> routes; // FULL LIST OF ROUTES
   final List<String> locations; // Keeping this for now or removing? User wants specific logic. Let's keep routes as source of truth.
@@ -55,7 +59,10 @@ class BookingState extends Equatable {
     this.dropoffDiscount = 0.0,
     this.surchargeReason,
     this.invalidSeatId,
+    this.page = 1,
+    this.hasReachedMax = false,
   });
+
 
   final String? surchargeReason;
   final double dropoffDiscount;
@@ -83,7 +90,10 @@ class BookingState extends Equatable {
         dropoffDiscount: 0.0,
         surchargeReason: null,
         invalidSeatId: null,
+        page: 1,
+        hasReachedMax: false,
       );
+
 
   BookingState copyWith({
     List<RouteModel>? routes,
@@ -111,7 +121,10 @@ class BookingState extends Equatable {
     String? surchargeReason,
     int? invalidSeatId,
     bool clearInvalidSeat = false,
+    int? page,
+    bool? hasReachedMax,
   }) {
+
     return BookingState(
       routes: routes ?? this.routes,
       locations: locations ?? this.locations,
@@ -135,7 +148,10 @@ class BookingState extends Equatable {
       dropoffDiscount: dropoffDiscount ?? this.dropoffDiscount,
       surchargeReason: surchargeReason ?? this.surchargeReason,
       invalidSeatId: clearInvalidSeat ? null : (invalidSeatId ?? this.invalidSeatId),
+      page: page ?? this.page,
+      hasReachedMax: hasReachedMax ?? this.hasReachedMax,
     );
+
   }
 
   @override
@@ -162,7 +178,10 @@ class BookingState extends Equatable {
         dropoffDiscount,
         surchargeReason,
         invalidSeatId,
+        page,
+        hasReachedMax,
       ];
+
 }
 
 // MODEL: Chuyến xe

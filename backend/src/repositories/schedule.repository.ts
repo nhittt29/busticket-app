@@ -32,7 +32,13 @@ export class ScheduleRepository {
         brandId?: number;
         dropoffPoint?: string;
         sortBy?: string;
+        page?: number;
+        limit?: number;
     }) {
+        const page = query?.page || 1;
+        const limit = query?.limit || 10;
+        const skip = (page - 1) * limit;
+
         const where: any = { AND: [] };
         const now = new Date();
 
@@ -110,7 +116,7 @@ export class ScheduleRepository {
                 route: {
                     lowestPrice: {
                         gte: query.minPrice || 0,
-                        lte: query.maxPrice || 10000000, // Mặc định max cao nếu không nhập
+                        lte: query.maxPrice || 10000000,
                     },
                 },
             });
@@ -120,7 +126,7 @@ export class ScheduleRepository {
         if (query?.busType) {
             where.AND.push({
                 bus: {
-                    category: query.busType as any, // Cast to any or specific enum if imported
+                    category: query.busType as any,
                 },
             });
         }
@@ -134,7 +140,7 @@ export class ScheduleRepository {
             });
         }
 
-        // 7. Lọc theo Điểm trả (Drop-off Point) - Tìm trong Route EndPoint HOẶC DropoffPoints
+        // 7. Lọc theo Điểm trả (Drop-off Point)
         if (query?.dropoffPoint) {
             where.AND.push({
                 OR: [
@@ -161,7 +167,7 @@ export class ScheduleRepository {
         }
 
         // Xử lý Sắp xếp (Sort)
-        let orderBy: any = { departureAt: 'asc' }; // Mặc định: Giờ đi sớm nhất
+        let orderBy: any = { departureAt: 'asc' };
         if (query?.sortBy) {
             switch (query.sortBy) {
                 case 'price_asc':
@@ -180,35 +186,50 @@ export class ScheduleRepository {
             }
         }
 
-        const schedules = await this.prisma.schedule.findMany({
-            where,
-            include: {
-                bus: {
-                    include: { brand: true },
-                },
-                route: true,
-                dropoffPoints: true,
-                tickets: {
-                    where: {
-                        status: { not: 'CANCELLED' }
+        // Execute queries
+        const [total, schedules] = await Promise.all([
+            this.prisma.schedule.count({ where }),
+            this.prisma.schedule.findMany({
+                where,
+                include: {
+                    bus: {
+                        include: { brand: true },
                     },
-                    select: { id: true } // Optimization: Only select ID to count
-                }
-            },
-            orderBy,
-        });
+                    route: true,
+                    dropoffPoints: true,
+                    tickets: {
+                        where: {
+                            status: { not: 'CANCELLED' }
+                        },
+                        select: { id: true }
+                    }
+                },
+                orderBy,
+                skip,
+                take: Number(limit),
+            }),
+        ]);
 
         // Map outcomes to include availableSeats
-        return schedules.map(schedule => {
+        const data = schedules.map(schedule => {
             const bookedCount = schedule.tickets.length;
             const availableSeats = schedule.bus.seatCount - bookedCount;
-            // Remove huge tickets array from response if not needed, or keep it minimal
             const { tickets, ...rest } = schedule;
             return {
                 ...rest,
                 availableSeats: availableSeats > 0 ? availableSeats : 0,
             };
         });
+
+        return {
+            data,
+            meta: {
+                total,
+                page: Number(page),
+                limit: Number(limit),
+                totalPages: Math.ceil(total / limit),
+            }
+        };
     }
 
     // LẤY TOÀN BỘ CHUYẾN XE (KHÔNG LỌC) - DÀNH RIÊNG CHO ADMIN QUẢN LÝ, BAO GỒM CẢ QUÁ KHỨ VÀ TƯƠNG LAI

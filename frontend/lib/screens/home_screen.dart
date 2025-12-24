@@ -35,6 +35,7 @@ class _HomeScreenState extends State<HomeScreen> {
   late Timer _timer;
   int _currentPage = 0;
   final List<String> _bannerImages = [
+    'assets/banners/banner_promo_book_now.png',
     'assets/banners/banner1.png',
     'assets/banners/banner2.png',
   ];
@@ -593,16 +594,18 @@ class _HomeScreenState extends State<HomeScreen> {
           Positioned(
             bottom: 25,
             right: 16,
-            child: ElevatedButton.icon(
+            child: ElevatedButton(
               onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SearchScreen())),
-              icon: const Icon(Icons.search, size: 20),
-              label: const Text("TÌM VÉ NGAY"),
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFFF6F00), // Cam nổi bật
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                 elevation: 4,
+              ),
+              child: const Text(
+                "ĐẶT VÉ NGAY",
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
               ),
             ),
           ),
@@ -617,7 +620,7 @@ class _HomeScreenState extends State<HomeScreen> {
       {"icon": Icons.confirmation_number, "label": "Vé của tôi", "route": "/my-tickets", "color": Colors.orange},
       // Thêm nút mở lại Chatbot
       {"icon": Icons.support_agent, "label": "Trợ lý ảo", "action": "open_chat", "color": Colors.pinkAccent},
-      {"icon": Icons.explore, "label": "Khám phá", "route": "/explore-trips", "color": Colors.purple},
+      {"icon": Icons.explore, "label": "Lọc theo chuyến đi", "route": "/explore-trips", "color": Colors.purple},
     ];
 
     return Padding(

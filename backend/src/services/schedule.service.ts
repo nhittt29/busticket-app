@@ -24,9 +24,12 @@ export class ScheduleService {
     brandId?: number;
     dropoffPoint?: string;
     sortBy?: string;
+    page?: number;
+    limit?: number;
   }) {
     return this.scheduleRepo.getAllSchedules(query);
   }
+
 
   // LẤY TOÀN BỘ CHUYẾN XE (KHÔNG LỌC) – DÀNH RIÊNG CHO ADMIN QUẢN LÝ, BAO GỒM QUÁ KHỨ VÀ TƯƠNG LAI
   async getAllSchedulesForAdmin() {

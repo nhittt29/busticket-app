@@ -80,7 +80,8 @@ class BookingApiService {
   }
 
   // Lấy tất cả chuyến xe với bộ lọc nâng cao
-  static Future<List<Trip>> fetchAllSchedules({
+  // Lấy tất cả chuyến xe với bộ lọc nâng cao (Có phân trang)
+  static Future<PaginatedTrips> fetchAllSchedules({
     double? minPrice,
     double? maxPrice,
     String? startTime,
@@ -89,8 +90,13 @@ class BookingApiService {
     int? brandId,
     String? dropoffPoint,
     String? sortBy,
+    int page = 1,
+    int limit = 10,
   }) async {
-    final queryParams = <String, String>{};
+    final queryParams = <String, String>{
+      'page': page.toString(),
+      'limit': limit.toString(),
+    };
     if (minPrice != null) queryParams['minPrice'] = minPrice.toString();
     if (maxPrice != null) queryParams['maxPrice'] = maxPrice.toString();
     if (startTime != null) queryParams['startTime'] = startTime;
@@ -109,12 +115,17 @@ class BookingApiService {
         debugPrint('RESPONSE: ${response.statusCode}');
       }
       if (response.statusCode == 200) {
-        final List<dynamic> data = jsonDecode(response.body);
+        final Map<String, dynamic> jsonResponse = jsonDecode(response.body);
+        final List<dynamic> data = jsonResponse['data'];
+        final Map<String, dynamic>? meta = jsonResponse['meta'];
+        final int total = (meta?['total'] as int?) ?? 0;
+        final int page = (meta?['page'] as int?) ?? 1;
+        final int limit = (meta?['limit'] as int?) ?? 10;
+
         final trips = data.map((json) => Trip.fromJson(json)).toList();
         
-        // Map to Trip model logic (similar to searchTrips)
         final now = DateTime.now();
-        return trips.map((trip) {
+        final mappedTrips = trips.map((trip) {
           final departureUtc = DateTime.parse(trip.departure).toLocal();
           final arrivalUtc = DateTime.parse(trip.arrival).toLocal();
           final timeLeft = departureUtc.difference(now);
@@ -139,6 +150,13 @@ class BookingApiService {
             endPoint: trip.endPoint,
           );
         }).toList();
+
+        return PaginatedTrips(
+          trips: mappedTrips,
+          total: total,
+          page: page,
+          limit: limit,
+        );
       } else {
         throw Exception('Lỗi tải danh sách chuyến: ${response.body}');
       }
@@ -146,6 +164,7 @@ class BookingApiService {
       throw Exception('Lỗi kết nối: $e');
     }
   }
+
 
   // Lấy danh sách ghế theo lịch trình
   static Future<List<Seat>> getSeats(int scheduleId) async {
@@ -189,4 +208,18 @@ class BookingApiService {
       return [];
     }
   }
+}
+
+class PaginatedTrips {
+  final List<Trip> trips;
+  final int total;
+  final int page;
+  final int limit;
+
+  PaginatedTrips({
+    required this.trips,
+    required this.total,
+    required this.page,
+    required this.limit,
+  });
 }

@@ -5,13 +5,10 @@ import '../cubit/booking_cubit.dart';
 import '../cubit/booking_state.dart';
 import '../widgets/trip_card.dart';
 import '../widgets/filter_modal.dart';
+import '../../theme/app_colors.dart';
 
-const Color primaryBlue = Color(0xFF6AB7F5);
-const Color accentBlue = Color(0xFF4A9EFF);
-const Color deepBlue = Color(0xFF1976D2);
-const Color pastelBlue = Color(0xFFA0D8F1);
-const Color backgroundLight = Color(0xFFEAF6FF);
-const Color successGreen = Color(0xFF4CAF50);
+
+
 
 class ExploreTripsScreen extends StatefulWidget {
   const ExploreTripsScreen({super.key});
@@ -21,10 +18,85 @@ class ExploreTripsScreen extends StatefulWidget {
 }
 
 class _ExploreTripsScreenState extends State<ExploreTripsScreen> {
+  final ScrollController _scrollController = ScrollController();
+
   @override
   void initState() {
     super.initState();
     context.read<BookingCubit>().fetchAllSchedules();
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_isBottom) {
+      context.read<BookingCubit>().fetchAllSchedules(
+        sortBy: _selectedSort, 
+        isLoadMore: true,
+      );
+    }
+  }
+
+  bool get _isBottom {
+    if (!_scrollController.hasClients) return false;
+    final maxScroll = _scrollController.position.maxScrollExtent;
+    final currentScroll = _scrollController.offset;
+    return currentScroll >= (maxScroll * 0.9);
+  }
+
+
+  String _selectedSort = 'price_asc'; // Default sort
+  bool _hasActiveFilters = false;
+
+
+  void _onSortChanged(String sortValue) {
+    if (_selectedSort == sortValue) return;
+    setState(() => _selectedSort = sortValue);
+    context.read<BookingCubit>().fetchAllSchedules(sortBy: sortValue);
+  }
+
+  Widget _buildSortChips() {
+    final options = [
+      {'label': '💰 Giá thấp nhất', 'value': 'price_asc'},
+      {'label': '🕒 Giờ sớm nhất', 'value': 'departure_asc'},
+      {'label': '⭐ Đánh giá cao', 'value': 'averageRating_desc'},
+    ];
+
+    return Container(
+      height: 50,
+      margin: const EdgeInsets.symmetric(vertical: 12),
+      child: ListView.separated(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        scrollDirection: Axis.horizontal,
+        itemCount: options.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        itemBuilder: (context, index) {
+          final option = options[index];
+          final isActive = _selectedSort == option['value'];
+          return ChoiceChip(
+            label: Text(
+              option['label']!,
+              style: TextStyle(
+                color: isActive ? Colors.white : Colors.black87,
+                fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
+              ),
+            ),
+            selected: isActive,
+            selectedColor: AppColors.primaryBlue,
+            backgroundColor: Colors.white,
+            side: BorderSide(
+              color: isActive ? AppColors.primaryBlue : Colors.grey.withAlpha(50),
+            ),
+            onSelected: (_) => _onSortChanged(option['value']!),
+          );
+        },
+      ),
+    );
   }
 
   void _showFilterModal() {
@@ -53,6 +125,16 @@ class _ExploreTripsScreenState extends State<ExploreTripsScreen> {
                 dropoffPoint: dropoffPoint,
                 sortBy: sortBy,
               );
+
+          setState(() {
+            _hasActiveFilters = minPrice != null ||
+                maxPrice != null ||
+                startTime != null ||
+                endTime != null ||
+                busType != null ||
+                brandId != null ||
+                dropoffPoint != null;
+          });
         },
       ),
     );
@@ -61,12 +143,14 @@ class _ExploreTripsScreenState extends State<ExploreTripsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: backgroundLight,
+      backgroundColor: AppColors.backgroundLight,
+
       appBar: AppBar(
         flexibleSpace: Container(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
-              colors: [primaryBlue, accentBlue],
+              colors: [AppColors.primaryBlue, AppColors.accentBlue],
+
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
@@ -79,7 +163,7 @@ class _ExploreTripsScreenState extends State<ExploreTripsScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
-          "Khám phá chuyến xe",
+          "Lọc theo chuyến đi",
           style: TextStyle(
             color: Colors.white,
             fontSize: 23,
@@ -89,20 +173,43 @@ class _ExploreTripsScreenState extends State<ExploreTripsScreen> {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.filter_list_rounded, color: Colors.white, size: 28),
+            icon: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                const Icon(Icons.filter_list_rounded, color: Colors.white, size: 28),
+                if (_hasActiveFilters)
+                  Positioned(
+                    top: -2,
+                    right: -2,
+                    child: Container(
+                      width: 10,
+                      height: 10,
+                      decoration: const BoxDecoration(
+                        color: Colors.red,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
             onPressed: _showFilterModal,
             tooltip: "Lọc chuyến xe",
           ),
         ],
+
       ),
-      body: BlocBuilder<BookingCubit, BookingState>(
-        builder: (context, state) {
-          // Loading
-          if (state.loading) {
-            return const Center(
-              child: CircularProgressIndicator(color: primaryBlue, strokeWidth: 3),
-            );
-          }
+      body: Column(
+        children: [
+          _buildSortChips(),
+          Expanded(
+            child: BlocBuilder<BookingCubit, BookingState>(
+              builder: (context, state) {
+                // Loading
+                if (state.loading) {
+                  return const Center(
+                    child: CircularProgressIndicator(color: AppColors.primaryBlue, strokeWidth: 3),
+                  );
+                }
 
           // Error
           if (state.error != null) {
@@ -130,7 +237,8 @@ class _ExploreTripsScreenState extends State<ExploreTripsScreen> {
                       icon: const Icon(Icons.refresh),
                       label: const Text('Thử lại', style: TextStyle(fontWeight: FontWeight.bold)),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: primaryBlue,
+                        backgroundColor: AppColors.primaryBlue,
+
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -179,18 +287,35 @@ class _ExploreTripsScreenState extends State<ExploreTripsScreen> {
           // Danh sách chuyến xe – ĐẸP, GỌN, CHUYÊN NGHIỆP
           return RefreshIndicator(
             onRefresh: () async => context.read<BookingCubit>().fetchAllSchedules(),
-            color: primaryBlue,
+            color: AppColors.primaryBlue,
+
             child: ListView.builder(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 100), // Đủ không gian cho nút floating nếu có
-              itemCount: state.trips.length,
+              controller: _scrollController,
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 100), 
+              itemCount: state.hasReachedMax 
+                  ? state.trips.length 
+                  : state.trips.length + 1,
               itemBuilder: (context, index) {
+                if (index >= state.trips.length) {
+                   return const Center(
+                     child: Padding(
+                       padding: EdgeInsets.all(16.0),
+                       child: SizedBox(
+                         width: 24, height: 24,
+                         child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primaryBlue),
+                       ),
+                     ),
+                   );
+                }
                 final trip = state.trips[index];
                 return Container(
+
                   margin: const EdgeInsets.only(bottom: 16),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(22),
-                    border: Border.all(color: pastelBlue.withAlpha(120), width: 1.3),
+                    border: Border.all(color: AppColors.pastelBlue.withAlpha(120), width: 1.3),
+
                     boxShadow: [
                       BoxShadow(
                         color: Colors.grey.withAlpha(60),
@@ -211,6 +336,9 @@ class _ExploreTripsScreenState extends State<ExploreTripsScreen> {
             ),
           );
         },
+      ),
+          ),
+        ],
       ),
     );
   }

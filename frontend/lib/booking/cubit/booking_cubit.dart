@@ -61,10 +61,19 @@ class BookingCubit extends Cubit<BookingState> {
     int? brandId,
     String? dropoffPoint,
     String? sortBy,
+    bool isLoadMore = false,
   }) async {
-    emit(state.copyWith(loading: true, error: null));
+    if (isLoadMore && state.hasReachedMax) return;
+
+    final nextPage = isLoadMore ? state.page + 1 : 1;
+    
+    // Only show full loading if fresh load, otherwise handled by isLoadMore UI logic or bottom spinner
+    if (!isLoadMore) {
+      emit(state.copyWith(loading: true, error: null));
+    }
+
     try {
-      final trips = await BookingApiService.fetchAllSchedules(
+      final result = await BookingApiService.fetchAllSchedules(
         minPrice: minPrice,
         maxPrice: maxPrice,
         startTime: startTime,
@@ -73,12 +82,26 @@ class BookingCubit extends Cubit<BookingState> {
         brandId: brandId,
         dropoffPoint: dropoffPoint,
         sortBy: sortBy,
+        page: nextPage,
+        limit: 10, // Fixed limit for now
       );
-      emit(state.copyWith(trips: trips, loading: false));
+
+      final newTrips = result.trips;
+      final total = result.total;
+      final currentTrips = isLoadMore ? state.trips : <Trip>[];
+      final allTrips = List<Trip>.from(currentTrips)..addAll(newTrips);
+
+      emit(state.copyWith(
+        trips: allTrips,
+        loading: false,
+        page: result.page,
+        hasReachedMax: allTrips.length >= total,
+      ));
     } catch (e) {
       emit(state.copyWith(error: e.toString(), loading: false));
     }
   }
+
 
   Future<void> loadSeats(int scheduleId) async {
     emit(state.copyWith(loadingSeats: true, error: null));
