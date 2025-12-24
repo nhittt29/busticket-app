@@ -4,9 +4,29 @@ import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
 import '../cubit/booking_state.dart';
 import '../models/dropoff_point.dart';
+import '../../models/route_model.dart';
 
 class BookingApiService {
   static const String baseUrl = "http://10.0.2.2:3000/api";
+
+  // Lấy danh sách tất cả các tuyến đường (để lấy danh sách địa điểm)
+  static Future<List<RouteModel>> fetchRoutes() async {
+    final url = Uri.parse('$baseUrl/routes');
+    try {
+      final response = await http.get(url);
+      if (kDebugMode) debugPrint('ROUTES URL: $url - Status: ${response.statusCode}');
+      
+      if (response.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(response.body);
+        return data.map((json) => RouteModel.fromJson(json)).toList();
+      } else {
+        throw Exception('Failed to load routes');
+      }
+    } catch (e) {
+      if (kDebugMode) debugPrint('Error fetching routes: $e');
+      return [];
+    }
+  }
 
   // Tìm kiếm chuyến xe
   static Future<List<Trip>> searchTrips(String from, String to, DateTime date) async {

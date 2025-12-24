@@ -23,7 +23,7 @@ CREATE TYPE "ScheduleStatus" AS ENUM ('UPCOMING', 'ONGOING', 'COMPLETED', 'CANCE
 CREATE TYPE "TicketStatus" AS ENUM ('BOOKED', 'PAID', 'CANCELLED');
 
 -- CreateEnum
-CREATE TYPE "PaymentMethod" AS ENUM ('CASH', 'CREDIT_CARD', 'MOMO', 'ZALOPAY');
+CREATE TYPE "PaymentMethod" AS ENUM ('CASH', 'CREDIT_CARD', 'MOMO', 'ZALOPAY', 'VNPAY');
 
 -- CreateTable
 CREATE TABLE "User" (
@@ -35,6 +35,7 @@ CREATE TABLE "User" (
     "dob" TIMESTAMP(3) DEFAULT '1970-01-01'::date,
     "gender" TEXT DEFAULT 'OTHER',
     "avatar" TEXT,
+    "faceUrl" TEXT,
     "isActive" BOOLEAN NOT NULL DEFAULT true,
     "roleId" INTEGER NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -229,6 +230,20 @@ CREATE TABLE "Promotion" (
     CONSTRAINT "Promotion_pkey" PRIMARY KEY ("id")
 );
 
+-- CreateTable
+CREATE TABLE "Notification" (
+    "id" SERIAL NOT NULL,
+    "userId" INTEGER NOT NULL,
+    "title" TEXT NOT NULL,
+    "message" TEXT NOT NULL,
+    "type" TEXT NOT NULL DEFAULT 'SYSTEM',
+    "isRead" BOOLEAN NOT NULL DEFAULT false,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Notification_pkey" PRIMARY KEY ("id")
+);
+
 -- CreateIndex
 CREATE UNIQUE INDEX "User_uid_key" ON "User"("uid");
 
@@ -343,6 +358,12 @@ CREATE INDEX "Promotion_isActive_idx" ON "Promotion"("isActive");
 -- CreateIndex
 CREATE INDEX "Promotion_startDate_endDate_idx" ON "Promotion"("startDate", "endDate");
 
+-- CreateIndex
+CREATE INDEX "Notification_userId_idx" ON "Notification"("userId");
+
+-- CreateIndex
+CREATE INDEX "Notification_createdAt_idx" ON "Notification"("createdAt");
+
 -- AddForeignKey
 ALTER TABLE "User" ADD CONSTRAINT "User_roleId_fkey" FOREIGN KEY ("roleId") REFERENCES "Role"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
@@ -393,3 +414,6 @@ ALTER TABLE "Review" ADD CONSTRAINT "Review_busId_fkey" FOREIGN KEY ("busId") RE
 
 -- AddForeignKey
 ALTER TABLE "Review" ADD CONSTRAINT "Review_ticketId_fkey" FOREIGN KEY ("ticketId") REFERENCES "Ticket"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Notification" ADD CONSTRAINT "Notification_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

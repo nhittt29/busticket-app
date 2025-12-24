@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../services/reminder_service.dart';
+import 'dart:async';
 
 import 'package:intl/intl.dart';
 import '../bloc/home/home_bloc.dart';
@@ -28,6 +29,15 @@ class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
   bool _showChatIcon = true;
   Offset _fabOffset = const Offset(300, 600); // Vị trí mặc định
+  
+  // Banner Slider
+  final PageController _pageController = PageController();
+  late Timer _timer;
+  int _currentPage = 0;
+  final List<String> _bannerImages = [
+    'assets/banners/banner1.png',
+    'assets/banners/banner2.png',
+  ];
   
   @override
   void initState() {
@@ -56,7 +66,31 @@ class _HomeScreenState extends State<HomeScreen> {
           
           Navigator.push(context, MaterialPageRoute(builder: (_) => const MyReviewsScreen()));
         }
+
     });
+    
+    // Auto-scroll Banner
+    _timer = Timer.periodic(const Duration(seconds: 4), (Timer timer) {
+      if (_currentPage < _bannerImages.length - 1) {
+        _currentPage++;
+      } else {
+        _currentPage = 0;
+      }
+      if (_pageController.hasClients) {
+        _pageController.animateToPage(
+          _currentPage,
+          duration: const Duration(milliseconds: 350),
+          curve: Curves.easeIn,
+        );
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer.cancel();
+    _pageController.dispose();
+    super.dispose();
   }
 
   void _onItemTapped(int index) {
@@ -206,8 +240,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         if (state.promotions != null && state.promotions!.isNotEmpty)
                           _buildPromotionSection(state.promotions!),
 
-                        // 3. TÌM KIẾM
-                        _buildSearchSection(),
+                        // 3. BANNER & TÌM KIẾM
+                         _buildBannerSection(),
 
                         // 4. CHỨC NĂNG NHANH (Grid gọn gàng hơn)
                         const Padding(
@@ -508,110 +542,73 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildSearchSection() {
+    Widget _buildBannerSection() {
     return Container(
-      margin: const EdgeInsets.all(16),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            blurRadius: 15,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
-      child: Column(
+      height: 280.h,
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      child: Stack(
         children: [
-          _buildSearchField(icon: Icons.my_location, hint: "Điểm đi (Hà Nội, TP.HCM...)", isTop: true),
-          const Divider(height: 1, thickness: 1),
-           _buildSearchField(icon: Icons.location_on, hint: "Điểm đến (Đà Lạt, Sapa...)"),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-               Expanded(
-                 child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                    decoration: BoxDecoration(
-                       color: Colors.grey[50],
-                       borderRadius: BorderRadius.circular(12),
-                       border: Border.all(color: Colors.grey.shade200),
-                    ),
-                    child: Row(
-                       children: [
-                          const Icon(Icons.calendar_today, size: 18, color: Colors.blue),
-                          const SizedBox(width: 8),
-                          Text("Ngày mai, ${DateFormat('dd/MM').format(DateTime.now().add(const Duration(days: 1)))}", 
-                             style: const TextStyle(fontWeight: FontWeight.w600)),
-                       ],
-                    ),
-                 ),
-               ),
-               const SizedBox(width: 12),
-               ElevatedButton(
-                 onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SearchScreen())),
-                 style: ElevatedButton.styleFrom(
-                   backgroundColor: const Color(0xFF6AB7F5),
-                   foregroundColor: Colors.white,
-                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                   padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-                 ),
-                 child: const Text("TÌM VÉ", style: TextStyle(fontWeight: FontWeight.bold)),
-               ),
-            ],
+          // 1. CAROUSEL
+          ClipRRect(
+            borderRadius: BorderRadius.circular(20),
+            child: PageView.builder(
+              controller: _pageController,
+              itemCount: _bannerImages.length,
+              onPageChanged: (int index) {
+                setState(() => _currentPage = index);
+              },
+              itemBuilder: (context, index) {
+                return Image.asset(
+                  _bannerImages[index],
+                  fit: BoxFit.cover,
+                  width: double.infinity,
+                );
+              },
+            ),
           ),
           
-          // Gợi ý nhanh
-          const SizedBox(height: 16),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
+          // 2. INDICATOR
+          Positioned(
+            bottom: 10,
+            left: 0,
+            right: 0,
             child: Row(
-               children: [
-                  _buildQuickLocChip("Nhà riêng", Icons.home),
-                  _buildQuickLocChip("Cơ quan", Icons.work),
-                  _buildQuickLocChip("Đà Lạt", Icons.favorite),
-                  _buildQuickLocChip("Vũng Tàu", Icons.beach_access),
-               ],
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List.generate(_bannerImages.length, (index) {
+                return AnimatedContainer(
+                  duration: const Duration(milliseconds: 300),
+                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                  height: 8,
+                  width: _currentPage == index ? 24 : 8,
+                  decoration: BoxDecoration(
+                    color: _currentPage == index ? Colors.white : Colors.white54,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                );
+              }),
             ),
-          )
+          ),
+          
+          // 3. FLOATING BOOK BUTTON
+          Positioned(
+            bottom: 25,
+            right: 16,
+            child: ElevatedButton.icon(
+              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SearchScreen())),
+              icon: const Icon(Icons.search, size: 20),
+              label: const Text("TÌM VÉ NGAY"),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFFF6F00), // Cam nổi bật
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                elevation: 4,
+              ),
+            ),
+          ),
         ],
       ),
     );
-  }
-
-  Widget _buildSearchField({required IconData icon, required String hint, bool isTop = false}) {
-     return Padding(
-       padding: const EdgeInsets.symmetric(vertical: 12),
-       child: Row(
-          children: [
-             Icon(icon, color: Colors.grey),
-             const SizedBox(width: 12),
-             Expanded(
-                child: Text(hint, style: const TextStyle(fontSize: 15, color: Colors.black54)),
-             ),
-          ],
-       ),
-     );
-  }
-
-  Widget _buildQuickLocChip(String label, IconData icon) {
-     return Container(
-        margin: const EdgeInsets.only(right: 8),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(
-           color: Colors.grey[100],
-           borderRadius: BorderRadius.circular(20),
-        ),
-        child: Row(
-           children: [
-              Icon(icon, size: 14, color: Colors.grey[700]),
-              const SizedBox(width: 4),
-              Text(label, style: TextStyle(fontSize: 12, color: Colors.grey[800], fontWeight: FontWeight.w500)),
-           ],
-        ),
-     );
   }
 
   Widget _buildFeatureGrid() {

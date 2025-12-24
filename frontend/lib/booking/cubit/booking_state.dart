@@ -2,6 +2,7 @@
 import 'package:equatable/equatable.dart';
 import '../../booking/models/dropoff_point.dart';
 import '../../promotions/models/promotion.dart';
+import '../../models/route_model.dart';
 
 class BookingState extends Equatable {
   final String from;
@@ -27,7 +28,13 @@ class BookingState extends Equatable {
   final double discountAmount;
   final int? invalidSeatId; // ID ghế gây lỗi (ghế lẻ) để hiển thị effect X
 
+  final List<RouteModel> routes; // FULL LIST OF ROUTES
+  final List<String> locations; // Keeping this for now or removing? User wants specific logic. Let's keep routes as source of truth.
+
+
   const BookingState({
+    required this.routes,
+    required this.locations,
     required this.from,
     required this.to,
     required this.date,
@@ -45,15 +52,17 @@ class BookingState extends Equatable {
     required this.finalTotalPrice,
     this.selectedPromotion,
     this.discountAmount = 0.0,
-    this.dropoffDiscount = 0.0, // Thêm: Giảm giá do điểm trả
+    this.dropoffDiscount = 0.0,
     this.surchargeReason,
     this.invalidSeatId,
   });
 
   final String? surchargeReason;
-  final double dropoffDiscount; // lưu giá trị giảm (số dương)
+  final double dropoffDiscount;
 
   factory BookingState.initial() => BookingState(
+        routes: [],
+        locations: [],
         from: '',
         to: '',
         date: DateTime.now(),
@@ -77,6 +86,8 @@ class BookingState extends Equatable {
       );
 
   BookingState copyWith({
+    List<RouteModel>? routes,
+    List<String>? locations,
     String? from,
     String? to,
     DateTime? date,
@@ -96,25 +107,27 @@ class BookingState extends Equatable {
     double? discountAmount,
     double? dropoffDiscount,
     bool clearPromotion = false,
-    bool clearDropoff = false, // Add clear flag
+    bool clearDropoff = false,
     String? surchargeReason,
     int? invalidSeatId,
     bool clearInvalidSeat = false,
   }) {
     return BookingState(
+      routes: routes ?? this.routes,
+      locations: locations ?? this.locations,
       from: from ?? this.from,
       to: to ?? this.to,
       date: date ?? this.date,
       loading: loading ?? this.loading,
       trips: trips ?? this.trips,
-      error: error, // Allow null to clear error
+      error: error,
       seats: seats ?? this.seats,
       selectedSeats: selectedSeats ?? this.selectedSeats,
       totalPrice: totalPrice ?? this.totalPrice,
       selectedTrip: selectedTrip ?? this.selectedTrip,
       loadingSeats: loadingSeats ?? this.loadingSeats,
-      selectedDropoffPoint: clearDropoff ? null : (selectedDropoffPoint ?? this.selectedDropoffPoint), // Handle clear
-      dropoffAddress: clearDropoff ? null : (dropoffAddress ?? this.dropoffAddress), // Handle clear
+      selectedDropoffPoint: clearDropoff ? null : (selectedDropoffPoint ?? this.selectedDropoffPoint),
+      dropoffAddress: clearDropoff ? null : (dropoffAddress ?? this.dropoffAddress),
       surcharge: surcharge ?? this.surcharge,
       finalTotalPrice: finalTotalPrice ?? this.finalTotalPrice,
       selectedPromotion: clearPromotion ? null : (selectedPromotion ?? this.selectedPromotion),
@@ -127,6 +140,8 @@ class BookingState extends Equatable {
 
   @override
   List<Object?> get props => [
+        routes,
+        locations,
         from,
         to,
         date,

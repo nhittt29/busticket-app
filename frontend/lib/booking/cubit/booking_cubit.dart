@@ -13,6 +13,16 @@ class BookingCubit extends Cubit<BookingState> {
   void updateTo(String to) => emit(state.copyWith(to: to));
   void selectDate(DateTime date) => emit(state.copyWith(date: date));
 
+  Future<void> loadLocations() async {
+    try {
+      final routes = await BookingApiService.fetchRoutes();
+      // Store full routes for context-aware filtering
+      emit(state.copyWith(routes: routes, locations: [])); 
+    } catch (e) {
+      print("Error loading locations: $e");
+    }
+  }
+
   Future<void> searchTrips() async {
     if (state.from.isEmpty || state.to.isEmpty) {
       emit(state.copyWith(error: 'Vui lòng nhập điểm đi và điểm đến'));
@@ -30,7 +40,12 @@ class BookingCubit extends Cubit<BookingState> {
                t.status != 'ONGOING' &&
                t.status != 'COMPLETED';
       }).toList();
-      emit(state.copyWith(trips: filteredTrips, loading: false));
+
+      if (filteredTrips.isEmpty) {
+        emit(state.copyWith(error: 'Không tìm thấy chuyến xe nào phù hợp!', loading: false));
+      } else {
+        emit(state.copyWith(trips: filteredTrips, loading: false));
+      }
     } catch (e) {
       emit(state.copyWith(error: e.toString(), loading: false));
     }

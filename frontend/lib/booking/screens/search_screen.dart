@@ -5,6 +5,7 @@ import '../cubit/booking_cubit.dart';
 import '../cubit/booking_state.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
+import 'location_selection_screen.dart';
 
 const Color primaryBlue = Color(0xFF1976D2);
 const Color primaryGradientStart = Color(0xFF6AB7F5);
@@ -19,17 +20,17 @@ class SearchScreen extends StatefulWidget {
 }
 
 class _SearchScreenState extends State<SearchScreen> {
-  final _fromController = TextEditingController();
-  final _toController = TextEditingController();
+
+
+
+  List<Map<String, dynamic>> _history = [];
 
   @override
   void initState() {
     super.initState();
-    _fromController.addListener(() {
-      context.read<BookingCubit>().updateFrom(_fromController.text);
-    });
-    _toController.addListener(() {
-      context.read<BookingCubit>().updateTo(_toController.text);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+       context.read<BookingCubit>().loadLocations();
+       _loadHistory();
     });
   }
 
@@ -44,9 +45,20 @@ class _SearchScreenState extends State<SearchScreen> {
 
   @override
   void dispose() {
-    _fromController.dispose();
-    _toController.dispose();
+
     super.dispose();
+  }
+
+  Future<void> _loadHistory() async {
+    final prefs = await SharedPreferences.getInstance();
+    final String? historyJson = prefs.getString('search_history');
+    if (historyJson != null) {
+      try {
+        setState(() {
+          _history = List<Map<String, dynamic>>.from(jsonDecode(historyJson));
+        });
+      } catch (_) {}
+    }
   }
 
   Future<void> _saveToHistory(String from, String to, DateTime date) async {
@@ -144,19 +156,131 @@ class _SearchScreenState extends State<SearchScreen> {
 
               return Column(
                 children: [
-                  _buildTextField(
-                    controller: _fromController,
-                    label: 'Từ đâu',
-                    icon: Icons.location_on,
-                    hint: 'Nhập điểm đi (Hà Nội, TP.HCM...)',
-                  ),
-                  const SizedBox(height: 16),
+                  // 1. FROM & TO SELECTION
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                         BoxShadow(
+                            color: Colors.grey.withValues(alpha: 0.1),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                         )
+                      ],
+                      border: Border.all(color: Colors.blue.withValues(alpha: 0.1)),
+                    ),
+                    child: Column(
+                      children: [
+                        // FROM
+                        _buildLocationSelector(
+                          context,
+                          label: 'Điểm đi',
+                          value: state.from.isEmpty ? 'Chọn điểm đi' : state.from,
+                          icon: Icons.my_location,
+                          isPlaceholder: state.from.isEmpty,
+                          onTap: () async {
+                             // 1. Get unique start points
+                             final startPoints = state.routes
+                                 .map((r) => r.startPoint)
+                                 .toSet()
+                                 .toList()..sort();
 
-                  _buildTextField(
-                    controller: _toController,
-                    label: 'Đến đâu',
-                    icon: Icons.location_on_outlined,
-                    hint: 'Nhập điểm đến (Đà Nẵng, Nha Trang...)',
+                             final result = await Navigator.push(
+                               context,
+                               MaterialPageRoute(
+                                 builder: (_) => LocationSelectionScreen(
+                                   title: 'Chọn điểm đi', 
+                                   locations: startPoints, // Pass filtered list
+                                 ),
+                               ),
+                             );
+                             if (result != null && context.mounted) {
+                               context.read<BookingCubit>().updateFrom(result);
+                               // If current To is invalid for new From, clear it? 
+                               // Or let user rediscover. Better to clear To if it's not in valid endpoints.
+                               // Ideally we check if `to` is still valid.
+                               final validEndPoints = state.routes
+                                   .where((r) => r.startPoint == result)
+                                   .map((r) => r.endPoint)
+                                   .toSet();
+                                   
+                               if (state.to.isNotEmpty && !validEndPoints.contains(state.to)) {
+                                  context.read<BookingCubit>().updateTo('');
+                               }
+                             }
+                          },
+                        ),
+                        
+                        const Divider(height: 1, thickness: 1),
+                        
+                        // TO
+                        Stack(
+                          alignment: Alignment.centerRight,
+                          children: [
+                             _buildLocationSelector(
+                               context,
+                               label: 'Điểm đến',
+                               value: state.to.isEmpty ? 'Chọn điểm đến' : state.to,
+                               icon: Icons.location_on,
+                               isPlaceholder: state.to.isEmpty,
+                               onTap: () async {
+                                  // 2. Get end points based on From
+                                  final List<String> endPoints;
+                                  if (state.from.isNotEmpty) {
+                                    endPoints = state.routes
+                                        .where((r) => r.startPoint == state.from)
+                                        .map((r) => r.endPoint)
+                                        .toSet()
+                                        .toList()..sort();
+                                  } else {
+                                    // If From is empty, show ALL unique end points
+                                    endPoints = state.routes
+                                        .map((r) => r.endPoint)
+                                        .toSet()
+                                        .toList()..sort();
+                                      
+                                    // Or maybe force user to select From first? 
+                                    // User said "show correct points". Usually users pick From first.
+                                    // But showing all supports "I want to go TO Da Lat from anywhere" flow.
+                                  }
+
+                                  final result = await Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => LocationSelectionScreen(
+                                        title: 'Chọn điểm đến', 
+                                        locations: endPoints,
+                                      ),
+                                    ),
+                                  );
+                                  if (result != null && context.mounted) {
+                                    context.read<BookingCubit>().updateTo(result);
+                                  }
+                               },
+                             ),
+                             
+                             // SWAP BUTTON
+                             Padding(
+                               padding: const EdgeInsets.only(right: 16),
+                               child: CircleAvatar(
+                                 backgroundColor: Colors.blue[50], 
+                                 radius: 18,
+                                 child: IconButton(
+                                   icon: const Icon(Icons.swap_vert, size: 20, color: Colors.blue),
+                                   onPressed: () {
+                                     final currentFrom = state.from;
+                                     final currentTo = state.to;
+                                     context.read<BookingCubit>().updateFrom(currentTo);
+                                     context.read<BookingCubit>().updateTo(currentFrom);
+                                   },
+                                 ),
+                               ),
+                             )
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                   const SizedBox(height: 16),
 
@@ -164,6 +288,9 @@ class _SearchScreenState extends State<SearchScreen> {
                   const SizedBox(height: 36),
 
                   _buildSearchButton(context, state),
+                  
+                  const SizedBox(height: 24),
+                  _buildRecentSearches(),
                 ],
               );
             },
@@ -173,41 +300,38 @@ class _SearchScreenState extends State<SearchScreen> {
     );
   }
 
-  Widget _buildTextField({
-    required TextEditingController controller,
+  Widget _buildLocationSelector(
+    BuildContext context, {
     required String label,
+    required String value,
     required IconData icon,
-    required String hint,
+    required bool isPlaceholder,
+    required VoidCallback onTap,
   }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFA0D8F1).withOpacity(0.7), width: 1.4),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.16),
-            blurRadius: 12,
-            offset: const Offset(0, 5),
-          ),
-        ],
-      ),
-      child: TextField(
-        controller: controller,
-        style: const TextStyle(fontSize: 16.5, fontWeight: FontWeight.w600),
-        decoration: InputDecoration(
-          labelText: label,
-          labelStyle: const TextStyle(
-            color: primaryBlue,
-            fontWeight: FontWeight.bold,
-            fontSize: 15.5,
-          ),
-          hintText: hint,
-          hintStyle: TextStyle(color: Colors.grey[500], fontSize: 14.5),
-          prefixIcon: Icon(icon, color: primaryBlue, size: 26),
-          border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
-          floatingLabelBehavior: FloatingLabelBehavior.always,
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        child: Row(
+          children: [
+            Icon(icon, color: Colors.blueAccent, size: 24),
+            const SizedBox(width: 12),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                 Text(label, style: TextStyle(fontSize: 13, color: Colors.grey[600])),
+                 const SizedBox(height: 4),
+                 Text(
+                   value, 
+                   style: TextStyle(
+                     fontSize: 16, 
+                     fontWeight: FontWeight.w600,
+                     color: isPlaceholder ? Colors.grey[400] : Colors.black87
+                   )
+                 ),
+              ],
+            )
+          ],
         ),
       ),
     );
@@ -241,7 +365,7 @@ class _SearchScreenState extends State<SearchScreen> {
             );
           },
         );
-        if (date != null) {
+        if (date != null && context.mounted) {
           context.read<BookingCubit>().selectDate(date);
         }
       },
@@ -250,10 +374,10 @@ class _SearchScreenState extends State<SearchScreen> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFA0D8F1).withOpacity(0.7), width: 1.4),
+          border: Border.all(color: const Color(0xFFA0D8F1).withValues(alpha: 0.7), width: 1.4),
           boxShadow: [
             BoxShadow(
-              color: Colors.grey.withOpacity(0.16),
+              color: Colors.grey.withValues(alpha: 0.16),
               blurRadius: 12,
               offset: const Offset(0, 5),
             ),
@@ -322,10 +446,63 @@ class _SearchScreenState extends State<SearchScreen> {
           disabledBackgroundColor: Colors.grey[400],
           foregroundColor: Colors.white,
           elevation: 10,
-          shadowColor: primaryGradientStart.withOpacity(0.5),
+          shadowColor: primaryGradientStart.withValues(alpha: 0.5),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         ),
       ),
+    );
+  }
+
+
+  Widget _buildRecentSearches() {
+    if (_history.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+          child: Text(
+            "Tìm kiếm gần đây",
+            style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.blueGrey),
+          ),
+        ),
+        SizedBox(
+          height: 50,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            itemCount: _history.length,
+            itemBuilder: (context, index) {
+              final item = _history[index];
+              final from = item['startPoint'];
+              final to = item['endPoint'];
+              return GestureDetector(
+                onTap: () {
+                   context.read<BookingCubit>().updateFrom(from);
+                   context.read<BookingCubit>().updateTo(to);
+                },
+                child: Container(
+                  margin: const EdgeInsets.only(right: 12),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: Colors.grey.shade300),
+                  ),
+                  alignment: Alignment.center,
+                  child: Row(
+                    children: [
+                      const Icon(Icons.history, size: 16, color: Colors.grey),
+                      const SizedBox(width: 6),
+                      Text("$from ➝ $to", style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.black87, fontSize: 13)),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 }
