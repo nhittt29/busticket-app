@@ -121,10 +121,20 @@ class _NotificationScreenState extends State<NotificationScreen> {
        final isReadServer = sNoti['isRead'] as bool;
        _readStatus[uiId] = isReadServer; // Set server read status
        
-       // Handle payload for type
-       String type = sNoti['type'] ?? 'SYSTEM'; // BOARDING_SUCCESS, etc.
-       String payload = '';
-       if (type == 'BOARDING_SUCCESS') payload = 'booking_success'; // Reuse existing style
+       // Handle payload mapping from SERVER TYPE to UI PAYLOAD PREFIX
+       String type = sNoti['type'] ?? 'SYSTEM'; 
+       String payloadPrefix = 'system_msg';
+       
+       switch (type) {
+         case 'PAYMENT': payloadPrefix = 'payment_success'; break; 
+         case 'TICKET': payloadPrefix = 'boarding_success'; break;
+         case 'TICKET_CANCELLED': payloadPrefix = 'ticket_cancelled'; break;
+         case 'PAYMENT_REMINDER': payloadPrefix = 'payment_reminder'; break;
+         case 'BOARDING_SUCCESS': payloadPrefix = 'boarding_success'; break;
+         default: payloadPrefix = 'system_msg';
+       }
+       
+       String payload = payloadPrefix;
        
        // Handle time
        String? createdAt = sNoti['createdAt'];
@@ -291,12 +301,35 @@ class _NotificationScreenState extends State<NotificationScreen> {
       }).toList();
     }
     
-    // Sort
-    if (_isNewestFirst) {
-      list.sort((a, b) => b.id.compareTo(a.id)); // Newest first (Assume larger ID = newer)
-    } else {
-      list.sort((a, b) => a.id.compareTo(b.id)); // Oldest first
-    }
+    // Sort by Time
+    list.sort((a, b) {
+       DateTime getTime(PendingNotificationRequest req) {
+          try {
+             final parts = (req.payload ?? '').split('|');
+             if (parts.length > 1) {
+                final millis = int.tryParse(parts[1]);
+                if (millis != null) return DateTime.fromMillisecondsSinceEpoch(millis);
+             }
+             // Fallback: Try parse from body if needed (for legacy)
+             // Prioritize creation time over ID
+             return DateTime.now(); 
+          } catch (_) {}
+          return DateTime.fromMillisecondsSinceEpoch(0);
+       }
+       
+       final timeA = getTime(a);
+       final timeB = getTime(b);
+       
+       // Compare Time
+       final comparison = timeA.compareTo(timeB);
+       
+       // If same time (rare), use ID as tie breaker
+       if (comparison == 0) {
+          return a.id.compareTo(b.id);
+       }
+       
+       return _isNewestFirst ? -comparison : comparison; // Newest First = Descending
+    });
     
     return list;
   }
@@ -554,76 +587,48 @@ class _NotificationScreenState extends State<NotificationScreen> {
                   final bool isRead = _readStatus[noti.id] ?? false;
                   final payloadParts = noti.payload?.split('|') ?? [];
                   final rawPayload = payloadParts.isNotEmpty ? payloadParts[0] : (noti.payload ?? '');
+                  final NotiStyle style = _getNotiStyle(rawPayload);
                   
-                  final bool isBookingSuccess = rawPayload == 'booking_success';
-
+                  // Timestamp Parsing
                   DateTime? timestamp;
-                  
-                  // 1. Try to parse timestamp from payload (New format: TYPE|MILLIS)
                   if (payloadParts.length > 1) {
                     try {
                       final millis = int.tryParse(payloadParts[1]);
-                      if (millis != null) {
-                        timestamp = DateTime.fromMillisecondsSinceEpoch(millis);
-                      }
+                      if (millis != null) timestamp = DateTime.fromMillisecondsSinceEpoch(millis);
                     } catch (_) {}
                   }
-
-                  // 2. Fallback: Try to parse raw payload as DateTime (Old format for Departure Reminder)
-                  if (timestamp == null) {
-                    timestamp = DateTime.tryParse(rawPayload);
-                  }
-
-                  // 3. Fallback: Parse from body (Old format for booking_success)
-                  if (timestamp == null && isBookingSuccess && noti.body != null) {
-                    final lines = noti.body!.split('\n');
-                    if (lines.length > 1 && lines[1].startsWith('Đặt lúc:')) {
-                      try {
-                        final timeStr = lines[1].replaceFirst('Đặt lúc: ', '').trim();
-                        final parts = timeStr.split(' ');
-                        if (parts.length == 2) {
-                          final dateParts = parts[0].split('/');
-                          final timeParts = parts[1].split(':');
-                          if (dateParts.length == 2 && timeParts.length == 2) {
-                            final now = DateTime.now();
-                            timestamp = DateTime(
-                              now.year,
-                              int.parse(dateParts[1]),
-                              int.parse(dateParts[0]),
-                              int.parse(timeParts[0]),
-                              int.parse(timeParts[1]),
-                            );
-                          }
-                        }
-                      } catch (_) {}
-                    }
-                  }
+                  if (timestamp == null) timestamp = DateTime.tryParse(rawPayload);
 
                   return Container(
                     margin: const EdgeInsets.only(bottom: 18),
                     child: Card(
-                      elevation: isRead ? 5 : 14,
-                      shadowColor: isRead ? Colors.grey.withAlpha(40) : primaryGradientStart.withOpacity(0.5),
+                      elevation: isRead ? 2 : 8,
+                      shadowColor: isRead 
+                          ? Colors.grey.withAlpha(20) 
+                          : style.bgColor.withOpacity(0.4),
                       color: isRead 
-                          ? cardColor 
-                          : (isBookingSuccess ? const Color(0xFFF1FDF6) : const Color(0xFFF8FDFF)),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(26)),
+                          ? Colors.white 
+                          : style.bgColor,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(26),
+                        side: isRead ? BorderSide.none : BorderSide(color: style.iconColor.withOpacity(0.1), width: 1),
+                      ),
                       child: InkWell(
                         borderRadius: BorderRadius.circular(26),
                         onTap: () async {
                           if (!isRead) {
                             setState(() => _readStatus[noti.id] = true);
                             
-                            // SERVER NOTIFICATION (ID >= 3M)
                             if (noti.id >= 3000000) {
                                if (_currentUserId != null) {
                                   final repo = NotificationRepository();
-                                  await repo.markAsRead(noti.id - 3000000, _currentUserId!);
+                                  if (kDebugMode) print('MARKING READ: ID ${noti.id - 3000000} for USER $_currentUserId');
+                                  final success = await repo.markAsRead(noti.id - 3000000, _currentUserId!);
+                                  if (kDebugMode) print('MARK READ RESULT: $success');
+                               } else {
+                                  if (kDebugMode) print('CANNOT MARK READ: User ID is null');
                                }
-                            } 
-                            // LOCAL NOTIFICATION
-                            else {
-                                // Save to prefs
+                            } else {
                                 final prefs = await SharedPreferences.getInstance();
                                 final readIds = prefs.getStringList('read_notifications') ?? [];
                                 if (!readIds.contains(noti.id.toString())) {
@@ -631,11 +636,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
                                   await prefs.setStringList('read_notifications', readIds);
                                 }
                             }
-                            
-                            // Update badge
-                            if (mounted) {
-                              context.read<NotificationBloc>().add(LoadNotificationsEvent(userId: _currentUserId));
-                            }
+                            if (mounted) context.read<NotificationBloc>().add(LoadNotificationsEvent(userId: _currentUserId));
                           }
                         },
                         child: Padding(
@@ -649,31 +650,38 @@ class _NotificationScreenState extends State<NotificationScreen> {
                                     padding: const EdgeInsets.all(15),
                                     decoration: BoxDecoration(
                                       gradient: LinearGradient(
-                                        colors: isBookingSuccess
-                                            ? [Colors.green.shade400, Colors.green.shade600]
-                                            : [primaryGradientStart, primaryGradientEnd],
+                                        colors: isRead 
+                                          ? [Colors.grey.shade300, Colors.grey.shade400]
+                                          : [style.iconColor, style.iconColor.withOpacity(0.8)],
                                         begin: Alignment.topLeft,
                                         end: Alignment.bottomRight,
                                       ),
                                       shape: BoxShape.circle,
+                                      boxShadow: isRead ? [] : [
+                                         BoxShadow(
+                                           color: style.iconColor.withOpacity(0.3),
+                                           blurRadius: 8,
+                                           offset: const Offset(0, 4),
+                                         )
+                                      ]
                                     ),
                                     child: Icon(
-                                      isBookingSuccess ? Icons.check_circle_outline : Icons.directions_bus_filled,
+                                      style.icon,
                                       color: Colors.white,
-                                      size: 34,
+                                      size: 32, // Slightly smaller icon
                                     ),
                                   ),
                                   if (!isRead)
                                     Positioned(
-                                      right: 4,
-                                      top: 4,
+                                      right: 2,
+                                      top: 2,
                                       child: Container(
-                                        width: 18,
-                                        height: 18,
+                                        width: 14,
+                                        height: 14,
                                         decoration: BoxDecoration(
-                                          color: Colors.red,
+                                          color: Colors.redAccent,
                                           shape: BoxShape.circle,
-                                          border: Border.all(color: Colors.white, width: 3.5),
+                                          border: Border.all(color: style.bgColor, width: 2),
                                         ),
                                       ),
                                     ),
@@ -685,35 +693,34 @@ class _NotificationScreenState extends State<NotificationScreen> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      noti.title ?? (isBookingSuccess ? 'Đặt vé thành công!' : 'Sắp khởi hành'),
+                                      noti.title ?? 'Thông báo',
                                       style: TextStyle(
                                         fontWeight: FontWeight.bold,
-                                        fontSize: 18,
-                                        color: isBookingSuccess ? Colors.green.shade700 : deepBlue,
+                                        fontSize: 16,
+                                        color: isRead ? Colors.black54 : style.textColor,
                                       ),
                                     ),
-                                    const SizedBox(height: 10),
+                                    const SizedBox(height: 8),
                                     Text(
-                                      (noti.body ?? 'Thông báo từ hệ thống').replaceAll(RegExp(r'\nĐặt lúc:.*'), ''),
+                                      (noti.body ?? '').replaceAll(RegExp(r'\nĐặt lúc:.*'), ''),
                                       style: TextStyle(
-                                        fontSize: 15,
-                                        color: isRead ? Colors.black87 : Colors.black,
-                                        height: 1.5,
-                                        fontWeight: isRead ? FontWeight.w500 : FontWeight.w600,
+                                        fontSize: 14,
+                                        color: isRead ? Colors.black45 : Colors.black87,
+                                        height: 1.4,
                                       ),
                                     ),
                                     if (timestamp != null) ...[
-                                      const SizedBox(height: 14),
+                                      const SizedBox(height: 12),
                                       Row(
                                         children: [
-                                          Icon(Icons.access_time, size: 20, color: primaryGradientEnd),
-                                          const SizedBox(width: 8),
+                                          Icon(Icons.access_time_rounded, size: 16, color: isRead ? Colors.black38 : style.iconColor),
+                                          const SizedBox(width: 6),
                                           Text(
-                                            'Gửi lúc: ${_formatBookingTime(timestamp)}',
+                                            _formatBookingTime(timestamp),
                                             style: TextStyle(
-                                              fontSize: 14,
-                                              fontWeight: FontWeight.bold,
-                                              color: primaryGradientEnd,
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w600,
+                                              color: isRead ? Colors.black38 : style.iconColor,
                                             ),
                                           ),
                                         ],
@@ -723,7 +730,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
                                 ),
                               ),
                               IconButton(
-                                icon: const Icon(Icons.close_rounded, color: Colors.redAccent, size: 26),
+                                icon: Icon(Icons.close_rounded, color: Colors.grey.shade400, size: 20),
                                 onPressed: () async {
                                   await FlutterLocalNotificationsPlugin().cancel(noti.id);
                                   setState(() {
@@ -761,4 +768,44 @@ class _NotificationScreenState extends State<NotificationScreen> {
     }
     return '${localDate.day}/${localDate.month} ${localDate.hour.toString().padLeft(2, '0')}:${localDate.minute.toString().padLeft(2, '0')}';
   }
+
+  // HELPER: Map 8 Colors per User Request
+  NotiStyle _getNotiStyle(String payload) {
+     if (payload.startsWith('booking_success')) {
+        return NotiStyle(const Color(0xFFE8F5E9), Colors.green.shade700, const Color(0xFF1B5E20), Icons.receipt_long_rounded); // 1. BOOKING SUCCESS (Local): Green Mint
+     }
+     if (payload.startsWith('payment_success')) {
+        return NotiStyle(const Color(0xFFE0F2F1), Colors.teal.shade700, const Color(0xFF004D40), Icons.payments_rounded); // 2. PAYMENT SUCCESS (Server): Teal Aqua
+     }
+     if (payload.startsWith('payment_reminder')) {
+        return NotiStyle(const Color(0xFFFFFDE7), Colors.orangeAccent.shade700, const Color(0xFFFF6F00), Icons.savings_rounded); // 3. PAYMENT REMINDER: Yellow/Orange
+     }
+     if (payload.startsWith('boarding_success')) {
+        return NotiStyle(const Color(0xFFE3F2FD), Colors.blue.shade700, const Color(0xFF0D47A1), Icons.verified_user_rounded); // 4. BOARDING SUCCESS: Blue
+     }
+     if (payload.startsWith('departure_reminder')) {
+        return NotiStyle(const Color(0xFFFFF3E0), Colors.deepOrange.shade600, const Color(0xFFBF360C), Icons.departure_board_rounded); // 5. DEPARTURE: Orange Peach
+     }
+     if (payload.startsWith('ticket_cancelled') || payload.startsWith('ticket_expired')) {
+        return NotiStyle(const Color(0xFFFFEBEE), Colors.red.shade600, const Color(0xFFB71C1C), Icons.confirmation_number_rounded); // 6. EXPIRED/CANCELLED: Red Rose
+     }
+     if (payload.startsWith('review_reminder')) {
+        return NotiStyle(const Color(0xFFF3E5F5), Colors.purple.shade600, const Color(0xFF4A148C), Icons.rate_review_rounded); // 7. REVIEW: Purple Lavender
+     }
+     if (payload.startsWith('open_my_reviews')) {
+        return NotiStyle(const Color(0xFFFCE4EC), Colors.pink.shade600, const Color(0xFF880E4F), Icons.rule_rounded); // 8. UNREVIEWED: Pink
+     }
+     
+     // Default
+     return NotiStyle(Colors.white, Colors.blueGrey, Colors.blueGrey.shade800, Icons.notifications_rounded);
+  }
+}
+
+class NotiStyle {
+  final Color bgColor;
+  final Color iconColor;
+  final Color textColor;
+  final IconData icon;
+  
+  NotiStyle(this.bgColor, this.iconColor, this.textColor, this.icon);
 }

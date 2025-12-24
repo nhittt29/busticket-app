@@ -21,6 +21,7 @@ import { EmailService } from './email.service';
 import { QrService } from './qr.service';
 import { ZaloPayService } from './zalopay.service';
 import { VnPayService } from './vnpay.service';
+import { NotificationService } from './notification.service';
 import {
   CreateResponse,
   BulkCreateResponse,
@@ -39,6 +40,7 @@ export class TicketService {
     private readonly qrService: QrService,
     private readonly vnpayService: VnPayService,
     @Inject(forwardRef(() => ZaloPayService)) private readonly zaloPayService: ZaloPayService,
+    private readonly notificationService: NotificationService,
     @InjectQueue('ticket') private readonly ticketQueue: Queue,
   ) { }
 
@@ -145,6 +147,13 @@ export class TicketService {
       'hold-expire',
       { ticketId: ticket.id },
       { delay: 15 * 60 * 1000 },
+    );
+
+    // 🔔 Lên lịch nhắc thanh toán (10 phút)
+    await this.ticketQueue.add(
+      'payment-reminder',
+      { ticketId: ticket.id },
+      { delay: 10 * 60 * 1000 },
     );
 
     let paymentResponse: any = null;
@@ -501,6 +510,16 @@ export class TicketService {
       } catch (error) {
         this.logger.error('Gửi email thất bại:', error);
       }
+    }
+
+    // Gửi thông báo Push Notification / In-App
+    if (firstTicket.userId) {
+      await this.notificationService.create({
+        userId: firstTicket.userId,
+        title: 'Thanh toán thành công ✅',
+        message: `Bạn đã thanh toán thành công ${groupTickets.length} vé. Mã đơn: V${String(paymentHistoryId).padStart(6, '0')}. Chúc bạn có chuyến đi vui vẻ!`,
+        type: 'PAYMENT',
+      });
     }
 
     return {

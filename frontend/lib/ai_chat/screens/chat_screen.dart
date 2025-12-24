@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:lottie/lottie.dart';
+import 'package:lottie/lottie.dart';
+import 'package:emoji_picker_flutter/emoji_picker_flutter.dart';
+import 'package:flutter/foundation.dart' as foundation;
+import 'dart:io';
 import '../services/ai_service.dart';
 import '../widgets/chat_bubble.dart';
 
@@ -14,6 +18,8 @@ class ChatScreen extends StatefulWidget {
 
 class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController _controller = TextEditingController();
+  final FocusNode _focusNode = FocusNode();
+  bool _showEmoji = false;
   final List<Message> _messages = [];
   final AiService _aiService = AiService();
   
@@ -29,6 +35,14 @@ class _ChatScreenState extends State<ChatScreen> {
     super.initState();
     _speech = stt.SpeechToText();
     _initTts();
+
+    _focusNode.addListener(() {
+      if (_focusNode.hasFocus) {
+        setState(() {
+          _showEmoji = false;
+        });
+      }
+    });
     
     // Greeting Message
     _messages.add(Message(
@@ -40,6 +54,29 @@ class _ChatScreenState extends State<ChatScreen> {
   void _initTts() async {
     await _flutterTts.setLanguage("vi-VN");
     await _flutterTts.setPitch(1.0);
+  }
+
+  void _onEmojiSelected(Category? category, Emoji emoji) {
+    _controller.text = _controller.text + emoji.emoji;
+    _controller.selection = TextSelection.fromPosition(
+        TextPosition(offset: _controller.text.length));
+  }
+
+  void _onBackspacePressed() {
+    _controller.text = _controller.text.characters.skipLast(1).toString();
+    _controller.selection = TextSelection.fromPosition(
+        TextPosition(offset: _controller.text.length));
+  }
+
+  void _toggleEmojiPicker() {
+    if (_showEmoji) {
+      _focusNode.requestFocus();
+    } else {
+      _focusNode.unfocus();
+    }
+    setState(() {
+      _showEmoji = !_showEmoji;
+    });
   }
 
   void _sendMessage() async {
@@ -87,8 +124,15 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA), // Light background
+    return PopScope(
+      canPop: !_showEmoji,
+      onPopInvokedWithResult: (didPop, result) {
+         if (!didPop && _showEmoji) {
+           setState(() => _showEmoji = false);
+         }
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF5F7FA), // Light background
       appBar: AppBar(
         elevation: 0,
         backgroundColor: Colors.white,
@@ -187,7 +231,7 @@ class _ChatScreenState extends State<ChatScreen> {
               children: [
                 Expanded(
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
                     decoration: BoxDecoration(
                       color: const Color(0xFFF5F7FA),
                       borderRadius: BorderRadius.circular(24),
@@ -195,9 +239,18 @@ class _ChatScreenState extends State<ChatScreen> {
                     ),
                     child: TextField(
                       controller: _controller,
-                      decoration: const InputDecoration(
+                      focusNode: _focusNode,
+                      decoration: InputDecoration(
                         hintText: "Nhập câu hỏi...",
                         border: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        prefixIcon: IconButton(
+                          icon: Icon(
+                            _showEmoji ? Icons.keyboard : Icons.sentiment_satisfied_rounded,
+                            color: Colors.grey[600],
+                          ),
+                          onPressed: _toggleEmojiPicker,
+                        ),
                       ),
                       onSubmitted: (_) => _sendMessage(),
                     ),
@@ -227,7 +280,27 @@ class _ChatScreenState extends State<ChatScreen> {
               ],
             ),
           ),
+          // EMOJI PICKER
+          if (_showEmoji)
+            SizedBox(
+              height: 250,
+              child: EmojiPicker(
+                onEmojiSelected: _onEmojiSelected,
+                onBackspacePressed: _onBackspacePressed,
+                config: Config(
+                  height: 250,
+                  checkPlatformCompatibility: true,
+                  viewOrderConfig: const ViewOrderConfig(),
+                  emojiViewConfig: const EmojiViewConfig(
+                    columns: 7,
+                    emojiSizeMax: 28, // Platform dependent default is 32.0 (iOS) or 24.0 (Android)
+                    backgroundColor: Colors.white,
+                  ),
+                ),
+              ),
+            ),
         ],
+      ),
       ),
     );
   }

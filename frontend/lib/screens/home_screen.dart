@@ -37,8 +37,7 @@ class _HomeScreenState extends State<HomeScreen> {
       context.read<HomeBloc>().add(LoadHomeDataEvent()); // Load thêm data mới
       context.read<NotificationBloc>().add(LoadNotificationsEvent());
       
-      // Kiểm tra vé chưa đánh giá
-      ReminderService().checkAndShowUnreviewedNotification();
+      context.read<NotificationBloc>().add(LoadNotificationsEvent());
     });
 
     // Lắng nghe click thông báo
@@ -166,8 +165,22 @@ class _HomeScreenState extends State<HomeScreen> {
           preferredSize: const Size.fromHeight(60),
           child: _buildCustomAppBar(),
         ),
-        body: Stack(
-          children: [
+        body: BlocListener<HomeBloc, HomeState>(
+          listener: (context, state) {
+            if (state.user != null) {
+              final userId = state.user!['id'] is int 
+                  ? state.user!['id'] as int 
+                  : int.tryParse(state.user!['id'].toString());
+              if (userId != null) {
+                // 1. Check Unreviewed (Shows specific notification)
+                ReminderService().checkAndShowUnreviewedNotification(userId: userId);
+                // 2. Load Server Notifications (Updates Badge Count)
+                context.read<NotificationBloc>().add(LoadNotificationsEvent(userId: userId));
+              }
+            }
+          },
+          child: Stack(
+            children: [
             BlocBuilder<HomeBloc, HomeState>(
               builder: (context, state) {
                 if (state.loading && state.user == null) {
@@ -239,6 +252,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
           ],
+          ),
         ),
         bottomNavigationBar: _buildBottomNavBar(),
       ),
