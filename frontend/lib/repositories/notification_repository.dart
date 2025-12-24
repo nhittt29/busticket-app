@@ -26,6 +26,7 @@ class NotificationRepository {
       final response = await http.patch(
         Uri.parse('$baseUrl/notifications/$notificationId/read/$userId'),
         headers: {"Content-Type": "application/json"},
+        body: jsonEncode({}),
       );
       return response.statusCode == 200;
     } catch (e) {

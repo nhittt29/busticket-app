@@ -8,4 +8,4 @@ import { PrismaService } from '../services/prisma.service';
   controllers: [ScheduleController],
   providers: [ScheduleService, ScheduleRepository, PrismaService],
 })
-export class ScheduleModule {}
+export class ScheduleModule { }

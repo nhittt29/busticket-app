@@ -354,14 +354,14 @@ class PaymentScreen extends StatelessWidget {
                             isSelected: method == PaymentMethod.zalopay,
                             onTap: () => context.read<PaymentCubit>().selectMethod(PaymentMethod.zalopay),
                           ),
-                          const SizedBox(height: 14),
-
-                          PaymentMethodTile(
-                            assetPath: 'assets/images/vnpay.png',
-                            title: 'Ví VNPAY',
-                            isSelected: method == PaymentMethod.vnpay,
-                            onTap: () => context.read<PaymentCubit>().selectMethod(PaymentMethod.vnpay),
-                          ),
+                          // const SizedBox(height: 14),
+                          //
+                          // PaymentMethodTile(
+                          //   assetPath: 'assets/images/vnpay.png',
+                          //   title: 'Ví VNPAY',
+                          //   isSelected: method == PaymentMethod.vnpay,
+                          //   onTap: () => context.read<PaymentCubit>().selectMethod(PaymentMethod.vnpay),
+                          // ),
                         ],
                       );
                     },

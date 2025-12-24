@@ -64,20 +64,23 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
       for (var noti in pending) {
         if (readIds.contains(noti.id.toString())) continue;
         
-        // Filter Future
-        try {
-           final payload = noti.payload ?? '';
-           final parts = payload.split('|');
-           if (parts.length > 1) {
-              final millis = int.tryParse(parts[1]);
-              if (millis != null) {
-                 final notifyTime = DateTime.fromMillisecondsSinceEpoch(millis);
-                 if (notifyTime.isAfter(DateTime.now())) {
-                    continue; // Skip future
-                 }
-              }
-           }
-        } catch (_) {}
+        // Filter Future (SKIP for Unreviewed Noti ID >= 2000000)
+        if (noti.id < 2000000) {
+          try {
+             final payload = noti.payload ?? '';
+             final parts = payload.split('|');
+             if (parts.length > 1) {
+                final millis = int.tryParse(parts[1]);
+                if (millis != null) {
+                   final notifyTime = DateTime.fromMillisecondsSinceEpoch(millis);
+                   // Give 5 seconds buffer
+                   if (notifyTime.isAfter(DateTime.now().add(const Duration(seconds: 5)))) {
+                      continue; // Skip future
+                   }
+                }
+             }
+          } catch (_) {}
+        }
 
         // Check User
         final int userPart;
@@ -85,6 +88,12 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
           userPart = (noti.id - 2000000) ~/ 100000;
         } else if (noti.id >= 900000) {
           userPart = (noti.id - 900000) ~/ 100000;
+        } else if (noti.id >= 800000) {
+          userPart = (noti.id - 800000) ~/ 100000;
+        } else if (noti.id >= 700000) {
+          userPart = (noti.id - 700000) ~/ 100000;
+        } else if (noti.id >= 500000) {
+          userPart = (noti.id - 500000) ~/ 100000;
         } else {
           userPart = noti.id ~/ 100000;
         }
@@ -100,19 +109,25 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
            final id = active.id ?? 0;
            if (readIds.contains(id.toString())) continue;
            
-           // Check User
-           final int userPart;
-           if (id >= 2000000) {
-             userPart = (id - 2000000) ~/ 100000;
-           } else if (id >= 900000) {
-             userPart = (id - 900000) ~/ 100000;
-           } else {
-             userPart = id ~/ 100000;
-           }
-              
-           if (userPart == currentUserId) {
-              unreadIds.add(id);
-           }
+            // Check User
+            final int userPart;
+            if (id >= 2000000) {
+              userPart = (id - 2000000) ~/ 100000;
+            } else if (id >= 900000) {
+              userPart = (id - 900000) ~/ 100000;
+            } else if (id >= 800000) {
+              userPart = (id - 800000) ~/ 100000;
+            } else if (id >= 700000) {
+              userPart = (id - 700000) ~/ 100000;
+            } else if (id >= 500000) {
+              userPart = (id - 500000) ~/ 100000;
+            } else {
+              userPart = id ~/ 100000;
+            }
+               
+            if (userPart == currentUserId) {
+               unreadIds.add(id);
+            }
         }
       }
 

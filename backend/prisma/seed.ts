@@ -163,7 +163,7 @@ async function main() {
     // Rollback cả admin và passenger
     try {
       await prisma.user.deleteMany({
-        where: { 
+        where: {
           email: { in: ['admin@busticket.com', 'passenger@gmail.com'] }
         },
       });

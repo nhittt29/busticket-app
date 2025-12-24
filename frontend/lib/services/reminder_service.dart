@@ -538,7 +538,7 @@ class ReminderService {
   // ===========================================================================
   // THÔNG BÁO SỐ LƯỢNG VÉ CHƯA ĐÁNH GIÁ (KHI MỞ APP)
   // ===========================================================================
-  Future<void> checkAndShowUnreviewedNotification() async {
+  Future<void> checkAndShowUnreviewedNotification({int? userId}) async {
     try {
       await initialize();
       final prefs = await SharedPreferences.getInstance();
@@ -568,8 +568,8 @@ class ReminderService {
           const NotificationDetails details = NotificationDetails(android: androidDetails);
 
           // ID MỚI: 2000000 + (userId * 100000) để đảm bảo đúng user filter
-          final userId = _currentUserId ?? 0; // Fallback 0 nhưng logic gọi hàm này sau khi login
-          final notificationId = 2000000 + (userId * 100000);
+          final targetUserId = userId ?? _currentUserId ?? 0;
+          final notificationId = 2000000 + (targetUserId * 100000);
 
           await _notifications.zonedSchedule(
             notificationId,
