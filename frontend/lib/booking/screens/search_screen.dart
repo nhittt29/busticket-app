@@ -208,7 +208,7 @@ class _SearchScreenState extends State<SearchScreen> {
     final dateStr = '${state.date.day.toString().padLeft(2, '0')}/${state.date.month.toString().padLeft(2, '0')}';
     
     return SliverAppBar(
-      expandedHeight: 220.0,
+      expandedHeight: 180.0,
       floating: false,
       pinned: true,
       elevation: 0,
@@ -225,29 +225,29 @@ class _SearchScreenState extends State<SearchScreen> {
           child: Stack(
             children: [
                Positioned(
-                 right: -20, top: -20,
-                 child: Icon(Icons.directions_bus, size: 150, color: Colors.white.withOpacity(0.1)),
+                 right: -30, top: 20,
+                 child: Icon(Icons.directions_bus, size: 160, color: Colors.white.withOpacity(0.08)), // Làm mờ nhẹ hơn và đẩy xuống
                ),
                Align(
-                 alignment: Alignment.bottomLeft,
+                 alignment: Alignment.bottomCenter,
                  child: Padding(
-                   padding: const EdgeInsets.fromLTRB(20, 20, 20, 90),
+                   padding: const EdgeInsets.fromLTRB(20, 20, 20, 80), // Đẩy thanh tìm kiếm lên
                    child: Column(
                      mainAxisSize: MainAxisSize.min,
-                     crossAxisAlignment: CrossAxisAlignment.start,
+                     crossAxisAlignment: CrossAxisAlignment.center,
                      children: [
                        const Text(
                          "Bạn muốn đi đâu?",
                          style: TextStyle(color: Colors.white70, fontSize: 14),
                        ),
                        const SizedBox(height: 4),
-                       Text(
-                         state.from.isEmpty && state.to.isEmpty 
-                             ? "Khám phá mọi nẻo đường" 
-                             : "${state.from.isEmpty ? '...' : state.from} ➔ ${state.to.isEmpty ? '...' : state.to}",
-                         style: const TextStyle(
-                           color: Colors.white,
-                           fontSize: 20,
+                         Text(
+                           state.from.isEmpty && state.to.isEmpty 
+                               ? "" 
+                               : "${state.from.isEmpty ? '...' : state.from} ➔ ${state.to.isEmpty ? '...' : state.to}",
+                           style: const TextStyle(
+                             color: Colors.white,
+                             fontSize: 20,
                            fontWeight: FontWeight.bold,
                          ),
                          maxLines: 1, overflow: TextOverflow.ellipsis,

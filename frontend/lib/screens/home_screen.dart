@@ -383,7 +383,7 @@ class _HomeScreenState extends State<HomeScreen> {
       final route = trip['schedule']['route'];
       final start = route['startPoint'];
       final end = route['endPoint'];
-      final date = DateTime.parse(trip['schedule']['departureAt']);
+      final date = DateTime.parse(trip['schedule']['departureAt']).toLocal();
       final timeStr = DateFormat('HH:mm').format(date);
       final dateStr = DateFormat('dd/MM/yyyy').format(date);
       final ticketId = trip['id'];
