@@ -119,7 +119,8 @@ class _NotificationScreenState extends State<NotificationScreen> {
        final uiId = 3000000 + sId; // 3M offset for server
        
        final isReadServer = sNoti['isRead'] as bool;
-       _readStatus[uiId] = isReadServer; // Set server read status
+       final isLocallyRead = readIds.contains(uiId.toString());
+       _readStatus[uiId] = isReadServer || isLocallyRead;
        
        // Handle payload mapping from SERVER TYPE to UI PAYLOAD PREFIX
        String type = sNoti['type'] ?? 'SYSTEM'; 

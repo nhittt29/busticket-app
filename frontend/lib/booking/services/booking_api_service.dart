@@ -83,6 +83,9 @@ class BookingApiService {
   // Lấy tất cả chuyến xe với bộ lọc nâng cao
   // Lấy tất cả chuyến xe với bộ lọc nâng cao (Có phân trang)
   static Future<PaginatedTrips> fetchAllSchedules({
+    String? startPoint,
+    String? endPoint,
+    String? date,
     double? minPrice,
     double? maxPrice,
     String? startTime,
@@ -98,6 +101,9 @@ class BookingApiService {
       'page': page.toString(),
       'limit': limit.toString(),
     };
+    if (startPoint != null) queryParams['startPoint'] = startPoint;
+    if (endPoint != null) queryParams['endPoint'] = endPoint;
+    if (date != null) queryParams['date'] = date;
     if (minPrice != null) queryParams['minPrice'] = minPrice.toString();
     if (maxPrice != null) queryParams['maxPrice'] = maxPrice.toString();
     if (startTime != null) queryParams['startTime'] = startTime;
@@ -113,7 +119,7 @@ class BookingApiService {
       final response = await http.get(uri);
       if (kDebugMode) {
         debugPrint('EXPLORE URL: $uri');
-        debugPrint('RESPONSE: ${response.statusCode}');
+        debugPrint('RESPONSE: ${response.statusCode} - ${response.body}');
       }
       if (response.statusCode == 200) {
         final Map<String, dynamic> jsonResponse = jsonDecode(response.body);

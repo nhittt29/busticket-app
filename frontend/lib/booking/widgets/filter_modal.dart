@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import '../../theme/app_colors.dart';
 
 class FilterModal extends StatefulWidget {
   final Function({
@@ -74,6 +75,8 @@ class _FilterModalState extends State<FilterModal> {
                     NumberFormat.currency(locale: 'vi', symbol: 'đ').format(_priceRange.start),
                     NumberFormat.currency(locale: 'vi', symbol: 'đ').format(_priceRange.end),
                   ),
+                  activeColor: AppColors.primaryBlue,
+                  inactiveColor: Colors.grey[300],
                   onChanged: (values) {
                     setState(() {
                       _priceRange = values;
@@ -181,6 +184,10 @@ class _FilterModalState extends State<FilterModal> {
                       _sortBy = 'time_asc';
                     });
                   },
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.primaryBlue,
+                    side: const BorderSide(color: AppColors.primaryBlue),
+                  ),
                   child: const Text('Đặt lại'),
                 ),
               ),
@@ -213,7 +220,7 @@ class _FilterModalState extends State<FilterModal> {
                     Navigator.pop(context);
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Theme.of(context).primaryColor,
+                    backgroundColor: AppColors.primaryBlue,
                     foregroundColor: Colors.white,
                   ),
                   child: const Text('Áp dụng'),
@@ -231,6 +238,12 @@ class _FilterModalState extends State<FilterModal> {
     return ChoiceChip(
       label: Text(label),
       selected: isSelected,
+      selectedColor: AppColors.pastelBlue,
+      labelStyle: TextStyle(
+        color: isSelected ? AppColors.deepBlue : Colors.black87,
+        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+      ),
+      side: BorderSide(color: isSelected ? AppColors.primaryBlue : Colors.grey.shade300),
       onSelected: (selected) {
         setState(() {
           _selectedTimeRange = selected ? key : null;
@@ -244,6 +257,12 @@ class _FilterModalState extends State<FilterModal> {
     return ChoiceChip(
       label: Text(label),
       selected: isSelected,
+      selectedColor: AppColors.pastelBlue,
+      labelStyle: TextStyle(
+        color: isSelected ? AppColors.deepBlue : Colors.black87,
+        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+      ),
+      side: BorderSide(color: isSelected ? AppColors.primaryBlue : Colors.grey.shade300),
       onSelected: (selected) {
         onSelected(selected ? value : null);
       },

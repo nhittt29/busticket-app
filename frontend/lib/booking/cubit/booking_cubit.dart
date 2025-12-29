@@ -23,36 +23,10 @@ class BookingCubit extends Cubit<BookingState> {
     }
   }
 
-  Future<void> searchTrips() async {
-    if (state.from.isEmpty || state.to.isEmpty) {
-      emit(state.copyWith(error: 'Vui lòng nhập điểm đi và điểm đến'));
-      return;
-    }
-    emit(state.copyWith(loading: true, error: null));
-    try {
-      final trips = await BookingApiService.searchTrips(
-        state.from,
-        state.to,
-        state.date,
-      );
-      final filteredTrips = trips.where((t) {
-        return t.status != 'FULL' &&
-               t.status != 'ONGOING' &&
-               t.status != 'COMPLETED';
-      }).toList();
-
-      if (filteredTrips.isEmpty) {
-        emit(state.copyWith(error: 'Không tìm thấy chuyến xe nào phù hợp!', loading: false));
-      } else {
-        emit(state.copyWith(trips: filteredTrips, loading: false));
-      }
-    } catch (e) {
-      emit(state.copyWith(error: e.toString(), loading: false));
-    }
-  }
-
-  // MỚI: Lấy tất cả chuyến xe (Explore Mode)
-  Future<void> fetchAllSchedules({
+  // UNIFIED: Tìm kiếm & Khám phá trong một hàm duy nhất
+  Future<void> searchTrips({
+    bool isLoadMore = false,
+    // Filter params
     double? minPrice,
     double? maxPrice,
     String? startTime,
@@ -61,19 +35,49 @@ class BookingCubit extends Cubit<BookingState> {
     int? brandId,
     String? dropoffPoint,
     String? sortBy,
-    bool isLoadMore = false,
   }) async {
     if (isLoadMore && state.hasReachedMax) return;
 
     final nextPage = isLoadMore ? state.page + 1 : 1;
     
-    // Only show full loading if fresh load, otherwise handled by isLoadMore UI logic or bottom spinner
+    // Reset list if performing a fresh search/filter (not load more)
     if (!isLoadMore) {
       emit(state.copyWith(loading: true, error: null));
     }
 
     try {
+      // Determine if we are using "Search Mode" (Specific Route) or "Explore Mode" (All)
+      // `BookingApiService.fetchAllSchedules` is powerful enough to handle both if we pass start/end points as filters
+      // BUT `searchTrips` endpoint might be different. Let's check `BookingApiService`.
+      // It seems `fetchAllSchedules` in Service doesn't take startPoint/endPoint/date yet?
+      // Let's rely on standard `fetchAllSchedules` logic for now, or check if we need to combine.
+      
+      // Checking Service: `fetchAllSchedules` takes many params but NOT start/end/date currently in cubit call.
+      // However, backend `getAllSchedules` SUPPORTS them.
+      // So we should update `BookingApiService.fetchAllSchedules` to accept start/end/date too.
+      // For now, let's assume we will update the service.
+      
+      // NOTE: I will update functionality to use a single API call if possible, 
+      // but for safety, I will keep using the existing Service method structure 
+      // and just route to the right one, OR (better) update `fetchAllSchedules` in Service to be all-encompassing.
+      
+      // Let's stick to the existing `fetchAllSchedules` pattern but pass the state's from/to/date if they exist.
+      
+      // Wait, `searchTrips` (old) used `searchTrips` API. `fetchAllSchedules` used `schedules` API.
+      // Backend `getAllSchedules` handles both! 
+      // So I just need to call `BookingApiService.fetchAllSchedules` but pass the extra params.
+      
+      String? dateParam;
+      if (state.date != null) {
+         // Format date if needed, or pass as ISO. Backend expects 'dd/mm/yyyy' or similar based on previous analysis.
+         // dateParam = '${state.date.day}/${state.date.month}/${state.date.year}';
+         dateParam = '${state.date.day.toString().padLeft(2, '0')}/${state.date.month.toString().padLeft(2, '0')}/${state.date.year}';
+      }
+
       final result = await BookingApiService.fetchAllSchedules(
+        startPoint: state.from.isNotEmpty ? state.from : null,
+        endPoint: state.to.isNotEmpty ? state.to : null,
+        date: dateParam,
         minPrice: minPrice,
         maxPrice: maxPrice,
         startTime: startTime,
@@ -83,7 +87,7 @@ class BookingCubit extends Cubit<BookingState> {
         dropoffPoint: dropoffPoint,
         sortBy: sortBy,
         page: nextPage,
-        limit: 10, // Fixed limit for now
+        limit: 10,
       );
 
       final newTrips = result.trips;
@@ -340,5 +344,12 @@ class BookingCubit extends Cubit<BookingState> {
       discountAmount: 0.0, 
     );
     emit(_recalculateState(tempState));
+  }
+
+  void resetSearch() {
+    // Reset to initial state but preserve loaded routes to avoid re-fetching
+    emit(BookingState.initial().copyWith(
+      routes: state.routes,
+    ));
   }
 }

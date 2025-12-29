@@ -47,8 +47,6 @@ class _HomeScreenState extends State<HomeScreen> {
       context.read<HomeBloc>().add(LoadUserEvent());
       context.read<HomeBloc>().add(LoadHomeDataEvent()); // Load thêm data mới
       context.read<NotificationBloc>().add(LoadNotificationsEvent());
-      
-      context.read<NotificationBloc>().add(LoadNotificationsEvent());
     });
 
     // Lắng nghe click thông báo
@@ -257,6 +255,9 @@ class _HomeScreenState extends State<HomeScreen> {
                           child: Text("Điểm đến hàng đầu", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87)),
                         ),
                         _buildPopularDestinations(),
+                        
+                        // 6. FEEDBACK KHÁCH HÀNG
+                        _buildFeedbackSection(),
                       ],
                     ),
                   ),
@@ -299,7 +300,7 @@ class _HomeScreenState extends State<HomeScreen> {
       children: [
         FloatingActionButton(
           heroTag: 'chatBtn',
-          backgroundColor: const Color(0xFF1976D2).withOpacity(isDragging ? 0.7 : 1.0),
+          backgroundColor: const Color(0xFF1976D2).withValues(alpha: isDragging ? 0.7 : 1.0),
           onPressed: () {
             Navigator.pushNamed(context, '/chat');
           },
@@ -340,7 +341,7 @@ class _HomeScreenState extends State<HomeScreen> {
           title: Row(
             children: [
               CircleAvatar(
-                backgroundColor: Colors.blue.withOpacity(0.2),
+                backgroundColor: Colors.blue.withValues(alpha: 0.2),
                 backgroundImage: (avatarUrl != null && avatarUrl.startsWith('http')) 
                     ? NetworkImage(avatarUrl) 
                     : (avatarUrl != null && avatarUrl.startsWith('assets') 
@@ -398,7 +399,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
-             BoxShadow(color: Colors.blue.withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 4)),
+             BoxShadow(color: Colors.blue.withValues(alpha: 0.3), blurRadius: 8, offset: const Offset(0, 4)),
           ],
         ),
         child: Material(
@@ -545,28 +546,29 @@ class _HomeScreenState extends State<HomeScreen> {
 
     Widget _buildBannerSection() {
     return Container(
-      height: 280.h,
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-      child: Stack(
-        children: [
-          // 1. CAROUSEL
-          ClipRRect(
-            borderRadius: BorderRadius.circular(20),
-            child: PageView.builder(
-              controller: _pageController,
-              itemCount: _bannerImages.length,
-              onPageChanged: (int index) {
-                setState(() => _currentPage = index);
-              },
-              itemBuilder: (context, index) {
-                return Image.asset(
-                  _bannerImages[index],
-                  fit: BoxFit.cover,
-                  width: double.infinity,
-                );
-              },
+      child: AspectRatio(
+        aspectRatio: 16 / 9,
+        child: Stack(
+          children: [
+            // 1. CAROUSEL
+            ClipRRect(
+              borderRadius: BorderRadius.circular(20),
+              child: PageView.builder(
+                controller: _pageController,
+                itemCount: _bannerImages.length,
+                onPageChanged: (int index) {
+                  setState(() => _currentPage = index);
+                },
+                itemBuilder: (context, index) {
+                  return Image.asset(
+                    _bannerImages[index],
+                    fit: BoxFit.fill,
+                    width: double.infinity,
+                  );
+                },
+              ),
             ),
-          ),
           
           // 2. INDICATOR
           Positioned(
@@ -600,33 +602,34 @@ class _HomeScreenState extends State<HomeScreen> {
                 backgroundColor: const Color(0xFFFF6F00), // Cam nổi bật
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 elevation: 4,
               ),
               child: const Text(
                 "ĐẶT VÉ NGAY",
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
               ),
             ),
           ),
         ],
       ),
-    );
+    ),
+  );
   }
 
   Widget _buildFeatureGrid() {
     final List<Map<String, dynamic>> features = [
       {"icon": Icons.search, "label": "Tìm chuyến", "route": "/search-trips", "color": Colors.blue},
       {"icon": Icons.confirmation_number, "label": "Vé của tôi", "route": "/my-tickets", "color": Colors.orange},
-      // Thêm nút mở lại Chatbot
       {"icon": Icons.support_agent, "label": "Trợ lý ảo", "action": "open_chat", "color": Colors.pinkAccent},
       {"icon": Icons.explore, "label": "Lọc theo chuyến đi", "route": "/explore-trips", "color": Colors.purple},
     ];
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Row(
          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+         crossAxisAlignment: CrossAxisAlignment.start,
          children: features.map((f) => _buildFeatureItem(f)).toList(),
       ),
     );
@@ -640,27 +643,137 @@ class _HomeScreenState extends State<HomeScreen> {
           } else if (item['action'] == 'open_chat') {
             setState(() {
               _showChatIcon = true;
-              _fabOffset = const Offset(300, 500); // Reset position
+              _fabOffset = const Offset(300, 500); 
             });
-            // Có thể tự mở chat luôn nếu muốn
              Navigator.pushNamed(context, '/chat');
           }
         },
-        child: Column(
-           children: [
-              Container(
-                 padding: const EdgeInsets.all(14),
-                 decoration: BoxDecoration(
-                    color: (item['color'] as Color).withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(16),
+        child: SizedBox(
+           width: 70,
+           child: Column(
+              children: [
+                 Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                       color: (item['color'] as Color).withValues(alpha: 0.1),
+                       shape: BoxShape.circle,
+                    ),
+                    child: Icon(item['icon'], color: item['color'], size: 26),
                  ),
-                 child: Icon(item['icon'], color: item['color'], size: 26),
-              ),
-              const SizedBox(height: 8),
-              Text(item['label'], style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
-           ],
+                 const SizedBox(height: 8),
+                 Text(
+                   item['label'],
+                   textAlign: TextAlign.center,
+                   maxLines: 2,
+                   overflow: TextOverflow.ellipsis,
+                   style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, height: 1.2),
+                 ),
+              ],
+           ),
         ),
      );
+  }
+
+  Widget _buildFeedbackSection() {
+    final List<Map<String, dynamic>> reviews = [
+      {
+        "name": "Minh Tuấn",
+        "rating": 5,
+        "content": "Xe chạy rất êm, bác tài vui tính. Lần sau sẽ ủng hộ tiếp!",
+        "route": "TP.HCM - Đà Lạt"
+      },
+      {
+        "name": "Thảo Nhi",
+        "rating": 5,
+        "content": "Book vé qua app nhanh gọn, không cần ra bến xếp hàng. Tuyệt vời!",
+        "route": "TP.HCM - Vũng Tàu"
+      },
+       {
+        "name": "Hoàng Nam",
+        "rating": 4,
+        "content": "Dịch vụ tốt, xe sạch sẽ. Điểm trừ là wifi hơi yếu đoạn cao tốc.",
+        "route": "TP.HCM - Nha Trang"
+      },
+    ];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Padding(
+          padding: EdgeInsets.fromLTRB(16, 24, 16, 12),
+          child: Text("Đánh giá từ khách hàng", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87)),
+        ),
+        SizedBox(
+          height: 150,
+          child: ListView.builder(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            scrollDirection: Axis.horizontal,
+            itemCount: reviews.length,
+            itemBuilder: (context, index) {
+              return Container(
+                width: 280,
+                margin: const EdgeInsets.only(right: 16, bottom: 4),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.grey.shade100),
+                  boxShadow: [
+                    BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4, offset: const Offset(0, 2)),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        CircleAvatar(
+                          backgroundColor: Colors.blue.shade50,
+                          radius: 18,
+                          child: Text(reviews[index]['name'][0], style: const TextStyle(color: Colors.blue, fontWeight: FontWeight.bold)),
+                        ),
+                        const SizedBox(width: 10),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(reviews[index]['name'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                            Row(
+                              children: List.generate(5, (i) => Icon(
+                                Icons.star, 
+                                size: 14, 
+                                color: i < reviews[index]['rating'] ? Colors.amber : Colors.grey.shade300
+                              )),
+                            )
+                          ],
+                        )
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      '"${reviews[index]['content']}"',
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontStyle: FontStyle.italic, color: Colors.black87, fontSize: 13),
+                    ),
+                    const Spacer(),
+                    Row(
+                      children: [
+                        Icon(Icons.directions_bus, size: 12, color: Colors.grey.shade400),
+                        const SizedBox(width: 4),
+                        Text(
+                           reviews[index]['route'],
+                           style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+                        ),
+                      ],
+                    )
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
   }
 
   Widget _buildPopularDestinations() {
@@ -689,7 +802,7 @@ class _HomeScreenState extends State<HomeScreen> {
                      ),
                      boxShadow: [
                        BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
+                          color: Colors.black.withValues(alpha: 0.1),
                           blurRadius: 8,
                           offset: const Offset(0, 4),
                        ),

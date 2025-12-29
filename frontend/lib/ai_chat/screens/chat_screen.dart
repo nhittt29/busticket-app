@@ -257,18 +257,18 @@ class _ChatScreenState extends State<ChatScreen> {
                   ),
                 ),
                 const SizedBox(width: 12),
-                GestureDetector(
-                  onTap: _listen,
-                  child: CircleAvatar(
-                    radius: 24,
-                    backgroundColor: _isListening ? Colors.redAccent : Colors.grey[200],
-                    child: Icon(
-                      _isListening ? Icons.mic : Icons.mic_none,
-                      color: _isListening ? Colors.white : Colors.black54,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
+                // GestureDetector(
+                //   onTap: _listen,
+                //   child: CircleAvatar(
+                //     radius: 24,
+                //     backgroundColor: _isListening ? Colors.redAccent : Colors.grey[200],
+                //     child: Icon(
+                //       _isListening ? Icons.mic : Icons.mic_none,
+                //       color: _isListening ? Colors.white : Colors.black54,
+                //     ),
+                //   ),
+                // ),
+                // const SizedBox(width: 12),
                 GestureDetector(
                   onTap: _sendMessage,
                   child: const CircleAvatar(

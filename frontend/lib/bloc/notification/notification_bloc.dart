@@ -21,8 +21,18 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
     if (event.userId != null) {
       try {
         final serverNotis = await _repository.fetchNotifications(event.userId!);
-        // Count unread server notis
-        final unreadServer = serverNotis.where((n) => n['isRead'] == false).length;
+        
+        // Load local read IDs to filter server notis
+        final prefs = await SharedPreferences.getInstance();
+        final readIds = prefs.getStringList('read_notifications') ?? [];
+
+        // Count unread server notis (Server says unread AND Local doesn't say read)
+        final unreadServer = serverNotis.where((n) {
+           final isUnread = n['isRead'] == false;
+           final uiId = 3000000 + (n['id'] as int);
+           return isUnread && !readIds.contains(uiId.toString());
+        }).length;
+        
         count += unreadServer;
       } catch (e) {
         // Ignore server error for unread count, just show local

@@ -3,14 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../cubit/booking_cubit.dart';
 import '../cubit/booking_state.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:convert';
+import '../widgets/trip_card.dart';
+import '../widgets/filter_modal.dart';
+import '../../theme/app_colors.dart';
 import 'location_selection_screen.dart';
-
-const Color primaryBlue = Color(0xFF1976D2);
-const Color primaryGradientStart = Color(0xFF6AB7F5);
-const Color primaryGradientEnd = Color(0xFF4A9EFF);
-const Color backgroundLight = Color(0xFFEAF6FF);
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
@@ -20,489 +16,494 @@ class SearchScreen extends StatefulWidget {
 }
 
 class _SearchScreenState extends State<SearchScreen> {
-
-
-
-  List<Map<String, dynamic>> _history = [];
+  final ScrollController _scrollController = ScrollController();
+  
+  // Sorting & Filtering State
+  String _selectedSort = 'price_asc';
+  bool _hasActiveFilters = false;
 
   @override
   void initState() {
     super.initState();
+    // Load initial data (Explore mode)
     WidgetsBinding.instance.addPostFrameCallback((_) {
-       context.read<BookingCubit>().loadLocations();
-       _loadHistory();
+      final cubit = context.read<BookingCubit>();
+      cubit.loadLocations();
+      // Only fetch if empty to avoid reload on back navigation
+      if(cubit.state.trips.isEmpty) {
+         cubit.searchTrips(); 
+      }
     });
-  }
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    final cubit = context.read<BookingCubit>();
-    if (cubit.state.trips.isNotEmpty) {
-      cubit.clearTrips();
-    }
+    _scrollController.addListener(_onScroll);
   }
 
   @override
   void dispose() {
-
+    context.read<BookingCubit>().resetSearch();
+    _scrollController.dispose();
     super.dispose();
   }
 
-  Future<void> _loadHistory() async {
-    final prefs = await SharedPreferences.getInstance();
-    final String? historyJson = prefs.getString('search_history');
-    if (historyJson != null) {
-      try {
-        setState(() {
-          _history = List<Map<String, dynamic>>.from(jsonDecode(historyJson));
-        });
-      } catch (_) {}
+  void _onScroll() {
+    if (_isBottom) {
+      context.read<BookingCubit>().searchTrips(
+        isLoadMore: true,
+        sortBy: _selectedSort,
+      );
     }
   }
 
-  Future<void> _saveToHistory(String from, String to, DateTime date) async {
-    final prefs = await SharedPreferences.getInstance();
-    List<Map<String, dynamic>> history = [];
-    final String? historyJson = prefs.getString('search_history');
-    if (historyJson != null) {
-      try {
-        history = List<Map<String, dynamic>>.from(jsonDecode(historyJson));
-      } catch (_) {}
+  bool get _isBottom {
+    if (!_scrollController.hasClients) return false;
+    final maxScroll = _scrollController.position.maxScrollExtent;
+    final currentScroll = _scrollController.offset;
+    return currentScroll >= (maxScroll * 0.9);
+  }
+
+  void _onSortChanged(String sortValue) {
+    if (_selectedSort == sortValue) return;
+    setState(() => _selectedSort = sortValue);
+    context.read<BookingCubit>().searchTrips(sortBy: sortValue);
+  }
+
+  void _showFilterModal() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => FilterModal(
+        onApply: ({minPrice, maxPrice, startTime, endTime, busType, brandId, dropoffPoint, sortBy}) {
+          context.read<BookingCubit>().searchTrips(
+                minPrice: minPrice,
+                maxPrice: maxPrice,
+                startTime: startTime,
+                endTime: endTime,
+                busType: busType,
+                brandId: brandId,
+                dropoffPoint: dropoffPoint,
+                sortBy: sortBy,
+              );
+
+          setState(() {
+            _hasActiveFilters = minPrice != null ||
+                maxPrice != null ||
+                startTime != null ||
+                endTime != null ||
+                busType != null ||
+                brandId != null ||
+                dropoffPoint != null;
+          });
+        },
+      ),
+    );
+  }
+
+  // SEARCH SELECTION HANDLERS
+  Future<void> _selectStartPoint(BookingState state) async {
+    final startPoints = state.routes.map((r) => r.startPoint).toSet().toList()..sort();
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => LocationSelectionScreen(
+          title: 'Chọn điểm đi',
+          locations: startPoints,
+        ),
+      ),
+    );
+    if (result != null && mounted) {
+      context.read<BookingCubit>().updateFrom(result);
+      // Auto clear invalid "To"
+      final validEndPoints = state.routes
+         .where((r) => r.startPoint == result)
+         .map((r) => r.endPoint)
+         .toSet();
+      if (state.to.isNotEmpty && !validEndPoints.contains(state.to)) {
+         context.read<BookingCubit>().updateTo('');
+      }
+      _triggerSearch();
+    }
+  }
+
+  Future<void> _selectEndPoint(BookingState state) async {
+    final List<String> endPoints;
+    if (state.from.isNotEmpty) {
+      endPoints = state.routes
+          .where((r) => r.startPoint == state.from)
+          .map((r) => r.endPoint)
+          .toSet()
+          .toList()..sort();
+    } else {
+      endPoints = state.routes.map((r) => r.endPoint).toSet().toList()..sort();
     }
 
-    final entry = {
-      'startPoint': from,
-      'endPoint': to,
-      'date': date.toIso8601String(),
-      'timestamp': DateTime.now().millisecondsSinceEpoch,
-    };
-
-    // Remove duplicate if exists (optional, or just add to top)
-    history.removeWhere((item) => 
-      item['startPoint'] == from && 
-      item['endPoint'] == to && 
-      item['date'].toString().split('T')[0] == date.toIso8601String().split('T')[0]
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => LocationSelectionScreen(
+          title: 'Chọn điểm đến',
+          locations: endPoints,
+        ),
+      ),
     );
+    if (result != null && mounted) {
+      context.read<BookingCubit>().updateTo(result);
+      _triggerSearch();
+    }
+  }
 
-    // Add to top
-    history.insert(0, entry);
-    // Limit to 10 items
-    if (history.length > 10) history = history.sublist(0, 10);
+  Future<void> _selectDate(BookingState state) async {
+    final date = await showDatePicker(
+      context: context,
+      initialDate: state.date,
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 60)),
+      builder: (context, child) => Theme(
+        data: ThemeData.light().copyWith(
+          colorScheme: const ColorScheme.light(primary: AppColors.primaryBlue),
+        ),
+        child: child!,
+      ),
+    );
+    if (date != null && mounted) {
+      context.read<BookingCubit>().selectDate(date);
+      _triggerSearch();
+    }
+  }
 
-    await prefs.setString('search_history', jsonEncode(history));
+  void _triggerSearch() {
+    // Chỉ trigger search nếu cả 2 đã được chọn? 
+    // Hoặc trigger luôn ở dạng Explore nếu chỉ chọn 1? 
+    // Hiện tại backend hỗ trợ filter từng phần, nên cứ trigger.
+    context.read<BookingCubit>().searchTrips(sortBy: _selectedSort);
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: backgroundLight,
-      appBar: AppBar(
-        flexibleSpace: Container(
+    return PopScope(
+      onPopInvoked: (didPop) {
+        if (didPop) {
+           context.read<BookingCubit>().resetSearch();
+        }
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.backgroundLight,
+        body: BlocBuilder<BookingCubit, BookingState>(
+          builder: (context, state) {
+            return CustomScrollView(
+              controller: _scrollController,
+              slivers: [
+                _buildSliverAppBar(context, state),
+                _buildFilterBar(),
+                _buildTripList(state),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSliverAppBar(BuildContext context, BookingState state) {
+    final dateStr = '${state.date.day.toString().padLeft(2, '0')}/${state.date.month.toString().padLeft(2, '0')}';
+    
+    return SliverAppBar(
+      expandedHeight: 220.0,
+      floating: false,
+      pinned: true,
+      elevation: 0,
+      backgroundColor: AppColors.primaryBlue,
+      flexibleSpace: FlexibleSpaceBar(
+        background: Container(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
-              colors: [primaryGradientStart, primaryGradientEnd],
+              colors: [AppColors.primaryBlue, AppColors.accentBlue],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
           ),
-        ),
-        elevation: 0,
-        centerTitle: true,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Image.asset('assets/images/bus_logo.png', height: 32),
-            const SizedBox(width: 10),
-            const Text(
-              "Tìm chuyến xe",
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 22,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 0.5,
-              ),
-            ),
-          ],
-        ),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(18),
-        child: BlocListener<BookingCubit, BookingState>(
-          listenWhen: (previous, current) =>
-              previous.loading && !current.loading && current.trips.isNotEmpty && current.error == null,
-          listener: (context, state) {
-            Navigator.pushNamed(context, '/trip-list', arguments: state.trips);
-          },
-          child: BlocBuilder<BookingCubit, BookingState>(
-            builder: (context, state) {
-              if (state.error != null && !state.loading) {
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(state.error!, style: const TextStyle(fontWeight: FontWeight.w600)),
-                      backgroundColor: Colors.redAccent,
-                      behavior: SnackBarBehavior.floating,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      margin: const EdgeInsets.all(12),
-                    ),
-                  );
-                });
-              }
-
-              return Column(
-                children: [
-                  // 1. FROM & TO SELECTION
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                         BoxShadow(
-                            color: Colors.grey.withValues(alpha: 0.1),
-                            blurRadius: 10,
-                            offset: const Offset(0, 4),
-                         )
-                      ],
-                      border: Border.all(color: Colors.blue.withValues(alpha: 0.1)),
-                    ),
-                    child: Column(
-                      children: [
-                        // FROM
-                        _buildLocationSelector(
-                          context,
-                          label: 'Điểm đi',
-                          value: state.from.isEmpty ? 'Chọn điểm đi' : state.from,
-                          icon: Icons.my_location,
-                          isPlaceholder: state.from.isEmpty,
-                          onTap: () async {
-                             // 1. Get unique start points
-                             final startPoints = state.routes
-                                 .map((r) => r.startPoint)
-                                 .toSet()
-                                 .toList()..sort();
-
-                             final result = await Navigator.push(
-                               context,
-                               MaterialPageRoute(
-                                 builder: (_) => LocationSelectionScreen(
-                                   title: 'Chọn điểm đi', 
-                                   locations: startPoints, // Pass filtered list
-                                 ),
-                               ),
-                             );
-                             if (result != null && context.mounted) {
-                               context.read<BookingCubit>().updateFrom(result);
-                               // If current To is invalid for new From, clear it? 
-                               // Or let user rediscover. Better to clear To if it's not in valid endpoints.
-                               // Ideally we check if `to` is still valid.
-                               final validEndPoints = state.routes
-                                   .where((r) => r.startPoint == result)
-                                   .map((r) => r.endPoint)
-                                   .toSet();
-                                   
-                               if (state.to.isNotEmpty && !validEndPoints.contains(state.to)) {
-                                  context.read<BookingCubit>().updateTo('');
-                               }
-                             }
-                          },
-                        ),
-                        
-                        const Divider(height: 1, thickness: 1),
-                        
-                        // TO
-                        Stack(
-                          alignment: Alignment.centerRight,
-                          children: [
-                             _buildLocationSelector(
-                               context,
-                               label: 'Điểm đến',
-                               value: state.to.isEmpty ? 'Chọn điểm đến' : state.to,
-                               icon: Icons.location_on,
-                               isPlaceholder: state.to.isEmpty,
-                               onTap: () async {
-                                  // 2. Get end points based on From
-                                  final List<String> endPoints;
-                                  if (state.from.isNotEmpty) {
-                                    endPoints = state.routes
-                                        .where((r) => r.startPoint == state.from)
-                                        .map((r) => r.endPoint)
-                                        .toSet()
-                                        .toList()..sort();
-                                  } else {
-                                    // If From is empty, show ALL unique end points
-                                    endPoints = state.routes
-                                        .map((r) => r.endPoint)
-                                        .toSet()
-                                        .toList()..sort();
-                                      
-                                    // Or maybe force user to select From first? 
-                                    // User said "show correct points". Usually users pick From first.
-                                    // But showing all supports "I want to go TO Da Lat from anywhere" flow.
-                                  }
-
-                                  final result = await Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => LocationSelectionScreen(
-                                        title: 'Chọn điểm đến', 
-                                        locations: endPoints,
-                                      ),
-                                    ),
-                                  );
-                                  if (result != null && context.mounted) {
-                                    context.read<BookingCubit>().updateTo(result);
-                                  }
-                               },
-                             ),
-                             
-                             // SWAP BUTTON
-                             Padding(
-                               padding: const EdgeInsets.only(right: 16),
-                               child: CircleAvatar(
-                                 backgroundColor: Colors.blue[50], 
-                                 radius: 18,
-                                 child: IconButton(
-                                   icon: const Icon(Icons.swap_vert, size: 20, color: Colors.blue),
-                                   onPressed: () {
-                                     final currentFrom = state.from;
-                                     final currentTo = state.to;
-                                     context.read<BookingCubit>().updateFrom(currentTo);
-                                     context.read<BookingCubit>().updateTo(currentFrom);
-                                   },
-                                 ),
-                               ),
-                             )
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  _buildDatePicker(context, state),
-                  const SizedBox(height: 36),
-
-                  _buildSearchButton(context, state),
-                  
-                  const SizedBox(height: 24),
-                  _buildRecentSearches(),
-                ],
-              );
-            },
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildLocationSelector(
-    BuildContext context, {
-    required String label,
-    required String value,
-    required IconData icon,
-    required bool isPlaceholder,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        child: Row(
-          children: [
-            Icon(icon, color: Colors.blueAccent, size: 24),
-            const SizedBox(width: 12),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                 Text(label, style: TextStyle(fontSize: 13, color: Colors.grey[600])),
-                 const SizedBox(height: 4),
-                 Text(
-                   value, 
-                   style: TextStyle(
-                     fontSize: 16, 
-                     fontWeight: FontWeight.w600,
-                     color: isPlaceholder ? Colors.grey[400] : Colors.black87
-                   )
+          child: Stack(
+            children: [
+               Positioned(
+                 right: -20, top: -20,
+                 child: Icon(Icons.directions_bus, size: 150, color: Colors.white.withOpacity(0.1)),
+               ),
+               Align(
+                 alignment: Alignment.bottomLeft,
+                 child: Padding(
+                   padding: const EdgeInsets.fromLTRB(20, 20, 20, 90),
+                   child: Column(
+                     mainAxisSize: MainAxisSize.min,
+                     crossAxisAlignment: CrossAxisAlignment.start,
+                     children: [
+                       const Text(
+                         "Bạn muốn đi đâu?",
+                         style: TextStyle(color: Colors.white70, fontSize: 14),
+                       ),
+                       const SizedBox(height: 4),
+                       Text(
+                         state.from.isEmpty && state.to.isEmpty 
+                             ? "Khám phá mọi nẻo đường" 
+                             : "${state.from.isEmpty ? '...' : state.from} ➔ ${state.to.isEmpty ? '...' : state.to}",
+                         style: const TextStyle(
+                           color: Colors.white,
+                           fontSize: 20,
+                           fontWeight: FontWeight.bold,
+                         ),
+                         maxLines: 1, overflow: TextOverflow.ellipsis,
+                       ),
+                     ],
+                   ),
                  ),
-              ],
-            )
-          ],
+               )
+            ],
+          ),
         ),
       ),
+      bottom: PreferredSize(
+        preferredSize: const Size.fromHeight(70),
+        child: Container(
+          height: 70, // Height of the white search container
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          alignment: Alignment.bottomCenter,
+          child: Container(
+            height: 50,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, 5)),
+              ],
+            ),
+            child: Row(
+              children: [
+                // FROM
+                Expanded(
+                  flex: 3,
+                  child: InkWell(
+                    onTap: () => _selectStartPoint(state),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      child: Row(
+                        children: [
+                           const Icon(Icons.my_location, color: Colors.blue, size: 18),
+                           const SizedBox(width: 8),
+                           Expanded(
+                             child: Text(
+                               state.from.isEmpty ? "Điểm đi" : state.from,
+                               style: TextStyle(
+                                 color: state.from.isEmpty ? Colors.grey : Colors.black87,
+                                 fontWeight: FontWeight.w600,
+                                 fontSize: 13
+                               ),
+                               overflow: TextOverflow.ellipsis,
+                             ),
+                           )
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                Container(width: 1, height: 24, color: Colors.grey[300]),
+                // TO
+                Expanded(
+                  flex: 3,
+                  child: InkWell(
+                    onTap: () => _selectEndPoint(state),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      child: Row(
+                        children: [
+                           const Icon(Icons.location_on, color: Colors.redAccent, size: 18),
+                           const SizedBox(width: 8),
+                           Expanded(
+                             child: Text(
+                               state.to.isEmpty ? "Điểm đến" : state.to,
+                               style: TextStyle(
+                                 color: state.to.isEmpty ? Colors.grey : Colors.black87,
+                                 fontWeight: FontWeight.w600,
+                                 fontSize: 13
+                               ),
+                               overflow: TextOverflow.ellipsis,
+                             ),
+                           )
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                Container(width: 1, height: 24, color: Colors.grey[300]),
+                // DATE
+                Expanded(
+                  flex: 2,
+                  child: InkWell(
+                    onTap: () => _selectDate(state),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text("Ngày đi", style: TextStyle(fontSize: 10, color: Colors.grey[600])),
+                          Text(
+                            dateStr,
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.primaryBlue),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+      leading: IconButton(
+        icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
+        onPressed: () => Navigator.pop(context),
+      ),
+      title: const Text('Đặt vé xe', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+      centerTitle: true,
     );
   }
 
-  Widget _buildDatePicker(BuildContext context, BookingState state) {
-    final formattedDate =
-        '${state.date.day.toString().padLeft(2, '0')}/${state.date.month.toString().padLeft(2, '0')}/${state.date.year}';
-
-    return InkWell(
-      borderRadius: BorderRadius.circular(16),
-      onTap: () async {
-        final date = await showDatePicker(
-          context: context,
-          initialDate: state.date,
-          firstDate: DateTime.now(),
-          lastDate: DateTime.now().add(const Duration(days: 60)),
-          builder: (context, child) {
-            return Theme(
-              data: ThemeData.light().copyWith(
-                colorScheme: const ColorScheme.light(
-                  primary: primaryGradientStart,
-                  onPrimary: Colors.white,
-                  surface: Colors.white,
-                ),
-                textButtonTheme: TextButtonThemeData(
-                  style: TextButton.styleFrom(foregroundColor: primaryBlue),
+  Widget _buildFilterBar() {
+    return SliverToBoxAdapter(
+      child: Container(
+        height: 60,
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        child: ListView(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          children: [
+            // Filter Button
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: InkWell(
+                onTap: _showFilterModal,
+                borderRadius: BorderRadius.circular(20),
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: _hasActiveFilters ? AppColors.primaryBlue : Colors.white,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: _hasActiveFilters ? AppColors.primaryBlue : Colors.grey.shade300),
+                  ),
+                  child: Icon(Icons.tune, size: 20, color: _hasActiveFilters ? Colors.white : Colors.grey[700]),
                 ),
               ),
-              child: child!,
-            );
-          },
-        );
-        if (date != null && context.mounted) {
-          context.read<BookingCubit>().selectDate(date);
-        }
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFA0D8F1).withValues(alpha: 0.7), width: 1.4),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.grey.withValues(alpha: 0.16),
-              blurRadius: 12,
-              offset: const Offset(0, 5),
             ),
+            
+            // Sort Chips
+            _buildChoiceChip('💰 Giá rẻ', 'price_asc'),
+            const SizedBox(width: 8),
+            _buildChoiceChip('⚡ Giá cao', 'price_desc'),
+            const SizedBox(width: 8),
+            _buildChoiceChip('🕒 Giờ sớm', 'time_asc'),
+            const SizedBox(width: 8),
+            _buildChoiceChip('🌙 Giờ muộn', 'time_desc'),
           ],
         ),
-        child: Row(
-          children: [
-            const Icon(Icons.calendar_today_rounded, color: primaryBlue, size: 26),
-            const SizedBox(width: 14),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Ngày đi',
-                  style: TextStyle(
-                    color: primaryBlue,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14.5,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  formattedDate,
-                  style: const TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF023E8A),
-                  ),
+      ),
+    );
+  }
+
+  Widget _buildChoiceChip(String label, String value) {
+    final isSelected = _selectedSort == value;
+    return ChoiceChip(
+      label: Text(label),
+      selected: isSelected,
+      onSelected: (_) => _onSortChanged(value),
+      selectedColor: AppColors.pastelBlue,
+      backgroundColor: Colors.white,
+      labelStyle: TextStyle(
+        color: isSelected ? AppColors.deepBlue : Colors.black87,
+        fontWeight: isSelected ? FontWeight.bold : FontWeight.w400,
+        fontSize: 13,
+      ),
+      side: BorderSide(color: isSelected ? AppColors.primaryBlue : Colors.transparent),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+    );
+  }
+
+  Widget _buildTripList(BookingState state) {
+    if (state.loading && state.trips.isEmpty) {
+      return const SliverFillRemaining(
+        child: Center(child: CircularProgressIndicator(color: AppColors.primaryBlue)),
+      );
+    }
+
+    if (state.error != null && state.trips.isEmpty) {
+      return SliverFillRemaining(
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.search_off, size: 60, color: Colors.grey[400]),
+              const SizedBox(height: 16),
+              Text(
+                state.error!,
+                style: TextStyle(color: Colors.grey[600]), 
+                textAlign: TextAlign.center
+              ),
+              TextButton(
+                 onPressed: () => context.read<BookingCubit>().searchTrips(sortBy: _selectedSort),
+                 child: const Text('Thử lại'),
+              )
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (state.trips.isEmpty) {
+      return SliverFillRemaining(
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Image.asset('assets/images/bus_logo.png', height: 80, color: Colors.grey[300]),
+              const SizedBox(height: 16),
+              Text("Chưa tìm thấy chuyến xe nào", style: TextStyle(color: Colors.grey[500], fontSize: 16)),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return SliverList(
+      delegate: SliverChildBuilderDelegate(
+        (context, index) {
+          if (index >= state.trips.length) {
+            return state.hasReachedMax 
+                ? const SizedBox(height: 80) // Bottom padding
+                : const Center(child: CircularProgressIndicator());
+          }
+          final trip = state.trips[index];
+          return Container(
+            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.grey.withOpacity(0.08),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
                 ),
               ],
             ),
-            const Spacer(),
-            const Icon(Icons.keyboard_arrow_down_rounded, color: primaryBlue, size: 28),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSearchButton(BuildContext context, BookingState state) {
-    final bool canSearch = state.from.isNotEmpty && state.to.isNotEmpty;
-
-    return SizedBox(
-      width: double.infinity,
-      height: 58,
-      child: ElevatedButton.icon(
-        onPressed: state.loading || !canSearch
-            ? null
-            : () {
-                _saveToHistory(state.from, state.to, state.date);
-                context.read<BookingCubit>().searchTrips();
+            child: TripCard(
+              trip: trip,
+              onTap: () {
+                context.read<BookingCubit>().selectTrip(trip);
+                Navigator.pushNamed(context, '/select-bus', arguments: trip.id);
               },
-        icon: state.loading
-            ? const SizedBox(
-                width: 22,
-                height: 22,
-                child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.8),
-              )
-            : const Icon(Icons.directions_bus_filled, size: 28),
-        label: Text(
-          state.loading ? 'Đang tìm...' : 'Tìm chuyến xe ngay',
-          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: 0.4),
-        ),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: primaryGradientStart,
-          disabledBackgroundColor: Colors.grey[400],
-          foregroundColor: Colors.white,
-          elevation: 10,
-          shadowColor: primaryGradientStart.withValues(alpha: 0.5),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        ),
+            ),
+          );
+        },
+        childCount: state.hasReachedMax ? state.trips.length : state.trips.length + 1,
       ),
-    );
-  }
-
-
-  Widget _buildRecentSearches() {
-    if (_history.isEmpty) return const SizedBox.shrink();
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-          child: Text(
-            "Tìm kiếm gần đây",
-            style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.blueGrey),
-          ),
-        ),
-        SizedBox(
-          height: 50,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            itemCount: _history.length,
-            itemBuilder: (context, index) {
-              final item = _history[index];
-              final from = item['startPoint'];
-              final to = item['endPoint'];
-              return GestureDetector(
-                onTap: () {
-                   context.read<BookingCubit>().updateFrom(from);
-                   context.read<BookingCubit>().updateTo(to);
-                },
-                child: Container(
-                  margin: const EdgeInsets.only(right: 12),
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: Colors.grey.shade300),
-                  ),
-                  alignment: Alignment.center,
-                  child: Row(
-                    children: [
-                      const Icon(Icons.history, size: 16, color: Colors.grey),
-                      const SizedBox(width: 6),
-                      Text("$from ➝ $to", style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.black87, fontSize: 13)),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-      ],
     );
   }
 }
