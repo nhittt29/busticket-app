@@ -622,7 +622,7 @@ class _HomeScreenState extends State<HomeScreen> {
       {"icon": Icons.search, "label": "Tìm chuyến", "route": "/search-trips", "color": Colors.blue},
       {"icon": Icons.confirmation_number, "label": "Vé của tôi", "route": "/my-tickets", "color": Colors.orange},
       {"icon": Icons.support_agent, "label": "Trợ lý ảo", "action": "open_chat", "color": Colors.pinkAccent},
-      {"icon": Icons.explore, "label": "Lọc theo chuyến đi", "route": "/explore-trips", "color": Colors.purple},
+      {"icon": Icons.rate_review_rounded, "label": "Đánh giá chuyến", "action": "open_reviews", "color": Colors.purple},
     ];
 
     return Padding(
@@ -646,6 +646,8 @@ class _HomeScreenState extends State<HomeScreen> {
               _fabOffset = const Offset(300, 500); 
             });
              Navigator.pushNamed(context, '/chat');
+          } else if (item['action'] == 'open_reviews') {
+             Navigator.push(context, MaterialPageRoute(builder: (_) => const MyReviewsScreen()));
           }
         },
         child: SizedBox(

@@ -8,17 +8,7 @@ import '../bloc/review/review_event.dart';
 import '../bloc/review/review_state.dart';
 import '../review/screens/write_review_screen.dart';
 import '../review/models/review.dart';
-
-const Color primaryBlue = Color(0xFF6AB7F5);
-const Color accentBlue = Color(0xFF4A9EFF);
-const Color deepBlue = Color(0xFF1976D2);
-const Color pastelBlue = Color(0xFFA0D8F1);
-const Color backgroundLight = Color(0xFFEAF6FF);
-const Color successGreen = Color(0xFF4CAF50);
-
-// MÀU MỚI CHO MÀN HÌNH ĐÁNH GIÁ – VÀNG CAM ẤM ÁP
-const Color reviewGradientStart = Color(0xFFFF9A3C);
-const Color reviewGradientEnd = Color(0xFFFF6B35);
+import '../../theme/app_colors.dart';
 
 class MyReviewsScreen extends StatelessWidget {
   const MyReviewsScreen({super.key});
@@ -30,12 +20,12 @@ class MyReviewsScreen extends StatelessWidget {
       child: DefaultTabController(
         length: 2,
         child: Scaffold(
-          backgroundColor: backgroundLight,
+          backgroundColor: Colors.grey[50],
           appBar: AppBar(
             flexibleSpace: Container(
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [reviewGradientStart, reviewGradientEnd],
+                  colors: [AppColors.primaryBlue, AppColors.accentBlue],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
@@ -44,16 +34,16 @@ class MyReviewsScreen extends StatelessWidget {
             elevation: 0,
             centerTitle: true,
             leading: IconButton(
-              icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
+              icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 20),
               onPressed: () => Navigator.pop(context),
             ),
             title: const Text(
               "Đánh giá của tôi",
               style: TextStyle(
                 color: Colors.white,
-                fontSize: 23,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 0.6,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 0.5,
               ),
             ),
             bottom: const TabBar(
@@ -72,7 +62,7 @@ class MyReviewsScreen extends StatelessWidget {
             builder: (context, state) {
               if (state is ReviewLoading) {
                 return const Center(
-                  child: CircularProgressIndicator(color: reviewGradientStart, strokeWidth: 3),
+                  child: CircularProgressIndicator(color: AppColors.primaryBlue, strokeWidth: 3),
                 );
               } else if (state is ReviewError) {
                 return Center(
@@ -99,7 +89,7 @@ class MyReviewsScreen extends StatelessWidget {
                           icon: const Icon(Icons.refresh_rounded),
                           label: const Text('Thử lại', style: TextStyle(fontWeight: FontWeight.bold)),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: reviewGradientStart,
+                            backgroundColor: AppColors.primaryBlue,
                             foregroundColor: Colors.white,
                             padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -140,17 +130,11 @@ class _UnreviewedTab extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.rate_review_outlined, size: 100, color: Colors.grey[400]),
-              const SizedBox(height: 24),
+              Icon(Icons.rate_review_outlined, size: 80, color: Colors.grey[300]),
+              const SizedBox(height: 16),
               const Text(
-                'Không có chuyến đi nào cần đánh giá',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black87),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 12),
-              Text(
-                'Khi bạn hoàn thành chuyến đi, bạn sẽ được mời đánh giá tại đây',
-                style: TextStyle(fontSize: 16, color: Colors.grey[600], height: 1.5),
+                'Không có chuyến đi nào\ncần đánh giá',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black54),
                 textAlign: TextAlign.center,
               ),
             ],
@@ -181,13 +165,12 @@ class _UnreviewedTab extends StatelessWidget {
           margin: const EdgeInsets.only(bottom: 16),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: pastelBlue.withAlpha(150), width: 1.5),
+            borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
-                color: Colors.grey.withAlpha(60),
-                blurRadius: 16,
-                offset: const Offset(0, 8),
+                color: Colors.black.withOpacity(0.04),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
               ),
             ],
           ),
@@ -201,32 +184,26 @@ class _UnreviewedTab extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        gradient: const LinearGradient(colors: [reviewGradientStart, reviewGradientEnd]),
+                        color: AppColors.primaryBlue.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(16),
                       ),
-                      child: const Icon(Icons.directions_bus_rounded, color: Colors.white, size: 28),
+                      child: const Icon(Icons.directions_bus_rounded, color: AppColors.primaryBlue, size: 28),
                     ),
                     const SizedBox(width: 16),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          FittedBox(
-                            fit: BoxFit.scaleDown,
-                            alignment: Alignment.centerLeft,
-                            child: Text(
-                              "$startPoint → $endPoint",
-                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17, color: deepBlue),
-                            ),
+                          Text(
+                            "$startPoint → $endPoint",
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.deepBlue),
+                            maxLines: 1, overflow: TextOverflow.ellipsis,
                           ),
                           const SizedBox(height: 4),
-                          FittedBox(
-                            fit: BoxFit.scaleDown,
-                            alignment: Alignment.centerLeft,
-                            child: Text(
-                              "Nhà xe: ${brand['name'] ?? 'Không rõ'}",
-                              style: TextStyle(color: Colors.grey[700], fontSize: 15),
-                            ),
+                          Text(
+                            "Nhà xe: ${brand['name'] ?? 'Không rõ'}",
+                            style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                            maxLines: 1, overflow: TextOverflow.ellipsis,
                           ),
                         ],
                       ),
@@ -234,37 +211,35 @@ class _UnreviewedTab extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 12),
+                Container(height: 1, color: Colors.grey[100]),
+                const SizedBox(height: 12),
                 Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Icon(Icons.access_time_rounded, size: 18, color: Colors.grey[600]),
-                    const SizedBox(width: 6),
-                    Expanded(
-                      child: Text(
-                        "Khởi hành: $dateStr",
-                        style: TextStyle(color: Colors.grey[700], fontWeight: FontWeight.w600, fontSize: 15),
-                        overflow: TextOverflow.ellipsis,
-                        maxLines: 1,
+                     Row(
+                      children: [
+                        Icon(Icons.calendar_today_rounded, size: 16, color: Colors.grey[500]),
+                        const SizedBox(width: 6),
+                        Text(
+                          dateStr,
+                          style: TextStyle(color: Colors.grey[700], fontSize: 14, fontWeight: FontWeight.w500),
+                        ),
+                      ],
+                    ),
+                    ElevatedButton.icon(
+                      onPressed: () => _navigateToWriteReview(context, ticket['id'], bus['id'], ticket['paymentHistoryId']),
+                      icon: const Icon(Icons.star_rounded, size: 18),
+                      label: const Text("Đánh giá ngay", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primaryBlue,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                        elevation: 4,
+                        shadowColor: AppColors.primaryBlue.withOpacity(0.3),
                       ),
                     ),
                   ],
-                ),
-                const SizedBox(height: 20),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: ElevatedButton.icon(
-                    onPressed: () => _navigateToWriteReview(context, ticket['id'], bus['id'], ticket['paymentHistoryId']),
-                    icon: const Icon(Icons.star_rounded, size: 20),
-
-                    label: const Text("Đánh giá ngay", style: TextStyle(fontWeight: FontWeight.bold)),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: reviewGradientStart,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-                      elevation: 8,
-                      shadowColor: reviewGradientStart.withAlpha(100),
-                    ),
-                  ),
                 ),
               ],
             ),
@@ -285,7 +260,6 @@ class _UnreviewedTab extends StatelessWidget {
         ),
       ),
     ).then((_) {
-
       if (context.mounted) {
         context.read<ReviewBloc>().add(LoadReviewsEvent());
       }
@@ -306,17 +280,11 @@ class _HistoryTab extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.history_rounded, size: 100, color: Colors.grey[400]),
-              const SizedBox(height: 24),
+              Icon(Icons.history_rounded, size: 80, color: Colors.grey[300]),
+              const SizedBox(height: 16),
               const Text(
-                'Chưa có đánh giá nào',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black87),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 12),
-              Text(
-                'Các đánh giá bạn đã gửi sẽ xuất hiện tại đây',
-                style: TextStyle(fontSize: 16, color: Colors.grey[600], height: 1.5),
+                'Chưa có lịch sử đánh giá',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black54),
                 textAlign: TextAlign.center,
               ),
             ],
@@ -348,13 +316,12 @@ class _HistoryTab extends StatelessWidget {
           margin: const EdgeInsets.only(bottom: 16),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: pastelBlue.withAlpha(120), width: 1.4),
+            borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
-                color: Colors.grey.withAlpha(60),
-                blurRadius: 14,
-                offset: const Offset(0, 6),
+                color: Colors.black.withOpacity(0.04),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
               ),
             ],
           ),
@@ -368,15 +335,45 @@ class _HistoryTab extends StatelessWidget {
                     Expanded(
                       child: Text(
                         brandName,
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17, color: deepBlue),
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.deepBlue),
                         overflow: TextOverflow.ellipsis,
                         maxLines: 1,
                       ),
                     ),
-                    // NÚT SỬA ĐÁNH GIÁ
-                    IconButton(
-                      icon: const Icon(Icons.edit, size: 20, color: Colors.blueGrey),
-                      tooltip: 'Sửa đánh giá',
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[100],
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                         dateStr,
+                         style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                 Text(
+                  routeStr,
+                  style: TextStyle(fontSize: 14, color: Colors.grey[700]),
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
+                ),
+                const SizedBox(height: 12),
+                
+                // RATING ROW & EDIT BUTTON
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: List.generate(5, (i) => Icon(
+                        i < rating ? Icons.star_rounded : Icons.star_border_rounded,
+                        color: Colors.amber,
+                        size: 20,
+                      )),
+                    ),
+                    TextButton.icon(
                       onPressed: () {
                         Navigator.push(
                           context,
@@ -393,49 +390,37 @@ class _HistoryTab extends StatelessWidget {
                           }
                         });
                       },
-                    ),
-                    Text(
-                      dateStr,
-                      style: TextStyle(color: Colors.grey[600], fontSize: 13),
+                      icon: const Icon(Icons.edit, size: 16),
+                      label: const Text("Sửa", style: TextStyle(fontSize: 13)),
+                      style: TextButton.styleFrom(
+                        foregroundColor: AppColors.primaryBlue,
+                        padding: EdgeInsets.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  routeStr,
-                  style: TextStyle(fontSize: 16, color: Colors.grey[800], fontWeight: FontWeight.w600),
-                  overflow: TextOverflow.ellipsis,
-                  maxLines: 1,
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: List.generate(5, (i) => Padding(
-                    padding: const EdgeInsets.only(right: 4),
-                    child: Icon(
-                      i < rating ? Icons.star_rounded : Icons.star_border_rounded,
-                      color: Colors.amber,
-                      size: 22,
-                    ),
-                  )),
-                ),
+                
                 if (comment.isNotEmpty) ...[
                   const SizedBox(height: 12),
                   Container(
+                    width: double.infinity,
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: pastelBlue.withAlpha(30),
+                      color: AppColors.backgroundLight,
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
                       comment,
-                      style: const TextStyle(fontSize: 15, fontStyle: FontStyle.italic, color: Colors.black87),
+                      style: const TextStyle(fontSize: 14, fontStyle: FontStyle.italic, color: Colors.black87),
                     ),
                   ),
                 ],
+                
                 if (review['images'] != null && (review['images'] as List).isNotEmpty) ...[
                   const SizedBox(height: 12),
                   SizedBox(
-                    height: 80,
+                    height: 70,
                     child: ListView.builder(
                       scrollDirection: Axis.horizontal,
                       itemCount: (review['images'] as List).length,
@@ -444,7 +429,7 @@ class _HistoryTab extends StatelessWidget {
                         return Padding(
                           padding: const EdgeInsets.only(right: 8.0),
                           child: ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(10),
                             child: _buildReviewImage(imgUrl),
                           ),
                         );
@@ -459,9 +444,9 @@ class _HistoryTab extends StatelessWidget {
                     width: double.infinity,
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.green.withAlpha(20),
+                      color: AppColors.successGreen.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.green.withAlpha(50)),
+                      border: Border.all(color: AppColors.successGreen.withOpacity(0.3)),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -470,14 +455,14 @@ class _HistoryTab extends StatelessWidget {
                           "Phản hồi từ Admin:",
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
-                            fontSize: 14,
-                            color: Colors.green,
+                            fontSize: 13,
+                            color: AppColors.successGreen,
                           ),
                         ),
                         const SizedBox(height: 4),
                         Text(
                           review['reply'],
-                          style: const TextStyle(fontSize: 15, color: Colors.black87),
+                          style: const TextStyle(fontSize: 14, color: Colors.black87),
                         ),
                       ],
                     ),
@@ -497,8 +482,8 @@ class _HistoryTab extends StatelessWidget {
         final base64String = imgUrl.split(',').last;
         return Image.memory(
           base64Decode(base64String),
-          width: 80,
-          height: 80,
+          width: 70,
+          height: 70,
           fit: BoxFit.cover,
           errorBuilder: (context, error, stackTrace) => _buildErrorImage(),
         );
@@ -508,8 +493,8 @@ class _HistoryTab extends StatelessWidget {
     } else {
       return Image.network(
         imgUrl,
-        width: 80,
-        height: 80,
+        width: 70,
+        height: 70,
         fit: BoxFit.cover,
         errorBuilder: (context, error, stackTrace) => _buildErrorImage(),
       );
@@ -518,8 +503,8 @@ class _HistoryTab extends StatelessWidget {
 
   Widget _buildErrorImage() {
     return Container(
-      width: 80,
-      height: 80,
+      width: 70,
+      height: 70,
       color: Colors.grey[200],
       child: const Icon(Icons.broken_image, color: Colors.grey),
     );
