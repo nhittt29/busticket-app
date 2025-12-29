@@ -395,9 +395,9 @@ class _SearchScreenState extends State<SearchScreen> {
             ),
             
             // Sort Chips
-            _buildChoiceChip('💰 Giá rẻ', 'price_asc'),
+            _buildChoiceChip('⬇️ Giá thấp', 'price_asc'),
             const SizedBox(width: 8),
-            _buildChoiceChip('⚡ Giá cao', 'price_desc'),
+            _buildChoiceChip('⬆️ Giá cao', 'price_desc'),
             const SizedBox(width: 8),
             _buildChoiceChip('🕒 Giờ sớm', 'time_asc'),
             const SizedBox(width: 8),
