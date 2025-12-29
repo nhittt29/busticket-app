@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../theme/app_colors.dart';
+import '../models/brand.dart';
+import '../services/booking_api_service.dart';
 
 class FilterModal extends StatefulWidget {
   final Function({
@@ -21,12 +23,29 @@ class FilterModal extends StatefulWidget {
 }
 
 class _FilterModalState extends State<FilterModal> {
+  List<Brand> _brands = [];
+  int? _selectedBrandId;
   RangeValues _priceRange = const RangeValues(0, 2000000);
   String? _selectedTimeRange; // 'morning', 'afternoon', 'evening', 'night'
   String? _selectedBusType;
   String? _dropoffPoint;
   String _sortBy = 'time_asc';
   final TextEditingController _dropoffController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBrands();
+  }
+
+  Future<void> _loadBrands() async {
+    final brands = await BookingApiService.fetchBrands();
+    if (mounted) {
+      setState(() {
+        _brands = brands;
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -92,7 +111,34 @@ class _FilterModalState extends State<FilterModal> {
                 ),
                 const SizedBox(height: 16),
 
-                // 2. Giờ khởi hành
+                // 2. Nhà xe (MỚI)
+                if (_brands.isNotEmpty) ...[
+                  const Text('Nhà xe', style: TextStyle(fontWeight: FontWeight.bold)),
+                  Wrap(
+                    spacing: 8,
+                    children: _brands.map((brand) {
+                      final isSelected = _selectedBrandId == brand.id;
+                      return ChoiceChip(
+                        label: Text(brand.name),
+                        selected: isSelected,
+                        selectedColor: AppColors.pastelBlue,
+                        labelStyle: TextStyle(
+                          color: isSelected ? AppColors.deepBlue : Colors.black87,
+                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                        ),
+                        side: BorderSide(color: isSelected ? AppColors.primaryBlue : Colors.grey.shade300),
+                        onSelected: (selected) {
+                           setState(() {
+                             _selectedBrandId = selected ? brand.id : null;
+                           });
+                        },
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 16),
+                ],
+
+                // 3. Giờ khởi hành
                 const Text('Giờ khởi hành', style: TextStyle(fontWeight: FontWeight.bold)),
                 Wrap(
                   spacing: 8,
@@ -105,7 +151,7 @@ class _FilterModalState extends State<FilterModal> {
                 ),
                 const SizedBox(height: 16),
 
-                // 3. Loại xe
+                // 4. Loại xe
                 const Text('Loại xe', style: TextStyle(fontWeight: FontWeight.bold)),
                 Wrap(
                   spacing: 8,
@@ -117,7 +163,7 @@ class _FilterModalState extends State<FilterModal> {
                 ),
                 const SizedBox(height: 16),
 
-                // 4. Điểm trả khách
+                // 5. Điểm trả khách
                 const Text('Điểm trả khách', style: TextStyle(fontWeight: FontWeight.bold)),
                 const SizedBox(height: 8),
                 TextField(
@@ -134,7 +180,7 @@ class _FilterModalState extends State<FilterModal> {
                 ),
                 const SizedBox(height: 16),
 
-                // 5. Sắp xếp
+                // 6. Sắp xếp
                 const Text('Sắp xếp theo', style: TextStyle(fontWeight: FontWeight.bold)),
                 RadioListTile<String>(
                   title: const Text('Giờ đi sớm nhất'),
@@ -180,6 +226,7 @@ class _FilterModalState extends State<FilterModal> {
                       _selectedTimeRange = null;
                       _selectedBusType = null;
                       _dropoffPoint = null;
+                      _selectedBrandId = null;
                       _dropoffController.clear();
                       _sortBy = 'time_asc';
                     });
@@ -214,6 +261,7 @@ class _FilterModalState extends State<FilterModal> {
                       startTime: startTime,
                       endTime: endTime,
                       busType: _selectedBusType,
+                      brandId: _selectedBrandId,
                       dropoffPoint: _dropoffPoint?.isEmpty == true ? null : _dropoffPoint,
                       sortBy: _sortBy,
                     );

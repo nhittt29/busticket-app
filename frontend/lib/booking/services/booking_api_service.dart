@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import '../cubit/booking_state.dart';
 import '../models/dropoff_point.dart';
 import '../../models/route_model.dart';
+import '../models/brand.dart';
 
 class BookingApiService {
   static const String baseUrl = "http://10.0.2.2:3000/api";
@@ -212,6 +213,27 @@ class BookingApiService {
       if (kDebugMode) {
         debugPrint('Lỗi lấy điểm trả: $e');
       }
+      return [];
+    }
+  }
+
+  // Lấy danh sách nhà xe
+  static Future<List<Brand>> fetchBrands() async {
+    final url = Uri.parse('http://10.0.2.2:3000/brand'); // Backend @Controller('brand') is usually root or under api?
+    // Wait, BookingApiService.baseUrl is 'http://10.0.2.2:3000/api'.
+    // If Backend `main.ts` sets prefix 'api', then it is /api/brand.
+    // Let's assume /api/brand is correct based on other endpoints logic (routes is /api/routes).
+    final uri = Uri.parse('$baseUrl/brand');
+    
+    try {
+      final response = await http.get(uri);
+      if (response.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(response.body);
+        return data.map((json) => Brand.fromJson(json)).toList();
+      }
+      return [];
+    } catch (e) {
+      if (kDebugMode) debugPrint('Error fetching brands: $e');
       return [];
     }
   }

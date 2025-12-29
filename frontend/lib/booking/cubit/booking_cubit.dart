@@ -90,7 +90,13 @@ class BookingCubit extends Cubit<BookingState> {
         limit: 10,
       );
 
-      final newTrips = result.trips;
+      // Filter out trips that have already departed
+      final now = DateTime.now();
+      final newTrips = result.trips.where((trip) {
+        final departureTime = DateTime.parse(trip.departure).toLocal();
+        return departureTime.isAfter(now);
+      }).toList();
+
       final total = result.total;
       final currentTrips = isLoadMore ? state.trips : <Trip>[];
       final allTrips = List<Trip>.from(currentTrips)..addAll(newTrips);
