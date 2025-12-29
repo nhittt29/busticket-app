@@ -6,6 +6,7 @@ import '../cubit/booking_state.dart';
 import '../widgets/trip_card.dart';
 import '../widgets/filter_modal.dart';
 import '../../theme/app_colors.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'location_selection_screen.dart';
 
 class SearchScreen extends StatefulWidget {
@@ -231,26 +232,28 @@ class _SearchScreenState extends State<SearchScreen> {
                Align(
                  alignment: Alignment.bottomCenter,
                  child: Padding(
-                   padding: const EdgeInsets.fromLTRB(20, 20, 20, 80), // Đẩy thanh tìm kiếm lên
+                   padding: const EdgeInsets.fromLTRB(20, 20, 20, 90), // Đẩy chữ lên cao
                    child: Column(
                      mainAxisSize: MainAxisSize.min,
                      crossAxisAlignment: CrossAxisAlignment.center,
                      children: [
-                       const Text(
-                         "Bạn muốn đi đâu?",
-                         style: TextStyle(color: Colors.white70, fontSize: 14),
-                       ),
-                       const SizedBox(height: 4),
                          Text(
                            state.from.isEmpty && state.to.isEmpty 
                                ? "" 
                                : "${state.from.isEmpty ? '...' : state.from} ➔ ${state.to.isEmpty ? '...' : state.to}",
-                           style: const TextStyle(
+                           style: GoogleFonts.montserrat(
                              color: Colors.white,
-                             fontSize: 20,
-                           fontWeight: FontWeight.bold,
-                         ),
-                         maxLines: 1, overflow: TextOverflow.ellipsis,
+                             fontSize: 16,
+                             fontWeight: FontWeight.w700,
+                             shadows: [
+                               const BoxShadow(
+                                 color: Colors.black26,
+                                 blurRadius: 4,
+                                 offset: Offset(0, 2),
+                               ),
+                             ],
+                           ),
+                           maxLines: 1, overflow: TextOverflow.ellipsis,
                        ),
                      ],
                    ),
@@ -362,7 +365,7 @@ class _SearchScreenState extends State<SearchScreen> {
         icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
         onPressed: () => Navigator.pop(context),
       ),
-      title: const Text('Đặt vé xe', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+      title: const Text('Tìm chuyến xe', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
       centerTitle: true,
     );
   }
@@ -395,9 +398,9 @@ class _SearchScreenState extends State<SearchScreen> {
             ),
             
             // Sort Chips
-            _buildChoiceChip('⬇️ Giá thấp', 'price_asc'),
+            _buildChoiceChip('Giá thấp', 'price_asc', icon: Icons.arrow_downward),
             const SizedBox(width: 8),
-            _buildChoiceChip('⬆️ Giá cao', 'price_desc'),
+            _buildChoiceChip('Giá cao', 'price_desc', icon: Icons.arrow_upward),
             const SizedBox(width: 8),
             _buildChoiceChip('🕒 Giờ sớm', 'time_asc'),
             const SizedBox(width: 8),
@@ -408,16 +411,27 @@ class _SearchScreenState extends State<SearchScreen> {
     );
   }
 
-  Widget _buildChoiceChip(String label, String value) {
+  Widget _buildChoiceChip(String label, String value, {IconData? icon}) {
     final isSelected = _selectedSort == value;
+    final contentColor = isSelected ? AppColors.deepBlue : Colors.black87;
+    
     return ChoiceChip(
-      label: Text(label),
+      label: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (icon != null) ...[
+             Icon(icon, size: 18, color: isSelected ? AppColors.deepBlue : Colors.blue),
+             const SizedBox(width: 6),
+          ],
+          Text(label),
+        ],
+      ),
       selected: isSelected,
       onSelected: (_) => _onSortChanged(value),
       selectedColor: AppColors.pastelBlue,
       backgroundColor: Colors.white,
       labelStyle: TextStyle(
-        color: isSelected ? AppColors.deepBlue : Colors.black87,
+        color: contentColor,
         fontWeight: isSelected ? FontWeight.bold : FontWeight.w400,
         fontSize: 13,
       ),
