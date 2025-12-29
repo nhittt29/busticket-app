@@ -63,11 +63,49 @@ Khi xe chuẩn bị chạy, quá trình soát vé bắt đầu.
 
 ---
 
-## 3. Cơ chế Kỹ thuật (Dành cho Developer)
+## 3. Cơ chế Kỹ thuật & Nguyên lý hoạt động (Deep Dive)
 
-Phần này mô tả cách các thành phần hệ thống giao tiếp với nhau.
+Phần này mô tả chi tiết cách hệ thống xử lý hình ảnh từ lúc nhận được cho đến khi đưa ra quyết định "trùng khớp" hay "không".
 
-### Kiến trúc hệ thống
+### 3.1 Quy trình xử lý ảnh (The Pipeline)
+Khi server nhận được một bức ảnh từ camera tài xế, thư viện **DeepFace** sẽ thực hiện tuần tự 4 bước sau:
+
+1.  **Phát hiện (Detection)**:
+    *   Hệ thống quét toàn bộ bức ảnh để tìm vị trí khuôn mặt.
+    *   Loại bỏ phần nền thừa, chỉ giữ lại khung hình chữ nhật chứa khuôn mặt.
+    *   *Backend sử dụng*: RetinaFace hoặc MTCNN để đảm bảo bắt được mặt dù bị nghiêng hoặc che khuất một phần.
+
+2.  **Căn chỉnh (Alignment)**:
+    *   Khuôn mặt người thật thường không thẳng góc 100%. Hệ thống sẽ tìm vị trí 2 mắt.
+    *   Sau đó xoay ảnh sao cho đường nối 2 mắt nằm ngang. Điều này cực kỳ quan trọng để tăng độ chính xác.
+
+3.  **Biểu diễn số (Representation / Embedding)**:
+    *   Đây là bước "thần thánh" nhất. Bức ảnh khuôn mặt (dữ liệu điểm ảnh) được đưa qua một Mạng nơ-ron sâu (Deep Neural Network - ví dụ VGG-Face).
+    *   Đầu ra không phải là ảnh, mà là một **dãy số** (gọi là vector). Ví dụ: `[0.12, -0.45, 0.88, ... 0.04]`.
+    *   Dãy số này (thường gồm 2622 con số với VGG-Face) là "mã gen" duy nhất đại diện cho khuôn mặt đó. Dù bạn cười, mếu, hay già đi, dãy số này thay đổi rất ít.
+
+4.  **Xác thực (Verification)**:
+    *   Hệ thống lấy vector của **Ảnh vừa chụp** so sánh với vector của **Ảnh đăng ký** trong database.
+
+### 3.2 Dựa vào đâu để so sánh 2 khuôn mặt?
+Máy tính không "nhìn" thấy mặt giống nhau như con người, nó so sánh hai dãy số vector ở bước trên bằng Toán học.
+
+*   **Không gian đa chiều**: Tưởng tượng mỗi khuôn mặt là một chấm điểm trong không gian.
+    *   Các ảnh khác nhau của **cùng một người** sẽ là các chấm nằm **rất sát nhau** (tạo thành 1 cụm).
+    *   Ảnh của **người khác** sẽ là chấm nằm **rất xa**.
+
+*   **Công thức khoảng cách (Distance Metric)**:
+    *   Để đo độ "gần/xa", hệ thống dùng công thức **Euclidean Distance** (Đo khoảng cách đường thẳng) hoặc **Cosine Similarity** (Đo góc giữa 2 vector).
+    *   Ví dụ công thức Euclidean:
+        $$ d(A, B) = \sqrt{\sum_{i=1}^{n} (A_i - B_i)^2} $$
+
+*   **Ngưỡng quyết định (Threshold)**:
+    *   Hệ thống được cài đặt sẵn một con số giới hạn (ví dụ: `0.40`).
+    *   Nếu khoảng cách tính được **nhỏ hơn 0.40** ➔ Kết luận: **CÙNG 1 NGƯỜI**.
+    *   Nếu khoảng cách tính được **lớn hơn 0.40** ➔ Kết luận: **KHÁC NGƯỜI**.
+
+### 3.3 Kiến trúc hệ thống thực tế
+Các thành phần giao tiếp với nhau như sau:
 *   **Mobile App (Flutter)**: Nơi người dùng đăng ký ảnh. Sử dụng thư viện `google_mlkit_face_detection` để validate ảnh client-side.
 *   **Web Portal (HTML/JS)**: Giao diện soát vé chạy trên trình duyệt của tài xế. Sử dụng `getUserMedia API` để truy cập Camera và `fetch API` để gửi ảnh.
 *   **Backend Server (NestJS)**: Trung tâm điều phối. Nhận ảnh, kiểm tra vé, gửi lệnh cho AI.
