@@ -105,7 +105,7 @@ class BookingCubit extends Cubit<BookingState> {
         trips: allTrips,
         loading: false,
         page: result.page,
-        hasReachedMax: allTrips.length >= total,
+        hasReachedMax: result.trips.length < 10 || allTrips.length >= total,
       ));
     } catch (e) {
       emit(state.copyWith(error: e.toString(), loading: false));

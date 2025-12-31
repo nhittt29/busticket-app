@@ -8,6 +8,11 @@ import 'package:flutter/foundation.dart' as foundation;
 import 'dart:io';
 import '../services/ai_service.dart';
 import '../widgets/chat_bubble.dart';
+import 'dart:convert';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../booking/cubit/booking_cubit.dart';
+import '../../bloc/auth/auth_bloc.dart';
+import '../../bloc/home/home_bloc.dart';
 
 class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key});
@@ -28,12 +33,14 @@ class _ChatScreenState extends State<ChatScreen> {
   bool _isListening = false;
   final FlutterTts _flutterTts = FlutterTts();
 
+  bool _speechEnabled = false;
   bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
     _speech = stt.SpeechToText();
+    _initSpeech();
     _initTts();
 
     _focusNode.addListener(() {
@@ -49,6 +56,29 @@ class _ChatScreenState extends State<ChatScreen> {
       text: "Xin chào! Mình là trợ lý ảo BusTicket. Mình có thể giúp gì cho bạn?",
       isUser: false,
     ));
+  }
+
+  void _initSpeech() async {
+    _speechEnabled = await _speech.initialize(
+        onStatus: (val) {
+          debugPrint('Speech Status: $val');
+          if (mounted) {
+            setState(() {
+              // Cập nhật trạng thái UI dựa trên status thực tế
+              if (val == 'listening') {
+                _isListening = true;
+              } else if (val == 'notListening' || val == 'done') {
+                _isListening = false;
+              }
+            });
+          }
+        },
+        onError: (val) {
+          debugPrint('Speech Error: $val');
+          if (mounted) setState(() => _isListening = false);
+        },
+    );
+    if (mounted) setState(() {});
   }
 
   void _initTts() async {
@@ -81,6 +111,11 @@ class _ChatScreenState extends State<ChatScreen> {
 
   void _sendMessage() async {
     if (_controller.text.isEmpty) return;
+
+    if (_isListening) {
+      _speech.stop();
+      setState(() => _isListening = false);
+    }
     
     final text = _controller.text;
     setState(() {
@@ -92,6 +127,9 @@ class _ChatScreenState extends State<ChatScreen> {
     // Call API
     final response = await _aiService.sendMessage(text);
 
+    // Kiem tra neu la lenh JSON (Command Mode)
+    if (_tryParseCommand(response)) return;
+
     setState(() {
       _isLoading = false;
       _messages.add(Message(text: response, isUser: false));
@@ -101,29 +139,108 @@ class _ChatScreenState extends State<ChatScreen> {
     // await _flutterTts.speak(response); 
   }
 
-  void _listen() async {
-    if (!_isListening) {
-      bool available = await _speech.initialize(
-        onStatus: (val) => print('onStatus: $val'),
-        onError: (val) => print('onError: $val'),
-      );
-      if (available) {
-        setState(() => _isListening = true);
-        _speech.listen(
-          onResult: (val) => setState(() {
-            _controller.text = val.recognizedWords;
-          }),
-          localeId: 'vi_VN',
-        );
+  bool _tryParseCommand(String response) {
+    try {
+      // Clean markdown code blocks
+      final cleanJson = response.replaceAll(RegExp(r'^```json\s*|\s*```$'), '').trim();
+      if (cleanJson.startsWith('{') && cleanJson.endsWith('}')) {
+        final data = jsonDecode(cleanJson);
+        if (data['action'] == 'SEARCH_TRIP') {
+          _handleSearchCommand(data);
+          return true;
+        }
       }
-    } else {
+    } catch (e) {
+      debugPrint("Error parsing AI command: $e");
+    }
+    return false;
+  }
+
+  void _handleSearchCommand(Map<String, dynamic> data) async {
+      final cubit = context.read<BookingCubit>();
+      
+      // Reset state cu
+      cubit.resetSearch();
+      
+      String from = data['from'] ?? '';
+      String to = data['to'] ?? '';
+      String dateStr = data['date'] ?? '';
+
+      // Feedback Text
+      String feedback = "Đang tìm chuyến xe";
+      if (to.isNotEmpty) feedback += " đi $to";
+      if (dateStr.isNotEmpty) feedback += " cho ngày $dateStr";
+      
+      setState(() {
+        _isLoading = false;
+        _messages.add(Message(
+          text: "$feedback...", 
+          isUser: false
+        ));
+      });
+      
+      await Future.delayed(const Duration(milliseconds: 800));
+      
+      // Update Cubit
+      if (from.isNotEmpty) cubit.updateFrom(from);
+      if (to.isNotEmpty) cubit.updateTo(to);
+      if (dateStr.isNotEmpty) {
+        try {
+           cubit.selectDate(DateTime.parse(dateStr));
+        } catch (_) {}
+      }
+      
+      // Navigate
+      if (mounted) {
+         cubit.searchTrips(); // Trigger search
+         Navigator.pushNamed(context, '/search-trips');
+      }
+  }
+
+  void _listen() async {
+    if (_isListening) {
       setState(() => _isListening = false);
       _speech.stop();
+    } else {
+      if (_speechEnabled) {
+        setState(() => _isListening = true);
+        _speech.listen(
+          onResult: (val) {
+             setState(() {
+               _controller.text = val.recognizedWords;
+               if (val.finalResult) {
+                 _isListening = false;
+               }
+             });
+          },
+          localeId: 'vi_VN',
+          pauseFor: const Duration(seconds: 3), // Tự tắt sau 3 giây im lặng
+          listenFor: const Duration(seconds: 30), // Tối đa 30 giây
+          cancelOnError: true,
+        );
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final authUser = context.watch<AuthBloc>().state.user;
+    final homeUser = context.watch<HomeBloc>().state.user;
+    final user = authUser ?? homeUser;
+    
+    String? avatarUrl;
+    if (user != null && user['avatar'] != null) {
+      String raw = user['avatar'];
+      if (raw.isNotEmpty) {
+        raw = raw.replaceAll("\\", "/");
+        if (!raw.startsWith('http')) {
+          avatarUrl = 'http://10.0.2.2:3000/$raw';
+        } else {
+          avatarUrl = raw;
+        }
+      }
+    }
+
     return PopScope(
       canPop: !_showEmoji,
       onPopInvokedWithResult: (didPop, result) {
@@ -182,7 +299,11 @@ class _ChatScreenState extends State<ChatScreen> {
               itemCount: _messages.length,
               itemBuilder: (context, index) {
                 final msg = _messages[index];
-                return ChatBubble(text: msg.text, isUser: msg.isUser);
+                return ChatBubble(
+                  text: msg.text, 
+                  isUser: msg.isUser,
+                  avatarUrl: msg.isUser ? avatarUrl : null,
+                );
               },
             ),
           ),
@@ -200,7 +321,7 @@ class _ChatScreenState extends State<ChatScreen> {
                       shape: BoxShape.circle,
                       boxShadow: [
                          BoxShadow(
-                          color: Colors.grey.withOpacity(0.3),
+                          color: Colors.grey.withValues(alpha: 0.3),
                           blurRadius: 5,
                            offset: const Offset(0, 2),
                         )
@@ -221,7 +342,7 @@ class _ChatScreenState extends State<ChatScreen> {
               color: Colors.white,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.grey.withOpacity(0.1),
+                  color: Colors.grey.withValues(alpha: 0.1),
                   blurRadius: 10,
                   offset: const Offset(0, -5),
                 ),
@@ -257,18 +378,18 @@ class _ChatScreenState extends State<ChatScreen> {
                   ),
                 ),
                 const SizedBox(width: 12),
-                // GestureDetector(
-                //   onTap: _listen,
-                //   child: CircleAvatar(
-                //     radius: 24,
-                //     backgroundColor: _isListening ? Colors.redAccent : Colors.grey[200],
-                //     child: Icon(
-                //       _isListening ? Icons.mic : Icons.mic_none,
-                //       color: _isListening ? Colors.white : Colors.black54,
-                //     ),
-                //   ),
-                // ),
-                // const SizedBox(width: 12),
+                GestureDetector(
+                  onTap: _listen,
+                  child: CircleAvatar(
+                    radius: 24,
+                    backgroundColor: _isListening ? Colors.redAccent : Colors.grey[200],
+                    child: Icon(
+                      _isListening ? Icons.mic : Icons.mic_none,
+                      color: _isListening ? Colors.white : Colors.black54,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
                 GestureDetector(
                   onTap: _sendMessage,
                   child: const CircleAvatar(

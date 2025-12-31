@@ -4,8 +4,9 @@ import 'package:flutter_markdown/flutter_markdown.dart';
 class ChatBubble extends StatelessWidget {
   final String text;
   final bool isUser;
+  final String? avatarUrl;
 
-  const ChatBubble({super.key, required this.text, required this.isUser});
+  const ChatBubble({super.key, required this.text, required this.isUser, this.avatarUrl});
 
   @override
   Widget build(BuildContext context) {
@@ -24,7 +25,7 @@ class ChatBubble extends StatelessWidget {
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.grey.withOpacity(0.3),
+                    color: Colors.grey.withValues(alpha: 0.3),
                     blurRadius: 5,
                     offset: const Offset(0, 2),
                   ),
@@ -55,7 +56,7 @@ class ChatBubble extends StatelessWidget {
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.grey.withOpacity(0.1),
+                    color: Colors.grey.withValues(alpha: 0.1),
                     blurRadius: 4,
                     offset: const Offset(0, 2),
                   ),
@@ -78,10 +79,40 @@ class ChatBubble extends StatelessWidget {
           ),
           if (isUser) ...[
             const SizedBox(width: 8),
-            const CircleAvatar(
-              backgroundColor: Color(0xFFE3F2FD),
-              child: Icon(Icons.person, color: Color(0xFF1976D2)),
-            ),
+            if (avatarUrl != null && avatarUrl!.startsWith('http'))
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                        color: Colors.white,
+                        width: 2), // White border like standard chat heads
+                    boxShadow: [
+                      BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.1),
+                          blurRadius: 4,
+                          offset: const Offset(0, 2))
+                    ]),
+                child: ClipOval(
+                  child: FadeInImage.assetNetwork(
+                    placeholder: 'assets/images/default.png',
+                    image: avatarUrl!,
+                    fit: BoxFit.cover,
+                    imageErrorBuilder: (context, error, stackTrace) {
+                      return const CircleAvatar(
+                        backgroundColor: Color(0xFFE3F2FD),
+                        child: Icon(Icons.person, color: Color(0xFF1976D2)),
+                      );
+                    },
+                  ),
+                ),
+              )
+            else
+              const CircleAvatar(
+                backgroundColor: Color(0xFFE3F2FD),
+                child: Icon(Icons.person, color: Color(0xFF1976D2)),
+              ),
           ],
         ],
       ),

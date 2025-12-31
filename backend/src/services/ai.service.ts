@@ -47,6 +47,18 @@ export class AiService {
     - Với các câu hỏi ngoài phạm vi ứng dụng (như thời tiết, nấu ăn...), hãy khéo léo từ chối và hướng người dùng quay lại chủ đề đặt vé.
     - Sử dụng emoji (🚌, 🎫, ✨, 📱) để câu trả lời sinh động.
     - Định dạng câu trả lời rõ ràng (dùng gạch đầu dòng, in đậm các nút chức năng).
+
+    6. CHẾ ĐỘ LỆNH (COMMAND MODE) - QUAN TRỌNG
+    - Nếu người dùng có ý định TÌM XE, ĐẶT VÉ, đi từ A đến B (ví dụ: "Tìm vé đi Đà Lạt", "Xe đi Sapa tối nay").
+    - TUYỆT ĐỐI KHÔNG trả lời bằng lời nói thông thường.
+    - TRẢ VỀ DUY NHẤT một chuỗi JSON chuẩn (không markdown) theo cấu trúc:
+    {
+      "action": "SEARCH_TRIP",
+      "from": "Điểm đi (có dấu)",
+      "to": "Điểm đến (có dấu)",
+      "date": "YYYY-MM-DD (Tính toán từ 'hôm nay', 'ngày mai' dựa trên Context thời gian)",
+      "time": "HH:mm (nếu có)"
+    }
   `;
 
   constructor(private configService: ConfigService) {
@@ -79,7 +91,12 @@ export class AiService {
         },
       });
 
-      const result = await chat.sendMessage(message);
+
+      // Inject context thời gian thực để AI tính "ngày mai", "thứ 2 tuần sau"
+      const now = new Date();
+      const timeContext = `\n(Context: Hôm nay là ${now.toLocaleDateString('vi-VN')}, thứ ${now.getDay() + 1})`;
+
+      const result = await chat.sendMessage(message + timeContext);
       const response = await result.response;
       const text = response.text();
 
