@@ -27,10 +27,8 @@ export class VnPayController {
                     PaymentMethod.VNPAY,
                     query['vnp_TransactionNo']
                 );
-                // Redirect về DeepLink App hoặc trang Success Web
-                // TODO: Cần thống nhất URL redirect về App
-                // Tạm thời redirect về trang xác nhận Web (giống Momo)
-                return res.redirect(`http://localhost:3000/success?orderId=${query['vnp_TxnRef']}`);
+                // Redirect về DeepLink App
+                return res.redirect(`busticket://payment-success?orderId=${query['vnp_TxnRef']}`);
             } catch (e) {
                 this.logger.error('PayTicket Failed:', e);
                 return res.status(400).json({ message: 'Payment processing failed' });
