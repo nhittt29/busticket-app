@@ -61,11 +61,6 @@ export class VnPayService {
       const value = vnp_Params[key];
       if (value !== null && value !== undefined && value.toString() !== '') {
         if (signData.length > 0) {
-          signData += '&' + key + '=' + value; // Raw data for hash? NO, VNPAY docs say hash on query string usually?
-          // WAIT. Docs: "Dữ liệu checksum được thành lập dựa trên việc sắp xếp tăng dần của tên tham số (QueryString)"
-          // PHP example: $hashdata .= urlencode($key) . "=" . urlencode($value);
-          // So we MUST encode keys and values in the hash data too.
-
           signData += '&' + encodeParams(key) + '=' + encodeParams(value.toString());
           query += '&' + encodeParams(key) + '=' + encodeParams(value.toString());
         } else {
@@ -104,7 +99,17 @@ export class VnPayService {
       }
     });
 
-    const signData = querystring.stringify(sortedParams, { encode: true });
+    const encodeParams = (str: string) => encodeURIComponent(str).replace(/%20/g, '+');
+    let signData = '';
+
+    keys.forEach((key) => {
+      const value = sortedParams[key];
+      if (signData.length > 0) {
+        signData += '&' + encodeParams(key) + '=' + encodeParams(value.toString());
+      } else {
+        signData += encodeParams(key) + '=' + encodeParams(value.toString());
+      }
+    });
 
     // signData now contains standard encoded string (with %20)
     // IMPORTANT: When VNPAY returns data, it might return with +, so we must be careful.

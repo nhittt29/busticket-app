@@ -5,7 +5,7 @@ import { VnPayService } from '../services/vnpay.service';
 import { TicketService } from '../services/ticket.service';
 import { PaymentMethod } from '../models/Ticket';
 
-@Controller('api/vnpay')
+@Controller('vnpay')
 export class VnPayController {
     private readonly logger = new Logger(VnPayController.name);
 
