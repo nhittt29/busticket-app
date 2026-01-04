@@ -173,19 +173,26 @@ class TicketCard extends StatelessWidget {
                                       fontSize: 12, color: Colors.blueGrey)),
                             ],
                           ),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              Text('GHẾ',
-                                  style: TextStyle(
-                                      fontSize: 10, color: Colors.blueGrey[400])),
-                              const SizedBox(height: 2),
-                              Text(seatDisplay,
+                          Flexible(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Text('GHẾ',
+                                    style: TextStyle(
+                                        fontSize: 10, color: Colors.blueGrey[400])),
+                                const SizedBox(height: 2),
+                                Text(
+                                  seatDisplay,
                                   style: const TextStyle(
-                                      fontSize: 18,
+                                      fontSize: 15,
                                       fontWeight: FontWeight.bold,
-                                      color: Color(0xFF263238))),
-                            ],
+                                      color: Color(0xFF263238)),
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 2,
+                                  textAlign: TextAlign.end,
+                                ),
+                              ],
+                            ),
                           ),
                         ],
                       )
