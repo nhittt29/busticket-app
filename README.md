@@ -1,27 +1,27 @@
-# BUSTICKET - Tai Lieu Ky Thuat Du An
+# BUSTICKET - Tài Liệu Kỹ Thuật Dự Án
 
-BUSTICKET la he thong quan ly va dat ve xe khach truc tuyen cho Ben xe Mien Dong, bao gom ung dung di dong cho khach hang va he thong Backend API quan ly tap trung. Tai lieu nay huong dan cau truc du an, cach cai dat moi truong phat trien va cac quy uoc lap trinh (coding standards).
+BUSTICKET là hệ thống quản lý và đặt vé xe khách trực tuyến cho Bến xe Miền Đông, bao gồm ứng dụng di động cho khách hàng và hệ thống Backend API quản lý tập trung. Tài liệu này hướng dẫn cấu trúc dự án, cách cài đặt môi trường phát triển và các quy ước lập trình (coding standards).
 
 ---
 
-## 1. Kien truc va To chuc Thu muc
+## 1. Kiến trúc và Tổ chức Thư mục
 
-Du an duoc to chuc theo mo hinh Monorepo bao gom 2 thu muc chinh:
+Dự án được tổ chức theo mô hình Monorepo bao gồm 2 thư mục chính:
 
 ```
 busticket-app/
 ├── backend/
 │   ├── src/
-│   │   ├── config/         # Cau hinh he thong (Environment, Constants)
-│   │   ├── controllers/    # Tiep nhan request (API Endpoints)
+│   │   ├── config/         # Cấu hình hệ thống (Environment, Constants)
+│   │   ├── controllers/    # Tiếp nhận request (API Endpoints)
 │   │   ├── dtos/           # Data Transfer Objects (Validation)
 │   │   ├── models/         # Database Models
-│   │   ├── modules/        # Cac module nghiep vu (Auth, User, Bus...)
-│   │   ├── queues/         # Xu ly background job (Redis Bull)
-│   │   ├── redis/          # Cau hinh Redis Cache
-│   │   ├── repositories/   # Tuong tac Database (Prisma)
-│   │   ├── services/       # Logic nghiep vu chinh
-│   │   ├── stats/          # Thong ke bao cao
+│   │   ├── modules/        # Các module nghiệp vụ (Auth, User, Bus...)
+│   │   ├── queues/         # Xử lý background job (Redis Bull)
+│   │   ├── redis/          # Cấu hình Redis Cache
+│   │   ├── repositories/   # Tương tác Database (Prisma)
+│   │   ├── services/       # Logic nghiệp vụ chính
+│   │   ├── stats/          # Thống kê báo cáo
 │   │   ├── validators/     # Custom validators
 │   │   ├── app.module.ts   # Root Module
 │   │   └── main.ts         # Entry point
@@ -29,20 +29,20 @@ busticket-app/
 │   └── package.json
 │
 ├── frontend/
-│   ├── assets/             # Tai nguyen (Images, Icons, Fonts)
+│   ├── assets/             # Tài nguyên (Images, Icons, Fonts)
 │   ├── lib/
-│   │   ├── ai_chat/        # Tinh nang Chatbot & Voice
+│   │   ├── ai_chat/        # Tính năng Chatbot & Voice
 │   │   ├── bloc/           # Global State Management
-│   │   ├── booking/        # Quy trinh dat ve (Chon ghe, lich trinh)
+│   │   ├── booking/        # Quy trình đặt vé (Chọn ghế, lịch trình)
 │   │   ├── models/         # Data Models (Dart Objects)
-│   │   ├── payment/        # Tich hop thanh toan (Zalo, Momo, VNPAY)
-│   │   ├── promotions/     # Quan ly khuyen mai
+│   │   ├── payment/        # Tích hợp thanh toán (Zalo, Momo, VNPAY)
+│   │   ├── promotions/     # Quản lý khuyến mãi
 │   │   ├── repositories/   # Data Layer (API fetching)
-│   │   ├── review/         # Danh gia & Phan hoi
-│   │   ├── screens/        # Cac man hinh chung (Home, Login, Profile)
-│   │   ├── services/       # Cac service tien ich (API, Storage, Format)
-│   │   ├── theme/          # Hinh anh giao dien (Colors, Fonts)
-│   │   ├── ticket/         # Quan ly ve cua toi (QR Code, History)
+│   │   ├── review/         # Đánh giá & Phản hồi
+│   │   ├── screens/        # Các màn hình chung (Home, Login, Profile)
+│   │   ├── services/       # Các service tiện ích (API, Storage, Format)
+│   │   ├── theme/          # Hình ảnh giao diện (Colors, Fonts)
+│   │   ├── ticket/         # Quản lý vé của tôi (QR Code, History)
 │   │   └── main.dart       # Entry point
 │   └── pubspec.yaml
 │
@@ -50,94 +50,94 @@ busticket-app/
 ```
 
 ### Backend (backend/)
-Xay dung 3 tang (3-layer architecture) dua tren NestJS Framework:
-- **src/modules**: Chua cac Module nghiep vu chinh (Auth, Bus, Ticket, Booking, Payment, ...).
-- **src/controllers**: Tiep nhan request va tra ve response, khong chua logic nghiep vu.
-- **src/services**: Xu ly logic nghiep vu api, tuong tac voi co so du lieu.
-- **src/repositories**: Lop tuong tac truc tiep voi Database (Prisma Client).
-- **src/queues**: Xu ly cac tac vu nen (Background Jobs) voi Redis/Bull (VD: Huy ve qua han).
+Xây dựng 3 tầng (3-layer architecture) dựa trên NestJS Framework:
+- **src/modules**: Chứa các Module nghiệp vụ chính (Auth, Bus, Ticket, Booking, Payment, ...).
+- **src/controllers**: Tiếp nhận request và trả về response, không chứa logic nghiệp vụ.
+- **src/services**: Xử lý logic nghiệp vụ api, tương tác với cơ sở dữ liệu.
+- **src/repositories**: Lớp tương tác trực tiếp với Database (Prisma Client).
+- **src/queues**: Xử lý các tác vụ nền (Background Jobs) với Redis/Bull (Ví dụ: Hủy vé quá hạn).
 
 ### Frontend (frontend/)
-Phat trien bang Flutter cho ung dung di dong anroid/ios:
-- **lib/screens**: Chua giao dien man hinh (UI).
-- **lib/bloc**: Quan ly trang thai ung dung (State Management) theo mo hinh BLoC.
-- **lib/services**: Chua cac lop giao tiep voi Backend API va cac dich vu ben thu 3 (ZaloPay, AI, ...).
-- **lib/payment**: Module rieng biet xu ly thanh toan (ZaloPay, MoMo, VNPAY).
-- **lib/ai_chat**: Module tro ly ao va xu ly giong noi (Voice to Text).
+Phát triển bằng Flutter cho ứng dụng di động Android/iOS:
+- **lib/screens**: Chứa giao diện màn hình (UI).
+- **lib/bloc**: Quản lý trạng thái ứng dụng (State Management) theo mô hình BLoC.
+- **lib/services**: Chứa các lớp giao tiếp với Backend API và các dịch vụ bên thứ 3 (ZaloPay, AI, ...).
+- **lib/payment**: Module riêng biệt xử lý thanh toán (ZaloPay, MoMo, VNPAY).
+- **lib/ai_chat**: Module trợ lý ảo và xử lý giọng nói (Voice to Text).
 
 ---
 
-## 2. Huong dan Cai dat Moi truong (Local Development)
+## 2. Hướng dẫn Cài đặt Môi trường (Local Development)
 
-### 2.1 Khoi tao Ung dung Di dong (Frontend)
-Yeu cau: Da cai dat Flutter SDK.
+### 2.1 Khởi tạo Ứng dụng Di động (Frontend)
+Yêu cầu: Đã cài đặt Flutter SDK.
 
-1.  Di chuyen vao thu muc frontend:
+1.  Di chuyển vào thư mục frontend:
     ```bash
     cd frontend
     ```
-2.  Cai dat cac thu vien phu thuoc:
+2.  Cài đặt các thư viện phụ thuộc:
     ```bash
     flutter pub get
     ```
-3.  Cau hinh dia chi IP API:
-    - Mo file `lib/services/api_service.dart`.
-    - Cap nhat bien `baseUrl` thanh dia chi IP LAN cua may tinh (neu chay tren thiet bi that) hoac `10.0.2.2` (neu chay tren Android Emulator).
-4.  Khoi chay ung dung:
+3.  Cấu hình địa chỉ IP API:
+    - Mở file `lib/services/api_service.dart`.
+    - Cập nhật biến `baseUrl` thành địa chỉ IP LAN của máy tính (nếu chạy trên thiết bị thật) hoặc `10.0.2.2` (nếu chạy trên Android Emulator).
+4.  Khởi chạy ứng dụng:
     ```bash
     flutter run
     ```
 
-### 2.2 Khoi tao He thong Backend
-Yeu cau: Node.js, PostgreSQL, Redis.
+### 2.2 Khởi tạo Hệ thống Backend
+Yêu cầu: Node.js, PostgreSQL, Redis.
 
-1.  Di chuyen vao thu muc backend:
+1.  Di chuyển vào thư mục backend:
     ```bash
     cd backend
     ```
-2.  Cai dat cac goi thu vien:
+2.  Cài đặt các gói thư viện:
     ```bash
     npm install
     ```
-3.  Cau hinh bien moi truong:
-    - Sao chep file `.env.example` thanh `.env`.
-    - Cap nhat chuoi ket noi Database (`DATABASE_URL`), Redit Host va cac API Key (ZaloPay, MoMo, VNPAY, Google AI).
-4.  Dong bo cau truc co so du lieu (Prisma):
+3.  Cấu hình biến môi trường:
+    - Sao chép file `.env.example` thành `.env`.
+    - Cập nhật chuỗi kết nối Database (`DATABASE_URL`), Redis Host và các API Key (ZaloPay, MoMo, VNPAY, Google AI).
+4.  Đồng bộ cấu trúc cơ sở dữ liệu (Prisma):
     ```bash
     npx prisma migrate dev
     ```
-5.  Khoi chay server o che do development:
+5.  Khởi chạy server ở chế độ development:
     ```bash
     npm run start:dev
     ```
-    Server se hoat dong tai dia chi: `http://localhost:3000`.
+    Server sẽ hoạt động tại địa chỉ: `http://localhost:3000`.
 
 ---
 
-## 3. Quy uoc Phat trien va Tieu chuan Code
+## 3. Quy ước Phát triển và Tiêu chuẩn Code
 
-### 3.1 Quy tac Dat ten
-- **Bien va Ham (Variables/Functions):** Su dung camelCase. (Vi du: `getTicketDetails`, `isPaymentSuccess`).
-- **Lop (Classes):** Su dung PascalCase. (Vi du: `AuthController`, `PaymentService`).
-- **Ten File:** Su dung snake_case. (Vi du: `auth_controller.ts`, `home_screen.dart`).
-- **Constanst:** Su dung SCREAMING_SNAKE_CASE. (Vi du: `MAX_TIMEOUT_SECONDS`).
+### 3.1 Quy tắc Đặt tên
+- **Biến và Hàm (Variables/Functions):** Sử dụng camelCase. (Ví dụ: `getTicketDetails`, `isPaymentSuccess`).
+- **Lớp (Classes):** Sử dụng PascalCase. (Ví dụ: `AuthController`, `PaymentService`).
+- **Tên File:** Sử dụng snake_case. (Ví dụ: `auth_controller.ts`, `home_screen.dart`).
+- **Hằng số (Constants):** Sử dụng SCREAMING_SNAKE_CASE. (Ví dụ: `MAX_TIMEOUT_SECONDS`).
 
-### 3.2 Clean Code va Modularity
-- **Backend:** Tuan thu nguyen tac D.R.Y (Don't Repeat Yourself) va S.O.L.I.D. Moi Service chi nen dam nhan mot nhiem vu cu the. Logic phuc tap nen duoc tach ra khoi Controller.
-- **Frontend:** Su dung BLoC de tach biet logic nghiep vu (Business Logic) khoi giao dien (UI). Cac Widget nen duoc chia nho de tai su dung (Reusable Widgets).
+### 3.2 Clean Code và Modularity
+- **Backend:** Tuân thủ nguyên tắc D.R.Y (Don't Repeat Yourself) và S.O.L.I.D. Mỗi Service chỉ nên đảm nhận một nhiệm vụ cụ thể. Logic phức tạp nên được tách ra khỏi Controller.
+- **Frontend:** Sử dụng BLoC để tách biệt logic nghiệp vụ (Business Logic) khỏi giao diện (UI). Các Widget nên được chia nhỏ để tái sử dụng (Reusable Widgets).
 
-### 3.3 Quan ly Cau hinh
-- Khong luu tru thong tin nhay cam (Mat khau DB, API Keys, Secret Keys) truc tiep trong Source Code.
-- Su dung file `.env` de quan ly cac bien moi truong.
-- File `.env` da duoc them vao `.gitignore` de tranh lo lot thong tin.
+### 3.3 Quản lý Cấu hình
+- Không lưu trữ thông tin nhạy cảm (Mật khẩu DB, API Keys, Secret Keys) trực tiếp trong Source Code.
+- Sử dụng file `.env` để quản lý các biến môi trường.
+- File `.env` đã được thêm vào `.gitignore` để tránh lộ lọt thông tin.
 
-### 3.4 Quy uoc API
-- API phai tra ve du lieu dong nhat theo cau truc JSON:
+### 3.4 Quy ước API
+- API phải trả về dữ liệu đồng nhất theo cấu trúc JSON:
     ```json
     {
       "data": { ... },
-      "message": "Mo ta ket qua",
+      "message": "Mô tả kết quả",
       "statusCode": 200
     }
     ```
-- Su dung dung cac dong tu HTTP (GET, POST, PUT, DELETE) theo chuan RESTful API.
+- Sử dụng đúng các động từ HTTP (GET, POST, PUT, DELETE) theo chuẩn RESTful API.
