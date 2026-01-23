@@ -112,6 +112,31 @@ Yêu cầu: Node.js, PostgreSQL, Redis.
     ```
     Server sẽ hoạt động tại địa chỉ: `http://localhost:3000`.
 
+
+### 2.3 Khởi tạo Module DeepFace (Nhận diện khuôn mặt)
+Yêu cầu: Python 3.8 - 3.10 (Khuyên dùng Python 3.10), Windows 10/11 64-bit.
+
+1.  Di chuyển vào thư mục deepface:
+    ```bash
+    cd deepface
+    ```
+2.  Thiết lập môi trường ảo (Recommended):
+    ```bash
+    python -m venv venv
+    ```
+    - **Command Prompt (CMD):** `venv\Scripts\activate`
+    - **PowerShell:** `.\venv\Scripts\activate`
+3.  Cài đặt thư viện:
+    ```bash
+    pip install -r requirements.txt
+    ```
+    *Lưu ý: Quá trình cài đặt có thể mất thời gian do tải TensorFlow/OpenCV.*
+4.  Khởi chạy module:
+    ```bash
+    python run_windows.py
+    ```
+    Server sẽ hoạt động tại địa chỉ: `http://localhost:5000`.
+
 ---
 
 ## 3. Quy ước Phát triển và Tiêu chuẩn Code
