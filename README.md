@@ -128,7 +128,7 @@ Yêu cầu: Python 3.8 - 3.10 (Khuyên dùng Python 3.10), Windows 10/11 64-bit.
     - **PowerShell:** `.\venv\Scripts\activate`
 3.  Cài đặt thư viện:
     ```bash
-    pip install -r requirements.txt
+    pip install -e .
     ```
     *Lưu ý: Quá trình cài đặt có thể mất thời gian do tải TensorFlow/OpenCV.*
 4.  Khởi chạy module:
