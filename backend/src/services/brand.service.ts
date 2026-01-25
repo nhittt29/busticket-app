@@ -6,29 +6,29 @@ import { CreateBrandDto, UpdateBrandDto } from '../dtos/brand.dto';
 export class BrandService {
   constructor(private readonly brandRepo: BrandRepository) { }
 
-  // LẤY DANH SÁCH TẤT CẢ NHÀ XE / HÃNG XE TRONG HỆ THỐNG
+  // LẤY DANH SÁCH TẤT CẢ NHÀ XE
   findAll() {
     return this.brandRepo.findAll();
   }
 
-  // LẤY THÔNG TIN CHI TIẾT MỘT NHÀ XE THEO ID – NÉM LỖI 404 NẾU KHÔNG TỒN TẠI
+  // LẤY THÔNG TIN CHI TIẾT MỘT NHÀ XE THEO ID
   async findOne(id: number) {
     const brand = await this.brandRepo.findOne(id);
     if (!brand) throw new NotFoundException('Brand not found');
     return brand;
   }
 
-  // TẠO MỚI MỘT NHÀ XE / HÃNG XE (DÙNG TRONG ADMIN)
+  // TẠO MỚI MỘT NHÀ XE
   create(dto: CreateBrandDto) {
     return this.brandRepo.create(dto);
   }
 
-  // CẬP NHẬT THÔNG TIN NHÀ XE (TÊN, LOGO, THÔNG TIN LIÊN HỆ, MÔ TẢ...)
+  // CẬP NHẬT THÔNG TIN NHÀ XE
   update(id: number, dto: UpdateBrandDto) {
     return this.brandRepo.update(id, dto);
   }
 
-  // XÓA NHÀ XE KHỎI HỆ THỐNG (CẨN THẬN – SẼ ẢNH HƯỞNG ĐẾN XE VÀ LỊCH TRÌNH)
+  // XÓA NHÀ XE
   delete(id: number) {
     return this.brandRepo.delete(id);
   }

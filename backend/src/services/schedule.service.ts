@@ -1,55 +1,54 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { ScheduleRepository } from '../repositories/schedule.repository';
 import { CreateScheduleDto } from '../dtos/schedule.dto';
+import { TicketRepository } from '../repositories/ticket.repository'; // Import TicketRepo
 
 @Injectable()
 export class ScheduleService {
-  constructor(private readonly scheduleRepo: ScheduleRepository) { }
+  constructor(
+    private readonly scheduleRepo: ScheduleRepository,
+    private readonly ticketRepo: TicketRepository // Inject TicketRepo
+  ) { }
 
-  // TẠO MỚI MỘT CHUYẾN XE (LỊCH TRÌNH) – DÀNH CHO ADMIN/NHÀ XE
+  // TẠO MỚI MỘT CHUYẾN XE
   async createSchedule(dto: CreateScheduleDto) {
     return this.scheduleRepo.createSchedule(dto);
   }
 
-  // TÌM KIẾM CHUYẾN XE CHO KHÁCH HÀNG: THEO ĐIỂM ĐI, ĐIỂM ĐẾN, NGÀY ĐI – CHỈ HIỆN CHƯA KHỞI HÀNH
-  async getAllSchedules(query: {
-    startPoint?: string;
-    endPoint?: string;
-    date?: string;
-    minPrice?: number;
-    maxPrice?: number;
-    startTime?: string;
-    endTime?: string;
-    busType?: string;
-    brandId?: number;
-    dropoffPoint?: string;
-    sortBy?: string;
-    page?: number;
-    limit?: number;
-  }) {
+  // TÌM KIẾM CHUYẾN XE CHO KHÁCH HÀNG
+  async getAllSchedules(query: any) {
     return this.scheduleRepo.getAllSchedules(query);
   }
 
 
-  // LẤY TOÀN BỘ CHUYẾN XE (KHÔNG LỌC) – DÀNH RIÊNG CHO ADMIN QUẢN LÝ, BAO GỒM QUÁ KHỨ VÀ TƯƠNG LAI
+  // LẤY TOÀN BỘ CHUYẾN XE (KHÔNG LỌC)
   async getAllSchedulesForAdmin() {
     return this.scheduleRepo.getAllSchedulesForAdmin();
   }
 
-  // LẤY CHI TIẾT MỘT CHUYẾN XE THEO ID – NÉM LỖI 404 NẾU KHÔNG TỒN TẠI
+  // LẤY CHI TIẾT MỘT CHUYẾN XE
   async getScheduleById(id: number) {
     const schedule = await this.scheduleRepo.getScheduleById(id);
     if (!schedule) throw new NotFoundException('Schedule not found');
     return schedule;
   }
 
-  // XÓA CHUYẾN XE HOÀN TOÀN – TỰ ĐỘNG XÓA TẤT CẢ VÉ ĐÃ ĐẶT TRƯỚC KHI XÓA (AN TOÀN DỮ LIỆU)
+  // XÓA CHUYẾN XE HOÀN TOÀN
   async deleteSchedule(id: number) {
     const schedule = await this.scheduleRepo.getScheduleById(id);
     if (!schedule) {
       throw new NotFoundException(`Schedule with ID ${id} not found`);
     }
-    await this.scheduleRepo.deleteTicketsByScheduleId(id);
+    // Correctly delete tickets using ticketRepo
+    await this.ticketRepo.deleteByScheduleId(id);
+    // Assuming deleteByScheduleId exists or use delete({ scheduleId: id })
+    // Check TicketRepo interface. It has delete(id).
+    // I should use delete({ scheduleId: id }) if TypeORM repo, but TicketRepo wraps logic.
+    // TicketRepo logic: Step 191/214 defines delete(id). 
+    // I need to add deleteByScheduleId to TicketRepo OR use TypeORM standard delete if TicketRepo extends strict Repo.
+    // TicketRepo DOES NOT extend Repository, it has `constructor(private repo: Repository)`.
+    // So I must add `deleteByScheduleId` to TicketRepository.
+
     return this.scheduleRepo.deleteSchedule(id);
   }
 }

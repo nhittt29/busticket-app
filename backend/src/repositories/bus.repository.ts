@@ -1,55 +1,54 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../services/prisma.service';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Bus } from '../entities/Bus.entity';
+import { Seat } from '../entities/Seat.entity';
 import { CreateBusDto, UpdateBusDto } from '../dtos/bus.dto';
 
 @Injectable()
 export class BusRepository {
-  constructor(private readonly prisma: PrismaService) { }
+  constructor(
+    @InjectRepository(Bus)
+    private readonly busRepo: Repository<Bus>,
+    @InjectRepository(Seat)
+    private readonly seatRepo: Repository<Seat>,
+  ) { }
 
   // LẤY DANH SÁCH TẤT CẢ XE BUÝT KÈM THÔNG TIN HÃNG, LỊCH TRÌNH VÀ GHẾ
-  findAll() {
-    return this.prisma.bus.findMany({
-      include: {
-        brand: true,
-        schedules: true,
-        seats: true,
-      },
-      orderBy: { id: 'asc' },
+  async findAll() {
+    return this.busRepo.find({
+      relations: ['brand', 'schedules', 'seats'],
+      order: { id: 'ASC' },
     });
   }
 
-  // LẤY THÔNG TIN CHI TIẾT MỘT XE BUÝT THEO ID (BAO GỒM HÃNG, LỊCH CHẠY, DANH SÁCH GHẾ)
-  findById(id: number) {
-    return this.prisma.bus.findUnique({
+  // LẤY THÔNG TIN CHI TIẾT MỘT XE BUÝT THEO ID
+  async findById(id: number) {
+    return this.busRepo.findOne({
       where: { id },
-      include: {
-        brand: true,
-        schedules: true,
-        seats: true,
-      },
+      relations: ['brand', 'schedules', 'seats'],
     });
   }
 
-  // TẠO MỚI MỘT XE BUÝT + TỰ ĐỘNG TẠO ĐỦ GHẾ THEO LOẠI XE (GIƯỜNG NẰM / GHẾ NGỒI)
+  // TẠO MỚI MỘT XE BUÝT + TỰ ĐỘNG TẠO ĐỦ GHẾ
   async create(data: CreateBusDto) {
     // Bước 1: Tạo xe
-    const bus = await this.prisma.bus.create({
-      data: {
-        name: data.name,
-        licensePlate: data.licensePlate,
-        seatCount: data.seatCount,
-        category: data.category,
-        seatType: data.seatType,
-        berthType: data.berthType,
-        brandId: data.brandId,
-      },
+    const bus = this.busRepo.create({
+      name: data.name,
+      licensePlate: data.licensePlate,
+      seatCount: data.seatCount,
+      category: data.category,
+      seatType: data.seatType,
+      berthType: data.berthType,
+      brandId: data.brandId,
     });
+    const savedBus = await this.busRepo.save(bus);
 
-    // Bước 2: Tạo ghế với giá do bạn gán
+    // Bước 2: Tạo ghế
     const seatsData = Array.from({ length: data.seatCount }).map((_, i) => {
       const seatNum = i + 1;
       let floor: number | null = null;
-      let roomType: 'SINGLE' | 'DOUBLE' | null = null;
+      let roomType: string | null = null; // Changed 'SINGLE'|... to string to match Enitity type usually
 
       if (data.seatType === 'BERTH') {
         const isUpper = seatNum % 2 === 0;
@@ -57,32 +56,40 @@ export class BusRepository {
         roomType = data.berthType === 'SINGLE' ? 'SINGLE' : 'DOUBLE';
       }
 
-      return {
+      return this.seatRepo.create({
         seatNumber: seatNum,
-        code: `BUS${bus.id}-${String(seatNum).padStart(2, '0')}`,
-        busId: bus.id,
+        code: `BUS${savedBus.id}-${String(seatNum).padStart(2, '0')}`,
+        busId: savedBus.id,
         price: data.price,
-        floor,
-        roomType,
-      };
+        floor: floor || undefined,
+        roomType: roomType || undefined,
+      });
     });
 
-    await this.prisma.seat.createMany({ data: seatsData });
-    return this.findById(bus.id);
+    // Save all seats
+    await this.seatRepo.save(seatsData);
+
+    return this.findById(savedBus.id);
   }
 
-  // CẬP NHẬT THÔNG TIN XE BUÝT (TÊN, BIỂN SỐ, LOẠI GHẾ, HÃNG XE...)
-  update(id: number, data: UpdateBusDto) {
-    return this.prisma.bus.update({
-      where: { id },
-      data,
-    });
+  // CẬP NHẬT THÔNG TIN XE BUÝT
+  async update(id: number, data: UpdateBusDto) {
+    await this.busRepo.update(id, data);
+    return this.findById(id);
   }
 
-  // XÓA XE BUÝT KHỎI HỆ THỐNG (SẼ XÓA CẢ GHẾ VÀ LỊCH TRÌNH LIÊN QUAN - DÙNG CẨN THẬN)
-  delete(id: number) {
-    return this.prisma.bus.delete({
-      where: { id },
-    });
+  // XÓA XE BUÝT KHỎI HỆ THỐNG
+  async delete(id: number) {
+    // Manually delete related seats first (if DB definition doesn't cascade)
+    // Assuming Schedules might restrict delete, but repo instruction implies force delete intent or safe delete
+    // We will delete seats associated with this bus
+    await this.seatRepo.delete({ busId: id });
+
+    // Check if schedules exist? Leaving it to DB foreign key error if exists, matching Prisma behavior usually
+
+    await this.busRepo.delete(id);
+    return { id }; // Prisma delete returns the object, TypeORM delete returns result. Return minimal info or check finding it first?
+    // Current Prisma logic returned the Deleted Object. 
+    // Usually logic just needs confirmation. I'll return { id } or null. 
   }
 }

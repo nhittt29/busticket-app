@@ -1,12 +1,13 @@
 import { Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bull';
 import { ScheduleModule as NestScheduleModule } from '@nestjs/schedule';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { AuthController } from './controllers/auth.controller';
 import { AuthService } from './services/auth.service';
-import { PrismaService } from './services/prisma.service';
 import { UserRepository } from './repositories/user.repository';
+import { RoleRepository } from './repositories/role.repository';
 
 import { BusModule } from './modules/bus.module';
 import { BrandModule } from './modules/brand.module';
@@ -27,12 +28,47 @@ import { NotificationModule } from './modules/notification.module';
 import { VnPayModule } from './modules/vnpay.module';
 import { AiModule } from './modules/ai.module';
 
+// Entities
+import { User } from './entities/User.entity';
+import { Role } from './entities/Role.entity';
+import { Brand } from './entities/Brand.entity';
+import { Bus } from './entities/Bus.entity';
+import { Seat } from './entities/Seat.entity';
+import { Route } from './entities/Route.entity';
+import { Schedule } from './entities/Schedule.entity';
+import { DropoffPoint } from './entities/DropoffPoint.entity';
+import { Ticket } from './entities/Ticket.entity';
+import { PaymentHistory } from './entities/PaymentHistory.entity';
+import { TicketPayment } from './entities/TicketPayment.entity';
+import { Review } from './entities/Review.entity';
+import { Promotion } from './entities/Promotion.entity';
+import { Notification } from './entities/Notification.entity';
+
 @Module({
   imports: [
-    AiModule,
-    NotificationModule,
     ConfigModule.forRoot({ isGlobal: true }),
-    // Kết nối Redis cho tất cả Bull queues
+
+    // TypeORM Configuration for Oracle
+    TypeOrmModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        type: 'oracle',
+        host: configService.get<string>('ORACLE_HOST'),
+        port: configService.get<number>('ORACLE_PORT'),
+        username: configService.get<string>('ORACLE_USERNAME'),
+        password: configService.get<string>('ORACLE_PASSWORD'),
+        serviceName: configService.get<string>('ORACLE_SERVICE_NAME'),
+        entities: [
+          User, Role, Brand, Bus, Seat, Route, Schedule,
+          DropoffPoint, Ticket, PaymentHistory, TicketPayment,
+          Review, Promotion, Notification
+        ],
+        synchronize: false,
+        logging: true,
+      }),
+    }),
+
     BullModule.forRoot({
       redis: {
         host: '127.0.0.1',
@@ -40,10 +76,13 @@ import { AiModule } from './modules/ai.module';
       },
     }),
 
-    // NestJS Schedule
     NestScheduleModule.forRoot(),
 
-    // CÁC MODULE NGHIỆP VỤ
+    // Feature Modules
+    AiModule,
+    NotificationModule,
+    TypeOrmModule.forFeature([User, Role]),
+
     BusModule,
     BrandModule,
     RouteModule,
@@ -52,8 +91,6 @@ import { AiModule } from './modules/ai.module';
     SeatModule,
     BookingModule,
     DropoffPointModule,
-
-    // QUEUE MODULES
     TicketQueueModule,
     ScheduleQueueModule,
     UserModule,
@@ -64,6 +101,6 @@ import { AiModule } from './modules/ai.module';
     VnPayModule,
   ],
   controllers: [AuthController],
-  providers: [AuthService, PrismaService, UserRepository],
+  providers: [AuthService, UserRepository, RoleRepository],
 })
 export class AppModule { }

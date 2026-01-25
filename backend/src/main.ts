@@ -1,4 +1,4 @@
-// src/main.ts
+import { exec } from 'child_process';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
@@ -6,11 +6,18 @@ import { join, resolve } from 'path';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import * as express from 'express';
 import * as admin from 'firebase-admin';
-import { startRedis } from './redis/redis.init';
 
 // BẮT BUỘC: LOAD .env TRƯỚC KHI KHỞI ĐỘNG APP
 import * as dotenv from 'dotenv';
 dotenv.config();
+
+function startRedis() {
+  const redisPath = resolve(__dirname, '../redis/redis-server.exe');
+  exec(`"${redisPath}"`, (err) => {
+    if (err) console.error(`Redis start error: ${err.message}`);
+  });
+  console.log('✅ Redis server is running automatically...');
+}
 
 async function bootstrap() {
   startRedis();

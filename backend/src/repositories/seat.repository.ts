@@ -1,52 +1,44 @@
-// src/repositories/seat.repository.ts
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '../services/prisma.service';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Seat } from '../entities/Seat.entity';
+import { Schedule } from '../entities/Schedule.entity';
 
 @Injectable()
 export class SeatRepository {
-  constructor(private readonly prisma: PrismaService) { }
+  constructor(
+    @InjectRepository(Seat)
+    private readonly seatRepo: Repository<Seat>,
+    @InjectRepository(Schedule)
+    private readonly scheduleRepo: Repository<Schedule>,
+  ) { }
 
-  // LẤY DANH SÁCH GHẾ + TRẠNG THÁI CỦA MỘT CHUYẾN XE THEO SCHEDULEID – DÙNG CHO CHỌN GHẾ TRÊN APP/WEB
+  async findById(id: number) {
+    return this.seatRepo.findOne({ where: { id } });
+  }
+
+  async updateAvailability(id: number, isAvailable: boolean) {
+    return this.seatRepo.update(id, { isAvailable });
+  }
+
+  // LOGIC CHÍNH ĐỂ LẤY GHẾ + CHECK BOOKED THEO SCHEDULE
   async findSeatsByScheduleId(scheduleId: number) {
-    const schedule = await this.prisma.schedule.findUnique({
+    const schedule = await this.scheduleRepo.findOne({
       where: { id: scheduleId },
-      select: {
-        id: true,
-        busId: true,
-        bus: {
-          select: {
-            name: true,
-            seatType: true,
-            seatCount: true,
-          },
-        },
-      },
+      relations: ['bus'],
     });
 
     if (!schedule || !schedule.bus) {
       throw new NotFoundException(`Schedule with ID ${scheduleId} not found`);
     }
 
-    const seats = await this.prisma.seat.findMany({
-      where: { busId: schedule.busId },
-      select: {
-        id: true,
-        seatNumber: true,
-        code: true,
-        price: true,
-        floor: true,
-        roomType: true,
-        tickets: {
-          where: { scheduleId: schedule.id },
-          select: { id: true },
-        },
-      },
-      // FIX VĨNH VIỄN "GHẾ NHẢY CHỖ" – ORDER TỪ DATABASE!
-      orderBy: [
-        { floor: 'asc' },        // Tầng dưới trước (1), tầng trên sau (2)
-        { seatNumber: 'asc' },   // Số ghế tăng dần: 1, 2, 3... hoặc A1, A2...
-      ],
-    });
+    // Logic: Find seats of this bus, AND left join tickets filtered by this scheduleId
+    const seats = await this.seatRepo.createQueryBuilder('seat')
+      .leftJoinAndSelect('seat.tickets', 'ticket', 'ticket.scheduleId = :scheduleId AND ticket.status != :cancelled', { scheduleId, cancelled: 'CANCELLED' })
+      .where('seat.busId = :busId', { busId: schedule.busId })
+      .orderBy('seat.floor', 'ASC')
+      .addOrderBy('seat.seatNumber', 'ASC')
+      .getMany();
 
     return {
       scheduleId: schedule.id,
@@ -56,8 +48,9 @@ export class SeatRepository {
       totalSeats: schedule.bus.seatCount,
       seats: seats.map(seat => ({
         id: seat.id,
-        seatNumber: seat.seatNumber.toString(), // ép về string → an toàn tuyệt đối
+        seatNumber: seat.seatNumber.toString(),
         code: seat.code,
+        // Is Available if NO active tickets found for this schedule
         isAvailable: seat.tickets.length === 0,
         price: Number(seat.price),
         floor: seat.floor ?? undefined,

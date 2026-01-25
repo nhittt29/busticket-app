@@ -1,11 +1,16 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../services/prisma.service';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { User } from '../entities/User.entity';
 
 @Injectable()
 export class UserRepository {
-  constructor(private readonly prisma: PrismaService) { }
+  constructor(
+    @InjectRepository(User)
+    private readonly userRepo: Repository<User>,
+  ) { }
 
-  // TẠO MỚI NGƯỜI DÙNG SAU KHI ĐĂNG KÝ/ĐĂNG NHẬP QUA FIREBASE AUTH (TỰ ĐỘNG HOẶC ADMIN TẠO)
+  // TẠO MỚI NGƯỜI DÙNG
   async createUser(data: {
     uid: string;
     name: string;
@@ -15,61 +20,52 @@ export class UserRepository {
     isActive?: boolean;
     avatar?: string;
     dob?: Date;
-    gender?: 'MALE' | 'FEMALE' | 'OTHER';
+    gender?: string; // Changed strict type for broader compatibility or import specific type if needed
   }) {
-    return this.prisma.user.create({
-      data: {
-        uid: data.uid,
-        name: data.name,
-        email: data.email,
-        phone: data.phone,
-        roleId: data.roleId,
-        isActive: data.isActive ?? true,
-        avatar: data.avatar ?? 'uploads/avatars/default.png',
-        dob: data.dob,
-        gender: data.gender,
-      },
-      include: {
-        role: true,
-        tickets: true,
-      },
+    // TypeORM create just creates instance, save persists it
+    const newUser = this.userRepo.create({
+      uid: data.uid,
+      name: data.name,
+      email: data.email,
+      phone: data.phone,
+      roleId: data.roleId,
+      isActive: data.isActive ?? true,
+      avatar: data.avatar ?? 'uploads/avatars/default.png',
+      dob: data.dob,
+      gender: data.gender,
     });
+
+    await this.userRepo.save(newUser);
+
+    // Return with relations to match Prisma include behavior
+    return this.findById(newUser.id);
   }
 
-  // LẤY THÔNG TIN CHI TIẾT NGƯỜI DÙNG THEO ID (DÙNG TRONG ADMIN HOẶC PROFILE)
+  // LẤY THÔNG TIN CHI TIẾT NGƯỜI DÙNG THEO ID
   async findById(id: number) {
-    return this.prisma.user.findUnique({
+    return this.userRepo.findOne({
       where: { id },
-      include: {
-        role: true,
-        tickets: true,
-      },
+      relations: ['role', 'tickets'],
     });
   }
 
-  // LẤY NGƯỜI DÙNG THEO EMAIL (DÙNG CHO ĐĂNG NHẬP, QUÊN MẬT KHẨU, KIỂM TRA TRÙNG)
+  // LẤY NGƯỜI DÙNG THEO EMAIL
   async findByEmail(email: string) {
-    return this.prisma.user.findUnique({
+    return this.userRepo.findOne({
       where: { email },
-      include: {
-        role: true,
-        tickets: true,
-      },
+      relations: ['role', 'tickets'],
     });
   }
 
-  // LẤY NGƯỜI DÙNG THEO UID FIREBASE (CHÍNH XÁC NHẤT KHI ĐĂNG NHẬP QUA FIREBASE)
+  // LẤY NGƯỜI DÙNG THEO UID FIREBASE
   async findByUid(uid: string) {
-    return this.prisma.user.findUnique({
+    return this.userRepo.findOne({
       where: { uid },
-      include: {
-        role: true,
-        tickets: true,
-      },
+      relations: ['role', 'tickets'],
     });
   }
 
-  // CẬP NHẬT THÔNG TIN CÁ NHÂN, QUYỀN, TRẠNG THÁI HOẠT ĐỘNG, AVATAR, NGÀY SINH, GIỚI TÍNH
+  // CẬP NHẬT THÔNG TIN CÁ NHÂN
   async updateUser(
     id: number,
     data: Partial<{
@@ -80,34 +76,27 @@ export class UserRepository {
       avatar?: string;
       faceUrl?: string;
       dob?: Date;
-      gender?: 'MALE' | 'FEMALE' | 'OTHER';
+      gender?: string;
     }>,
   ) {
-    return this.prisma.user.update({
-      where: { id },
-      data,
-      include: {
-        role: true,
-        tickets: true,
-      },
-    });
+    await this.userRepo.update(id, data);
+    return this.findById(id);
   }
 
-  // XÓA NGƯỜI DÙNG KHỎI HỆ THỐNG (HARD DELETE - CẨN THẬN KHI DÙNG)
+  // XÓA NGƯỜI DÙNG
   async deleteUser(id: number) {
-    return this.prisma.user.delete({
-      where: { id },
-    });
+    const user = await this.findById(id);
+    if (user) {
+      await this.userRepo.remove(user);
+    }
+    return user;
   }
 
-  // LẤY DANH SÁCH TẤT CẢ NGƯỜI DÙNG (KHÁCH HÀNG, NHÀ XE, ADMIN) - DÀNH CHO QUẢN TRỊ VIÊN
+  // LẤY DANH SÁCH TẤT CẢ NGƯỜI DÙNG
   async findAll() {
-    return this.prisma.user.findMany({
-      include: {
-        role: true,
-        tickets: true,
-      },
-      orderBy: { id: 'asc' },
+    return this.userRepo.find({
+      relations: ['role', 'tickets'],
+      order: { id: 'ASC' },
     });
   }
 }

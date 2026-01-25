@@ -2,84 +2,60 @@
 import { Process, Processor } from '@nestjs/bull';
 import type { Job } from 'bull';
 import { Logger } from '@nestjs/common';
-import { PrismaService } from '../services/prisma.service';
-import { ScheduleStatus } from '@prisma/client';
+import { ScheduleRepository } from '../repositories/schedule.repository';
+import { ScheduleStatus } from '../models/Ticket';
 import { SCHEDULE_QUEUE, UPDATE_STATUS_JOB } from './schedule.queue';
+import { In, LessThanOrEqual } from 'typeorm';
 
 @Processor(SCHEDULE_QUEUE)
 export class ScheduleProcessor {
   private readonly logger = new Logger(ScheduleProcessor.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly scheduleRepo: ScheduleRepository) { }
 
   @Process(UPDATE_STATUS_JOB)
   async handleUpdateStatus(job: Job<unknown>) {
     const now = new Date();
     this.logger.log(`Bắt đầu kiểm tra cập nhật trạng thái chuyến xe – ${now.toLocaleString('vi-VN')}`);
 
-    // 1. Lấy danh sách chuyến cần chuyển từ UPCOMING → ONGOING
-    const upcomingSchedules = await this.prisma.schedule.findMany({
+    // 1. UPCOMING -> ONGOING
+    // Use repo find with relations
+    // TypeORM find options
+    const upcomingSchedules = await this.scheduleRepo.find({
       where: {
         status: ScheduleStatus.UPCOMING,
-        departureAt: { lte: now },
+        departureAt: LessThanOrEqual(now),
       },
-      select: {
-        id: true,
-        departureAt: true,
-        bus: { select: { name: true, licensePlate: true } },
-        route: {
-          select: {
-            startPoint: true,
-            endPoint: true,
-          },
-        },
-      },
-      orderBy: { departureAt: 'asc' },
+      relations: ['bus', 'route'],
+      order: { departureAt: 'ASC' },
     });
 
-    // 2. Lấy danh sách chuyến cần chuyển từ ONGOING → COMPLETED
-    const ongoingSchedules = await this.prisma.schedule.findMany({
+    // 2. ONGOING -> COMPLETED
+    const ongoingSchedules = await this.scheduleRepo.find({
       where: {
         status: ScheduleStatus.ONGOING,
-        arrivalAt: { lte: now },
+        arrivalAt: LessThanOrEqual(now),
       },
-      select: {
-        id: true,
-        arrivalAt: true,
-        bus: { select: { name: true, licensePlate: true } },
-        route: {
-          select: {
-            startPoint: true,
-            endPoint: true,
-          },
-        },
-      },
-      orderBy: { arrivalAt: 'asc' },
+      relations: ['bus', 'route'],
+      order: { arrivalAt: 'ASC' },
     });
 
-    // 3. Thực hiện update và log chi tiết từng chuyến
-    const [upcomingResult, ongoingResult] = await Promise.all([
-      upcomingSchedules.length > 0
-        ? this.prisma.schedule.updateMany({
-            where: {
-              id: { in: upcomingSchedules.map(s => s.id) },
-            },
-            data: { status: ScheduleStatus.ONGOING },
-          })
-        : Promise.resolve({ count: 0 }),
+    // 3. Update
+    let upcomingCount = 0;
+    if (upcomingSchedules.length > 0) {
+      const ids = upcomingSchedules.map(s => s.id);
+      await this.scheduleRepo.update({ id: In(ids) }, { status: ScheduleStatus.ONGOING });
+      upcomingCount = upcomingSchedules.length;
+    }
 
-      ongoingSchedules.length > 0
-        ? this.prisma.schedule.updateMany({
-            where: {
-              id: { in: ongoingSchedules.map(s => s.id) },
-            },
-            data: { status: ScheduleStatus.COMPLETED },
-          })
-        : Promise.resolve({ count: 0 }),
-    ]);
+    let ongoingCount = 0;
+    if (ongoingSchedules.length > 0) {
+      const ids = ongoingSchedules.map(s => s.id);
+      await this.scheduleRepo.update({ id: In(ids) }, { status: ScheduleStatus.COMPLETED });
+      ongoingCount = ongoingSchedules.length;
+    }
 
-    // LOG SIÊU CHI TIẾT KHI CÓ CHUYẾN ĐƯỢC CẬP NHẬT
-
+    // LOG DETAILS
     if (upcomingSchedules.length > 0) {
       this.logger.warn('CHUYẾN XE BẮT ĐẦU KHỞI HÀNH – ĐANG DI CHUYỂN');
       upcomingSchedules.forEach(s => {
@@ -102,12 +78,12 @@ export class ScheduleProcessor {
       });
     }
 
-    // Tổng kết
-    const totalUpdated = upcomingResult.count + ongoingResult.count;
+    // Summary
+    const totalUpdated = upcomingCount + ongoingCount;
     if (totalUpdated > 0) {
       this.logger.log(
-        `ĐÃ CẬP NHẬT TRẠNG THÁI: ${upcomingResult.count} chuyến → ĐANG DI CHUYỂN | ` +
-        `${ongoingResult.count} chuyến → HOÀN THÀNH | Tổng: ${totalUpdated} chuyến`,
+        `ĐÃ CẬP NHẬT TRẠNG THÁI: ${upcomingCount} chuyến → ĐANG DI CHUYỂN | ` +
+        `${ongoingCount} chuyến → HOÀN THÀNH | Tổng: ${totalUpdated} chuyến`,
       );
     } else {
       this.logger.verbose('Không có chuyến xe nào cần cập nhật trạng thái lúc này.');

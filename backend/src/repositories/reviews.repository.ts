@@ -1,139 +1,75 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../services/prisma.service';
-import { Review, Prisma } from '@prisma/client';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Review } from '../entities/Review.entity';
 
 @Injectable()
 export class ReviewsRepository {
-    constructor(private prisma: PrismaService) { }
+    constructor(
+        @InjectRepository(Review)
+        private readonly repo: Repository<Review>,
+    ) { }
 
-    async create(data: Prisma.ReviewCreateInput): Promise<Review> {
-        return this.prisma.review.create({
-            data,
-        });
+    async create(data: any) {
+        const item = this.repo.create(data);
+        return this.repo.save(item);
     }
 
-    async findByBusId(busId: number): Promise<Review[]> {
-        return this.prisma.review.findMany({
+    async findByBusId(busId: number) {
+        return this.repo.find({
             where: { busId },
-            include: {
-                user: {
-                    select: {
-                        id: true,
-                        name: true,
-                        avatar: true,
-                    },
-                },
-            },
-            orderBy: { createdAt: 'desc' },
+            relations: ['user'],
+            order: { createdAt: 'DESC' },
         });
     }
 
-    async findByUserId(userId: number): Promise<Review[]> {
-        return this.prisma.review.findMany({
+    async findByUserId(userId: number) {
+        return this.repo.find({
             where: { userId },
-            include: {
-                bus: {
-                    select: {
-                        name: true,
-                        brand: { select: { name: true } },
-                    },
-                },
-                ticket: {
-                    include: {
-                        schedule: {
-                            include: {
-                                route: { select: { startPoint: true, endPoint: true } },
-                            },
-                        },
-                    },
-                },
-            },
-            orderBy: { createdAt: 'desc' },
+            relations: ['bus', 'bus.brand', 'ticket', 'ticket.schedule', 'ticket.schedule.route'],
+            order: { createdAt: 'DESC' },
         });
     }
 
-    async findAll(): Promise<Review[]> {
-        return this.prisma.review.findMany({
-            include: {
-                user: {
-                    select: {
-                        id: true,
-                        name: true,
-                        avatar: true,
-                    },
-                },
-                bus: {
-                    select: {
-                        id: true,
-                        name: true,
-                        brand: { select: { name: true } },
-                    },
-                },
-            },
-            orderBy: { createdAt: 'desc' },
+    async findAll() {
+        return this.repo.find({
+            relations: ['user', 'bus', 'bus.brand'],
+            order: { createdAt: 'DESC' },
         });
     }
 
-    async findByTicketId(ticketId: number): Promise<Review | null> {
-        return this.prisma.review.findUnique({
-            where: { ticketId },
-        });
+    async findByTicketId(ticketId: number) {
+        return this.repo.findOne({ where: { ticketId } });
     }
 
-    async getStats(busId: number): Promise<{ average: number; count: number }> {
-        const aggregate = await this.prisma.review.aggregate({
-            where: { busId },
-            _avg: { rating: true },
-            _count: { rating: true },
-        });
+    async getStats(busId: number) {
+        const { avg, count } = await this.repo
+            .createQueryBuilder('review')
+            .select('AVG(review.rating)', 'avg')
+            .addSelect('COUNT(review.rating)', 'count')
+            .where('review.busId = :busId', { busId })
+            .getRawOne();
 
         return {
-            average: aggregate._avg.rating || 0,
-            count: aggregate._count.rating || 0,
+            average: parseFloat(avg) || 0,
+            count: parseInt(count) || 0,
         };
     }
 
-    async findById(id: number): Promise<Review | null> {
-        return this.prisma.review.findUnique({
+    async findById(id: number) {
+        return this.repo.findOne({
             where: { id },
-            include: {
-                user: {
-                    select: {
-                        id: true,
-                        name: true,
-                        avatar: true,
-                    },
-                },
-                bus: {
-                    select: {
-                        id: true,
-                        name: true,
-                        brand: { select: { name: true } },
-                    },
-                },
-                ticket: {
-                    include: {
-                        schedule: {
-                            include: {
-                                route: { select: { startPoint: true, endPoint: true } },
-                            },
-                        },
-                    },
-                },
-            },
+            relations: ['user', 'bus', 'bus.brand', 'ticket', 'ticket.schedule', 'ticket.schedule.route'],
         });
     }
 
-    async update(id: number, data: Prisma.ReviewUpdateInput): Promise<Review> {
-        return this.prisma.review.update({
-            where: { id },
-            data,
-        });
+    async update(id: number, data: any) {
+        await this.repo.update(id, data);
+        return this.findById(id);
     }
 
-    async delete(id: number): Promise<Review> {
-        return this.prisma.review.delete({
-            where: { id },
-        });
+    async delete(id: number) {
+        await this.repo.delete(id);
+        return { id };
     }
 }

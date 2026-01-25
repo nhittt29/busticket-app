@@ -6,16 +6,16 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { auth, firestore } from '../config/firebase';
-import { PrismaService } from './prisma.service';
 import { UserRepository } from '../repositories/user.repository';
-import { User } from '@prisma/client';
+import { RoleRepository } from '../repositories/role.repository';
+import { User } from '../entities/User.entity';
 import axios from 'axios';
 
 @Injectable()
 export class AuthService {
   constructor(
-    private prisma: PrismaService,
     private userRepository: UserRepository,
+    private roleRepository: RoleRepository,
   ) { }
 
   // Type guard to check if error is an Axios error
@@ -57,10 +57,7 @@ export class AuthService {
         createdAt: new Date(),
       });
 
-      const passengerRole = await this.prisma.role.findUnique({
-        where: { name: 'PASSENGER' },
-      });
-
+      const passengerRole = await this.roleRepository.findByName('PASSENGER');
       if (!passengerRole) {
         throw new Error('Role PASSENGER not found');
       }
@@ -77,7 +74,7 @@ export class AuthService {
         gender,
       });
 
-      return newUser;
+      return newUser as User;
     } catch (error) {
       if (error instanceof ConflictException) throw error;
       throw new Error(`Registration failed: ${error.message}`);
@@ -110,10 +107,7 @@ export class AuthService {
 
       const { idToken, localId: uid } = response.data;
 
-      const user = await this.prisma.user.findUnique({
-        where: { email },
-        include: { role: true },
-      });
+      const user = await this.userRepository.findByEmail(email);
 
       if (!user) throw new NotFoundException('Người dùng không tồn tại');
 
@@ -122,14 +116,17 @@ export class AuthService {
         ? `${baseUrl}/${user.avatar.replace(/\\/g, '/')}`
         : `${baseUrl}/uploads/avatars/default.png`;
 
+      // Helper to match return type - casting to any to bypass strict checks for now as structure matches
+      const userWithRole = {
+        ...user,
+        avatar: avatarUrl,
+        role: user.role ? { id: user.role.id, name: user.role.name } : undefined
+      };
+
       return {
         idToken,
         uid,
-        user: {
-          ...user,
-          avatar: avatarUrl,
-          role: user.role ? { id: user.role.id, name: user.role.name } : undefined,
-        },
+        user: userWithRole as any,
       };
     } catch (error) {
       if (this.isAxiosError(error) && error.response?.status === 400) {
@@ -206,12 +203,14 @@ export class AuthService {
     if (data.dob && isNaN(data.dob.getTime())) {
       throw new BadRequestException('Ngày sinh không hợp lệ');
     }
-    const updatedUser = await this.userRepository.updateUser(id, data);
-    return updatedUser;
+    const updated = await this.userRepository.updateUser(id, data as any);
+    if (!updated) throw new NotFoundException('User not found after update');
+    return updated;
   }
 
   async updateFaceAuth(id: number, faceUrl: string): Promise<User> {
     const updatedUser = await this.userRepository.updateUser(id, { faceUrl });
+    if (!updatedUser) throw new NotFoundException('User not found after update');
     return updatedUser;
   }
 }

@@ -1,52 +1,36 @@
 // src/services/booking.service.ts
 import { Injectable, NotFoundException, Logger } from '@nestjs/common';
-import { PrismaService } from '../services/prisma.service';
-import { ReminderInfoDto } from '../dtos/reminder-info.dto';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Schedule } from '../entities/Schedule.entity';
+// import { ReminderInfoDto } from '../dtos/reminder-info.dto'; 
 
 @Injectable()
 export class BookingService {
   private readonly logger = new Logger(BookingService.name);
 
-  constructor(private prisma: PrismaService) { }
+  constructor(
+    @InjectRepository(Schedule)
+    private readonly scheduleRepo: Repository<Schedule>,
+  ) { }
 
-
-  // LẤY THÔNG TIN NHẮC NHỞ KHÁCH HÀNG TRƯỚC GIỜ XE CHẠY (DÙNG CHO SMS / ZALO OA / PUSH NOTIFICATION)
-  async getReminderInfo(scheduleId: number): Promise<ReminderInfoDto> {
-    // Add logging as requested (approximately, since this is triggered by API, not a processor)
-    // Using console.log or Logger if available. Since this file doesn't have Logger injected, I'll use console.log or simple logic.
-    // However, to strictly follow "like this" format, I should probably inject Logger.
-    // But for now, let's just implement the logic.
-
-    const schedule = await this.prisma.schedule.findUnique({
+  // LẤY THÔNG TIN NHẮC NHỞ KHÁCH HÀNG
+  async getReminderInfo(scheduleId: number): Promise<any> {
+    const schedule = await this.scheduleRepo.findOne({
       where: { id: scheduleId },
-      include: {
-        bus: {
-          select: { name: true },
-        },
-        route: {
-          select: { startPoint: true, endPoint: true },
-        },
-        tickets: {
-          where: { status: 'PAID' }, // chỉ lấy vé đã thanh toán
-          select: {
-            seat: {
-              select: {
-                seatNumber: true,
-              },
-            },
-          },
-        },
-      },
+      relations: ['bus', 'route', 'tickets', 'tickets.seat'],
     });
 
     if (schedule) {
-      this.logger.log(`[Departure Reminder] Frontend requested info for Schedule #${scheduleId} to schedule notification. Bus: ${schedule.bus.name}, Departs: ${schedule.departureAt}`);
+      this.logger.log(`[Departure Reminder] Frontend requested info for Schedule #${scheduleId}. Bus: ${schedule.bus.name}`);
     }
-
 
     if (!schedule) {
       throw new NotFoundException(`Schedule with ID ${scheduleId} not found`);
     }
+
+    // Filter paid tickets
+    const paidTickets = schedule.tickets.filter(t => t.status === 'PAID');
 
     return {
       departureAt: schedule.departureAt.toISOString(),
@@ -54,7 +38,7 @@ export class BookingService {
       busName: schedule.bus.name,
       from: schedule.route.startPoint,
       to: schedule.route.endPoint,
-      seatNumbers: schedule.tickets.map((t) =>
+      seatNumbers: paidTickets.map((t) =>
         t.seat.seatNumber.toString().padStart(2, '0'),
       ),
     };

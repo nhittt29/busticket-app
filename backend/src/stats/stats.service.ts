@@ -1,10 +1,19 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../services/prisma.service';
-import { TicketStatus, ScheduleStatus } from '@prisma/client';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository, Between, In, MoreThanOrEqual, LessThanOrEqual, Not } from 'typeorm';
+import { Ticket } from '../entities/Ticket.entity';
+import { Schedule } from '../entities/Schedule.entity';
+import { User } from '../entities/User.entity';
+import { TicketStatus, ScheduleStatus } from '../models/Ticket';
+// Removed Prisma imports entirely
 
 @Injectable()
 export class StatsService {
-    constructor(private prisma: PrismaService) { }
+    constructor(
+        @InjectRepository(Ticket) private ticketRepo: Repository<Ticket>,
+        @InjectRepository(Schedule) private scheduleRepo: Repository<Schedule>,
+        @InjectRepository(User) private userRepo: Repository<User>,
+    ) { }
 
     async getSummary() {
         const now = new Date();
@@ -13,67 +22,46 @@ export class StatsService {
         const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
 
         // 1. Total Revenue (Paid Tickets)
-        const revenue = await this.prisma.ticket.aggregate({
-            _sum: {
-                totalPrice: true,
-            },
-            where: {
-                status: TicketStatus.PAID,
-            },
-        });
+        const revenueResult = await this.ticketRepo
+            .createQueryBuilder('ticket')
+            .select('SUM(ticket.totalPrice)', 'total')
+            .where('ticket.status = :status', { status: 'PAID' })
+            .getRawOne();
+        const currentRevenue = parseFloat(revenueResult.total) || 0;
 
         // 2. Tickets Sold (Paid + Booked)
-        const ticketsSold = await this.prisma.ticket.count({
-            where: {
-                status: {
-                    in: [TicketStatus.PAID, TicketStatus.BOOKED],
-                },
-            },
+        const ticketsSold = await this.ticketRepo.count({
+            where: { status: In(['PAID', 'BOOKED']) }
         });
 
         // 3. New Customers (This Month)
-        const newCustomers = await this.prisma.user.count({
+        // Assume 'role' is relation. Need to join.
+        const newCustomers = await this.userRepo.count({
             where: {
-                role: {
-                    name: 'PASSENGER',
-                },
-                createdAt: {
-                    gte: startOfMonth,
-                },
-            },
+                createdAt: MoreThanOrEqual(startOfMonth),
+                role: { name: 'PASSENGER' }
+            }
         });
 
         // 4. Active Trips (Upcoming + Ongoing)
-        const activeTrips = await this.prisma.schedule.count({
-            where: {
-                status: {
-                    in: [ScheduleStatus.UPCOMING, ScheduleStatus.ONGOING],
-                },
-            },
+        const activeTrips = await this.scheduleRepo.count({
+            where: { status: In(['UPCOMING', 'ONGOING']) }
         });
 
-        // --- Growth Calculation (Simple comparison with last month for Revenue) ---
-        // Revenue Last Month
-        const revenueLastMonth = await this.prisma.ticket.aggregate({
-            _sum: {
-                totalPrice: true,
-            },
-            where: {
-                status: TicketStatus.PAID,
-                updatedAt: {
-                    gte: startOfLastMonth,
-                    lte: endOfLastMonth,
-                },
-            },
-        });
+        // --- Growth Calculation ---
+        const lastMonthRevenueResult = await this.ticketRepo
+            .createQueryBuilder('ticket')
+            .select('SUM(ticket.totalPrice)', 'total')
+            .where('ticket.status = :status', { status: 'PAID' })
+            .andWhere('ticket.updatedAt BETWEEN :start AND :end', { start: startOfLastMonth, end: endOfLastMonth })
+            .getRawOne();
+        const lastMonthRevenue = parseFloat(lastMonthRevenueResult.total) || 0;
 
-        const currentRevenue = revenue._sum.totalPrice || 0;
-        const lastMonthRevenue = revenueLastMonth._sum.totalPrice || 0;
         let revenueGrowth = 0;
         if (lastMonthRevenue > 0) {
             revenueGrowth = ((currentRevenue - lastMonthRevenue) / lastMonthRevenue) * 100;
         } else if (currentRevenue > 0) {
-            revenueGrowth = 100; // 100% growth if last month was 0
+            revenueGrowth = 100;
         }
 
         return {
@@ -86,31 +74,28 @@ export class StatsService {
     }
 
     async getRevenueChart(days: number = 7) {
-        // Lấy doanh thu theo ngày trong khoảng thời gian
         const endDate = new Date();
         const startDate = new Date();
         startDate.setDate(startDate.getDate() - days);
 
-        // Prisma Raw Query để group by date
-        // Lưu ý: Tùy database (Postgres/MySQL) cú pháp Date format khác nhau.
-        // Dưới đây là cú pháp cho Postgres: TO_CHAR(ts, 'YsYY-MM-DD')
-        const result = await this.prisma.$queryRaw<{ date: string; revenue: number }[]>`
-            SELECT TO_CHAR("updatedAt"::date, 'YYYY-MM-DD') as date, SUM("totalPrice") as revenue
+        // Oracle Date Format: TO_CHAR(updatedAt, 'YYYY-MM-DD')
+        // Using queryBuilder to be safer or raw sql.
+        // Assuming Oracle
+        const result = await this.ticketRepo.query(`
+            SELECT TO_CHAR("updatedAt", 'YYYY-MM-DD') as "date", SUM("totalPrice") as "revenue"
             FROM "Ticket"
-            WHERE status = 'PAID' 
-            AND "updatedAt" >= ${startDate}
-            GROUP BY date
-            ORDER BY date ASC
-        `;
+            WHERE "status" = 'PAID' 
+            AND "updatedAt" >= :startDate
+            GROUP BY TO_CHAR("updatedAt", 'YYYY-MM-DD')
+            ORDER BY "date" ASC
+        `, [startDate]);
 
-        // Fill các ngày thiếu bằng 0
-        const chartData: { date: string; fullDate: string; revenue: number }[] = [];
+        const chartData: any[] = [];
         for (let i = days - 1; i >= 0; i--) {
             const d = new Date();
             d.setDate(d.getDate() - i);
             const dateStr = d.toISOString().split('T')[0];
 
-            // Convert result item revenue to Number because BigInt or Decimal might be returned
             const found = result.find((r: any) => r.date === dateStr);
             chartData.push({
                 date: `${d.getDate()}/${d.getMonth() + 1}`,
@@ -118,25 +103,25 @@ export class StatsService {
                 revenue: found ? Number(found.revenue) : 0
             });
         }
-
         return chartData;
     }
 
     async getTopRoutes() {
-        // Top 5 tuyến đường có doanh thu cao nhất
-        const result = await this.prisma.$queryRaw<any[]>`
-            SELECT r."id", r."startPoint", r."endPoint", COUNT(t.id) as "ticketsSold", SUM(t."totalPrice") as revenue
+        // Oracle compatible query likely
+        const result = await this.ticketRepo.query(`
+            SELECT r."id", r."startPoint", r."endPoint", COUNT(t."id") as "ticketsSold", SUM(t."totalPrice") as "revenue"
             FROM "Ticket" t
-            JOIN "Schedule" s ON t."scheduleId" = s.id
-            JOIN "Route" r ON s."routeId" = r.id
-            WHERE t.status = 'PAID'
-            GROUP BY r.id, r."startPoint", r."endPoint"
-            ORDER BY revenue DESC
-            LIMIT 5
-        `;
+            JOIN "Schedule" s ON t."scheduleId" = s."id"
+            JOIN "Route" r ON s."routeId" = r."id"
+            WHERE t."status" = 'PAID'
+            GROUP BY r."id", r."startPoint", r."endPoint"
+            ORDER BY "revenue" DESC
+            FETCH FIRST 5 ROWS ONLY
+        `);
+        // FETCH FIRST 5 ROWS ONLY is Oracle 12c+ standard. LIMIT 5 is Postgres/MySQL.
+        // Assuming Oracle 12c+.
 
-        // Serialize BigInt if necessary (Prisma returns BigInt for aggregations usually)
-        return result.map(item => ({
+        return result.map((item: any) => ({
             ...item,
             ticketsSold: Number(item.ticketsSold),
             revenue: Number(item.revenue)
@@ -144,59 +129,43 @@ export class StatsService {
     }
 
     async getBrandStats() {
-        // Doanh thu theo Hãng xe
-        const result = await this.prisma.$queryRaw<any[]>`
-            SELECT b.name, SUM(t."totalPrice") as revenue
+        const result = await this.ticketRepo.query(`
+            SELECT b."name", SUM(t."totalPrice") as "revenue"
             FROM "Ticket" t
-            JOIN "Schedule" s ON t."scheduleId" = s.id
-            JOIN "Bus" bus ON s."busId" = bus.id
-            JOIN "Brand" b ON bus."brandId" = b.id
-            WHERE t.status = 'PAID'
-            GROUP BY b.name
-            ORDER BY revenue DESC
-        `;
+            JOIN "Schedule" s ON t."scheduleId" = s."id"
+            JOIN "Bus" bus ON s."busId" = bus."id"
+            JOIN "Brand" b ON bus."brandId" = b."id"
+            WHERE t."status" = 'PAID'
+            GROUP BY b."name"
+            ORDER BY "revenue" DESC
+        `);
 
-        return result.map(item => ({
+        return result.map((item: any) => ({
             name: item.name,
             revenue: Number(item.revenue)
         }));
     }
 
     async getStatusStats() {
-        // Tỷ lệ trạng thái vé
-        const result = await this.prisma.ticket.groupBy({
-            by: ['status'],
-            _count: {
-                id: true
-            }
-        });
+        const result = await this.ticketRepo
+            .createQueryBuilder('ticket')
+            .select('ticket.status', 'status')
+            .addSelect('COUNT(ticket.id)', 'count')
+            .groupBy('ticket.status')
+            .getRawMany();
 
-        // Map sang format dễ dùng: { name: 'Đã thanh toán', value: 10, color: '#...' }
         return result.map(item => {
             let label = '';
             let color = '';
-
             switch (item.status) {
-                case 'PAID':
-                    label = 'Đã thanh toán';
-                    color = '#22c55e'; // Green-500
-                    break;
-                case 'BOOKED':
-                    label = 'Chờ thanh toán';
-                    color = '#eab308'; // Yellow-500
-                    break;
-                case 'CANCELLED':
-                    label = 'Đã hủy';
-                    color = '#ef4444'; // Red-500
-                    break;
-                default:
-                    label = item.status;
-                    color = '#94a3b8';
+                case 'PAID': label = 'Đã thanh toán'; color = '#22c55e'; break;
+                case 'BOOKED': label = 'Chờ thanh toán'; color = '#eab308'; break;
+                case 'CANCELLED': label = 'Đã hủy'; color = '#ef4444'; break;
+                default: label = item.status; color = '#94a3b8';
             }
-
             return {
                 name: label,
-                value: item._count.id,
+                value: Number(item.count),
                 color: color,
                 rawStatus: item.status
             };
@@ -204,24 +173,19 @@ export class StatsService {
     }
 
     async getTicketTrend(days: number = 7) {
-        // Multi-line chart: So sánh vé Success (PAID) vs Cancelled theo ngày
-        const endDate = new Date();
         const startDate = new Date();
         startDate.setDate(startDate.getDate() - days);
 
-        // Lấy dữ liệu raw
-        const result = await this.prisma.$queryRaw<{ date: string; status: string; count: number }[]>`
-            SELECT TO_CHAR("updatedAt"::date, 'YYYY-MM-DD') as date, status, COUNT(id) as count
+        const result = await this.ticketRepo.query(`
+            SELECT TO_CHAR("updatedAt", 'YYYY-MM-DD') as "date", "status", COUNT("id") as "count"
             FROM "Ticket"
-            WHERE status IN ('PAID', 'CANCELLED')
-            AND "updatedAt" >= ${startDate}
-            GROUP BY date, status
-            ORDER BY date ASC
-        `;
+            WHERE "status" IN ('PAID', 'CANCELLED')
+            AND "updatedAt" >= :startDate
+            GROUP BY TO_CHAR("updatedAt", 'YYYY-MM-DD'), "status"
+            ORDER BY "date" ASC
+        `, [startDate]);
 
-        // Format lại dữ liệu cho Recharts:
-        // [ { date: '01/12', success: 10, cancelled: 2 }, ... ]
-        const chartData: { date: string; fullDate: string; success: number; cancelled: number }[] = [];
+        const chartData: any[] = [];
         for (let i = days - 1; i >= 0; i--) {
             const d = new Date();
             d.setDate(d.getDate() - i);
@@ -238,67 +202,70 @@ export class StatsService {
                 cancelled: cancelledItem ? Number(cancelledItem.count) : 0,
             });
         }
-
         return chartData;
     }
 
     async getRouteTreeMap() {
-        // Treemap: Doanh thu theo tuyến (Size = Revenue)
-        const result = await this.prisma.$queryRaw<any[]>`
-            SELECT r."startPoint" || ' - ' || r."endPoint" as name, SUM(t."totalPrice") as value
+        // Oracle string concat is ||
+        const result = await this.ticketRepo.query(`
+            SELECT r."startPoint" || ' - ' || r."endPoint" as "name", SUM(t."totalPrice") as "value"
             FROM "Ticket" t
             JOIN "Schedule" s ON t."scheduleId" = s.id
             JOIN "Route" r ON s."routeId" = r.id
-            WHERE t.status = 'PAID'
+            WHERE t."status" = 'PAID'
             GROUP BY r."startPoint", r."endPoint"
             HAVING SUM(t."totalPrice") > 0
-            ORDER BY value DESC
-        `;
+            ORDER BY "value" DESC
+        `);
 
-        return result.map(item => ({
+        return result.map((item: any) => ({
             name: item.name,
-            value: Number(item.value) // Treemap cần key 'value' để tính size
+            value: Number(item.value)
         }));
     }
 
     async getOccupancyStats() {
-        // Calculate Occupancy Rate (Tỷ lệ lấp đầy) for trips in the last 30 days
         const startDate = new Date();
         startDate.setDate(startDate.getDate() - 30);
 
-        // Fetch schedules that departed in the last 30 days and are not cancelled
-        const schedules = await this.prisma.schedule.findMany({
+        // Complex calculation. Can use QueryBuilder or find with relations.
+        // Using find with relations as in original code logic, cleaner than huge SQL.
+        // TypeORM find...
+        const schedules = await this.scheduleRepo.find({
             where: {
-                departureAt: {
-                    gte: startDate,
-                    lte: new Date(), // Only past/ongoing trips
-                },
-                status: {
-                    not: ScheduleStatus.CANCELLED
-                }
+                departureAt: Between(startDate, new Date()),
+                status: Not('CANCELLED') // Assuming not cancelled
             },
-            include: {
-                bus: true,
-                _count: {
-                    select: {
-                        tickets: {
-                            where: {
-                                status: { in: [TicketStatus.PAID, TicketStatus.BOOKED] }
-                            }
-                        }
-                    }
-                }
-            }
+            relations: ['bus', 'tickets'] // Loading all tickets? Too heavy.
         });
 
-        let totalCapacity = 0;
-        let totalSold = 0;
+        // If loading all tickets is too heavy, we should use grouping query.
+        // BUT strict replication of original logic is: fetch and JS loop.
+        // Original logic: _count tickets.
+        // TypeORM doesn't support _count in simple find easily.
+        // Let's use QueryBuilder to get count.
+        // Or Raw Query.
 
-        schedules.forEach((schedule: any) => {
-            totalCapacity += schedule.bus.seatCount;
-            totalSold += schedule._count.tickets;
-        });
+        // Simplified approach: Aggregate query.
+        const totalCapacityResult = await this.scheduleRepo
+            .createQueryBuilder('schedule')
+            .leftJoin('schedule.bus', 'bus')
+            .select('SUM(bus.seatCount)', 'total')
+            .where('schedule.departureAt BETWEEN :start AND :end', { start: startDate, end: new Date() })
+            .andWhere("schedule.status != 'CANCELLED'")
+            .getRawOne();
 
+        const totalSoldResult = await this.ticketRepo
+            .createQueryBuilder('ticket')
+            .leftJoin('ticket.schedule', 'schedule')
+            .select('COUNT(ticket.id)', 'count')
+            .where('schedule.departureAt BETWEEN :start AND :end', { start: startDate, end: new Date() })
+            .andWhere("schedule.status != 'CANCELLED'")
+            .andWhere("ticket.status IN (:...statuses)", { statuses: ['PAID', 'BOOKED'] })
+            .getRawOne();
+
+        const totalCapacity = Number(totalCapacityResult.total) || 0;
+        const totalSold = Number(totalSoldResult.count) || 0;
         const occupancyRate = totalCapacity > 0 ? (totalSold / totalCapacity) * 100 : 0;
 
         return {
@@ -306,66 +273,57 @@ export class StatsService {
             totalCapacity,
             totalSold,
             chartData: [
-                { name: 'Ghế đã bán', value: totalSold, fill: '#22c55e' }, // Green
-                { name: 'Ghế trống', value: totalCapacity - totalSold, fill: '#e5e7eb' }, // Gray
+                { name: 'Ghế đã bán', value: totalSold, fill: '#22c55e' },
+                { name: 'Ghế trống', value: totalCapacity - totalSold, fill: '#e5e7eb' },
             ]
         };
     }
 
     async getPaymentMethodStats() {
-        // Thống kê phương thức thanh toán
-        const result = await this.prisma.ticket.groupBy({
-            by: ['paymentMethod'],
-            _count: {
-                id: true
-            },
-            where: {
-                status: TicketStatus.PAID
-            }
-        });
+        const result = await this.ticketRepo
+            .createQueryBuilder('ticket')
+            .select('ticket.paymentMethod', 'method')
+            .addSelect('COUNT(ticket.id)', 'count')
+            .where('ticket.status = :status', { status: 'PAID' })
+            .groupBy('ticket.paymentMethod')
+            .getRawMany();
 
-        // Map colors suitable for charts
-        const colors: Record<string, string> = {
-            'MOMO': '#A50064', // Momo Pink
-            'ZALOPAY': '#0068FF', // Zalo Blue
-            'CASH': '#22c55e', // Green
-            'VNPAY': '#ED1C24', // VNPay Red
-            'BANK_TRANSFER': '#64748b' // Slate
+        const colors: any = {
+            'MOMO': '#A50064',
+            'ZALOPAY': '#0068FF',
+            'CASH': '#22c55e',
+            'VNPAY': '#ED1C24',
+            'BANK_TRANSFER': '#64748b'
         };
 
         return result.map(item => ({
-            name: item.paymentMethod || 'Khác',
-            value: item._count.id,
-            fill: colors[item.paymentMethod || ''] || '#94a3b8'
+            name: item.method || 'Khác',
+            value: Number(item.count),
+            fill: colors[item.method || ''] || '#94a3b8'
         }));
     }
 
     async getHourlyBookingStats() {
-        // Thống kê khung giờ đặt vé (0h - 23h) trong 30 ngày qua
         const startDate = new Date();
         startDate.setDate(startDate.getDate() - 30);
 
-        // Prisma Query Raw to extract Hour from createdAt
-        // Postgres: EXTRACT(HOUR FROM "createdAt")
-        const result = await this.prisma.$queryRaw<{ hour: number; count: number }[]>`
-            SELECT EXTRACT(HOUR FROM "createdAt") as hour, COUNT(id) as count
+        // Oracle: EXTRACT(HOUR FROM "createdAt")
+        const result = await this.ticketRepo.query(`
+            SELECT EXTRACT(HOUR FROM "createdAt") as "hour", COUNT("id") as "count"
             FROM "Ticket"
-            WHERE "createdAt" >= ${startDate}
-            GROUP BY hour
-            ORDER BY hour ASC
-        `;
+            WHERE "createdAt" >= :startDate
+            GROUP BY EXTRACT(HOUR FROM "createdAt")
+            ORDER BY "hour" ASC
+        `, [startDate]);
 
-        // Fill missing hours with 0
-        const chartData: { hour: string; count: number }[] = [];
+        const chartData: any[] = [];
         for (let i = 0; i < 24; i++) {
-            // Convert hour to Number because BigInt or Decimal
             const found = result.find((r: any) => Number(r.hour) === i);
             chartData.push({
                 hour: `${i}:00`,
                 count: found ? Number(found.count) : 0
             });
         }
-
         return chartData;
     }
 }

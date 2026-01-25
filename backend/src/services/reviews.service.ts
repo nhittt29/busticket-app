@@ -1,6 +1,6 @@
 import { Injectable, BadRequestException, NotFoundException, Logger } from '@nestjs/common';
 import { ReviewsRepository } from '../repositories/reviews.repository';
-import { PrismaService } from './prisma.service';
+import { TicketRepository } from '../repositories/ticket.repository';
 import { CreateReviewDto } from '../dtos/create-review.dto';
 import { UpdateReviewDto } from '../dtos/update-review.dto';
 
@@ -10,15 +10,12 @@ export class ReviewsService {
 
     constructor(
         private reviewsRepository: ReviewsRepository,
-        private prisma: PrismaService,
+        private ticketRepository: TicketRepository,
     ) { }
 
     async create(userId: number, dto: CreateReviewDto) {
         // 1. Check ticket
-        const ticket = await this.prisma.ticket.findUnique({
-            where: { id: dto.ticketId },
-            include: { schedule: true },
-        });
+        const ticket = await this.ticketRepository.findById(dto.ticketId);
 
         if (!ticket) {
             throw new NotFoundException('Vé không tồn tại');
@@ -29,7 +26,7 @@ export class ReviewsService {
         }
 
         // 2. Check status
-        if (ticket.schedule.status !== 'COMPLETED') {
+        if (!ticket.schedule || ticket.schedule.status !== 'COMPLETED') {
             throw new BadRequestException('Chuyến đi chưa hoàn thành, chưa thể đánh giá');
         }
 
@@ -45,9 +42,9 @@ export class ReviewsService {
             rating: dto.rating,
             comment: dto.comment,
             images: dto.images || [],
-            user: { connect: { id: userId } },
-            bus: { connect: { id: ticket.schedule.busId } },
-            ticket: { connect: { id: ticket.id } },
+            user: { id: userId },
+            bus: { id: ticket.schedule.busId },
+            ticket: { id: ticket.id },
         });
         this.logger.log(`Review created: ${JSON.stringify(review)}`);
         return review;
@@ -63,30 +60,7 @@ export class ReviewsService {
 
     async findUnreviewedTickets(userId: number) {
         this.logger.log(`Checking unreviewed tickets for user ${userId} on login/startup`);
-        const tickets = await this.prisma.ticket.findMany({
-            where: {
-                userId,
-                status: 'PAID',
-                schedule: {
-                    // Cho phép đánh giá sau khi chuyến đi kết thúc (thời gian đến < hiện tại)
-                    arrivalAt: { lt: new Date() },
-                    status: 'COMPLETED',
-                },
-                review: null, // Chưa có đánh giá nào
-            },
-            include: {
-                schedule: {
-                    include: {
-                        route: true,
-                        bus: { include: { brand: true } },
-                    },
-                },
-                seat: true,
-            },
-            orderBy: {
-                schedule: { departureAt: 'desc' },
-            },
-        });
+        const tickets = await this.ticketRepository.findUnreviewedTickets(userId);
 
         if (tickets.length > 0) {
             this.logger.warn(`User ${userId} has ${tickets.length} unreviewed tickets! Notifying user immediately.`);

@@ -1,43 +1,47 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../services/prisma.service';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Brand } from '../entities/Brand.entity';
 import { CreateBrandDto, UpdateBrandDto } from '../dtos/brand.dto';
 
 @Injectable()
 export class BrandRepository {
-  constructor(private prisma: PrismaService) { }
+  constructor(
+    @InjectRepository(Brand)
+    private readonly brandRepo: Repository<Brand>,
+  ) { }
 
-  // LẤY DANH SÁCH TẤT CẢ NHÀ XE / HÃNG XE KÈM DANH SÁCH XE THUỘC HÃNG
-  findAll() {
-    return this.prisma.brand.findMany({
-      include: { buses: true },
+  // LẤY DANH SÁCH TẤT CẢ NHÀ XE KÈM DANH SÁCH XE
+  async findAll() {
+    return this.brandRepo.find({
+      relations: ['buses'],
+      order: { id: 'ASC' },
     });
   }
 
-  // LẤY THÔNG TIN CHI TIẾT MỘT NHÀ XE THEO ID, BAO GỒM TẤT CẢ XE THUỘC HÃNG
-  findOne(id: number) {
-    return this.prisma.brand.findUnique({
+  // LẤY THÔNG TIN CHI TIẾT MỘT NHÀ XE THEO ID
+  async findOne(id: number) {
+    return this.brandRepo.findOne({
       where: { id },
-      include: { buses: true },
+      relations: ['buses'],
     });
   }
 
-  // TẠO MỚI MỘT NHÀ XE / HÃNG XE TRONG HỆ THỐNG
-  create(data: CreateBrandDto) {
-    return this.prisma.brand.create({
-      data,
-    });
+  // TẠO MỚI MỘT NHÀ XE
+  async create(data: CreateBrandDto) {
+    const brand = this.brandRepo.create(data);
+    return this.brandRepo.save(brand);
   }
 
-  // CẬP NHẬT THÔNG TIN NHÀ XE (TÊN, LOGO, MÔ TẢ, LIÊN HỆ...)
-  update(id: number, data: UpdateBrandDto) {
-    return this.prisma.brand.update({
-      where: { id },
-      data,
-    });
+  // CẬP NHẬT THÔNG TIN NHÀ XE
+  async update(id: number, data: UpdateBrandDto) {
+    await this.brandRepo.update(id, data);
+    return this.findOne(id);
   }
 
-  // XÓA NHÀ XE KHỎI HỆ THỐNG (HARD DELETE - CẨN THẬN KHI DÙNG)
-  delete(id: number) {
-    return this.prisma.brand.delete({ where: { id } });
+  // XÓA NHÀ XE
+  async delete(id: number) {
+    await this.brandRepo.delete(id);
+    return { id };
   }
 }

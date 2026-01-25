@@ -1,13 +1,15 @@
-// src/modules/seat.module.ts
 import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { SeatController } from '../controllers/seat.controller';
 import { SeatService } from '../services/seat.service';
 import { SeatRepository } from '../repositories/seat.repository';
-import { PrismaService } from '../services/prisma.service'; // THÊM
+import { Seat } from '../entities/Seat.entity';
+import { Schedule } from '../entities/Schedule.entity';
 
 @Module({
+  imports: [TypeOrmModule.forFeature([Seat, Schedule])],
   controllers: [SeatController],
-  providers: [SeatService, SeatRepository, PrismaService], // THÊM PrismaService
+  providers: [SeatService, SeatRepository],
   exports: [SeatService],
 })
-export class SeatModule {}
+export class SeatModule { }

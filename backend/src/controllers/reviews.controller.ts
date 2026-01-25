@@ -1,15 +1,15 @@
 import { Controller, Get, Post, Put, Patch, Delete, Body, Param, Headers, ParseIntPipe, UnauthorizedException, HttpCode, HttpStatus, NotFoundException } from '@nestjs/common';
 import { ReviewsService } from '../services/reviews.service';
+import { UserRepository } from '../repositories/user.repository';
 import { CreateReviewDto } from '../dtos/create-review.dto';
 import { UpdateReviewDto } from '../dtos/update-review.dto';
 import { auth } from '../config/firebase';
-import { PrismaService } from '../services/prisma.service';
 
 @Controller('reviews')
 export class ReviewsController {
     constructor(
         private reviewsService: ReviewsService,
-        private prisma: PrismaService,
+        private userRepo: UserRepository,
     ) { }
 
     private async getUserIdFromToken(authHeader: string): Promise<number> {
@@ -18,9 +18,7 @@ export class ReviewsController {
 
         try {
             const decodedToken = await auth.verifyIdToken(token);
-            const user = await this.prisma.user.findUnique({
-                where: { uid: decodedToken.uid },
-            });
+            const user = await this.userRepo.findByUid(decodedToken.uid);
             if (!user) throw new NotFoundException('User not found');
             return user.id;
         } catch (e) {

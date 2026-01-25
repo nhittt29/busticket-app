@@ -20,6 +20,7 @@
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "prisma:generate": "npx prisma generate",
     "prisma:seed": "npx prisma db seed",
+    "seed": "ts-node database/seed.ts",
     "tunnel": "ssh -o StrictHostKeyChecking=no -R 80:localhost:3000 serveo.net"
   },
   "dependencies": {
@@ -31,6 +32,7 @@
     "@nestjs/core": "^11.1.6",
     "@nestjs/platform-express": "^11.0.1",
     "@nestjs/schedule": "^6.0.1",
+    "@nestjs/typeorm": "^11.0.0",
     "@prisma/client": "^6.16.3",
     "@types/qrcode": "^1.5.6",
     "axios": "^1.13.2",
@@ -48,10 +50,12 @@
     "multer": "^2.0.2",
     "next-cloudinary": "^6.17.0",
     "nodemailer": "^7.0.10",
+    "oracledb": "^6.10.0",
     "qrcode": "^1.5.4",
     "redis-server": "^1.2.2",
     "reflect-metadata": "^0.2.2",
-    "rxjs": "^7.8.1"
+    "rxjs": "^7.8.1",
+    "typeorm": "^0.3.28"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",

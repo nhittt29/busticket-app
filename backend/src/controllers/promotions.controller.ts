@@ -1,6 +1,6 @@
 import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, ParseIntPipe } from '@nestjs/common';
 import { PromotionsService } from '../services/promotions.service';
-import { DiscountType } from '@prisma/client';
+import { DiscountType } from '../models/Promotion';
 
 @Controller('promotions')
 export class PromotionsController {

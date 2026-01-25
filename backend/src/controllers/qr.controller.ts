@@ -2,7 +2,7 @@
 import { Controller, Get, Post, Body, Query, BadRequestException, Res } from '@nestjs/common';
 import type { Response } from 'express';
 import { QrService } from '../services/qr.service';
-import { PrismaService } from '../services/prisma.service';
+import { TicketRepository } from '../repositories/ticket.repository';
 
 import { NotificationService } from '../services/notification.service';
 
@@ -13,22 +13,19 @@ import { lastValueFrom } from 'rxjs';
 export class QrController {
   constructor(
     private readonly qrService: QrService,
-    private readonly prisma: PrismaService,
+    private readonly ticketRepo: TicketRepository,
     private readonly notificationService: NotificationService,
     private readonly httpService: HttpService,
   ) { }
 
   @Post('confirm')
   async confirmBoarding(@Body() body: { ticketId: number; image: string }) {
-    const ticket = await this.prisma.ticket.findUnique({
-      where: { id: Number(body.ticketId) },
-      include: { user: true }
-    });
+    const ticket = await this.ticketRepo.findById(Number(body.ticketId));
 
     if (!ticket) throw new BadRequestException('Vé không tồn tại');
 
     // 1. Verify with DeepFace (Python Service)
-    if (!ticket.user.faceUrl) throw new BadRequestException('User chưa đăng ký FaceID');
+    if (!ticket.user || !ticket.user.faceUrl) throw new BadRequestException('User chưa đăng ký FaceID');
 
     // Fix path resolution
     let facePath = ticket.user.faceUrl;
@@ -79,24 +76,7 @@ export class QrController {
     const payload = this.qrService.verifyToken(token);
     if (!payload) throw new BadRequestException('QR không hợp lệ hoặc đã hết hạn');
 
-    const ticket = await this.prisma.ticket.findUnique({
-      where: { id: payload.ticketId },
-      include: {
-        user: true,
-        seat: true,
-        schedule: {
-          include: {
-            route: true,
-            bus: true,
-          },
-        },
-        ticketPayments: {
-          include: {
-            payment: true, // paymentHistory thực ra là payment trong Prisma Client
-          },
-        },
-      },
-    });
+    const ticket = await this.ticketRepo.findForQrVerification(payload.ticketId);
 
     console.log(`[VERIFY-DEBUG] Found Ticket #${ticket?.id}, Status: ${ticket?.status}`);
     if (ticket) {
@@ -108,7 +88,7 @@ export class QrController {
     }
 
     // CHECK VALIDITY: Either Status is PAID OR has a successful payment linked
-    const isPaid = ticket.status === 'PAID' || ticket.ticketPayments.some(tp => tp.payment.status === 'SUCCESS' || tp.payment.status === 'COMPLETED');
+    const isPaid = ticket.status === 'PAID' || (ticket.ticketPayments && ticket.ticketPayments.some(tp => tp.payment && (tp.payment.status === 'SUCCESS' || tp.payment.status === 'COMPLETED')));
 
     if (!isPaid) {
       console.log(`[VERIFY-FAILURE] Ticket ${ticket.id} is NOT PAID. Status: ${ticket.status}`);

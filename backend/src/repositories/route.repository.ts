@@ -1,44 +1,46 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../services/prisma.service';
-import { Prisma } from '@prisma/client';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Route } from '../entities/Route.entity';
 
 @Injectable()
 export class RouteRepository {
-  constructor(private readonly prisma: PrismaService) { }
+  constructor(
+    @InjectRepository(Route)
+    private readonly routeRepo: Repository<Route>,
+  ) { }
 
-  // LẤY DANH SÁCH TẤT CẢ TUYẾN ĐƯỜNG KÈM THÔNG TIN NHÀ XE/HÃNG XE QUẢN LÝ
+  // LẤY DANH SÁCH TẤT CẢ TUYẾN ĐƯỜNG KÈM THÔNG TIN NHÀ XE
   async findAll() {
-    return this.prisma.route.findMany({
-      include: { brand: true },
-      orderBy: { id: 'asc' },
+    return this.routeRepo.find({
+      relations: ['brand'],
+      order: { id: 'ASC' },
     });
   }
 
-  // LẤY THÔNG TIN CHI TIẾT MỘT TUYẾN ĐƯỜNG THEO ID (BAO GỒM NHÀ XE QUẢN LÝ)
+  // LẤY THÔNG TIN CHI TIẾT MỘT TUYẾN ĐƯỜNG
   async findById(id: number) {
-    return this.prisma.route.findUnique({
+    return this.routeRepo.findOne({
       where: { id },
-      include: { brand: true },
+      relations: ['brand'],
     });
   }
 
-  // TẠO MỚI MỘT TUYẾN ĐƯỜNG (ĐIỂM ĐI → ĐIỂM ĐẾN, KHOẢNG CÁCH, THỜI GIAN, GIÁ VÉ, HÃNG XE)
-  async create(data: Prisma.RouteCreateInput) {
-    return this.prisma.route.create({ data });
+  // TẠO MỚI MỘT TUYẾN ĐƯỜNG
+  async create(data: any) { // Type matching Prisma Input strictly is hard, using any/partial
+    const route = this.routeRepo.create(data);
+    return this.routeRepo.save(route);
   }
 
-  // CẬP NHẬT THÔNG TIN TUYẾN ĐƯỜNG (GIÁ VÉ, THỜI GIAN ƯỚC TÍNH, TRẠNG THÁI, HÃNG XE...)
-  async update(id: number, data: Prisma.RouteUpdateInput) {
-    return this.prisma.route.update({
-      where: { id },
-      data,
-    });
+  // CẬP NHẬT THÔNG TIN TUYẾN ĐƯỜNG
+  async update(id: number, data: any) {
+    await this.routeRepo.update(id, data);
+    return this.findById(id);
   }
 
-  // XÓA TUYẾN ĐƯỜNG KHỎI HỆ THỐNG (CẨN THẬN - SẼ ẢNH HƯỞNG ĐẾN CÁC CHUYẾN XE ĐÃ TẠO)
+  // XÓA TUYẾN ĐƯỜNG
   async delete(id: number) {
-    return this.prisma.route.delete({
-      where: { id },
-    });
+    await this.routeRepo.delete(id);
+    return { id };
   }
 }

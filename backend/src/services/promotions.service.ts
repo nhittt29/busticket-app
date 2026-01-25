@@ -1,15 +1,14 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
-import { PrismaService } from './prisma.service';
-import { Promotion, DiscountType } from '@prisma/client';
+import { PromotionsRepository } from '../repositories/promotions.repository';
 
 @Injectable()
 export class PromotionsService {
-    constructor(private prisma: PrismaService) { }
+    constructor(private promotionsRepo: PromotionsRepository) { }
 
     async create(data: {
         code: string;
         description: string;
-        discountType: DiscountType;
+        discountType: any;
         discountValue: number;
         minOrderValue?: number;
         maxDiscount?: number;
@@ -18,45 +17,28 @@ export class PromotionsService {
         usageLimit?: number;
         isActive?: boolean;
     }) {
-        // Check if code exists
-        const existing = await this.prisma.promotion.findUnique({
-            where: { code: data.code },
-        });
+        const existing = await this.promotionsRepo.findByCode(data.code);
         if (existing) {
             throw new BadRequestException('Mã khuyến mãi đã tồn tại');
         }
 
-        return this.prisma.promotion.create({
-            data: {
-                ...data,
-                startDate: new Date(data.startDate),
-                endDate: new Date(data.endDate),
-            },
+        return this.promotionsRepo.create({
+            ...data,
+            startDate: new Date(data.startDate),
+            endDate: new Date(data.endDate),
         });
     }
 
     async findAllAdmin() {
-        return this.prisma.promotion.findMany({
-            orderBy: { createdAt: 'desc' },
-        });
+        return this.promotionsRepo.findAllAdmin();
     }
 
     async findActive() {
-        const now = new Date();
-        return this.prisma.promotion.findMany({
-            where: {
-                isActive: true,
-                startDate: { lte: now },
-                endDate: { gte: now },
-            },
-            orderBy: { endDate: 'asc' },
-        });
+        return this.promotionsRepo.findActive();
     }
 
     async findOne(id: number) {
-        const promotion = await this.prisma.promotion.findUnique({
-            where: { id },
-        });
+        const promotion = await this.promotionsRepo.findById(id);
         if (!promotion) throw new NotFoundException('Không tìm thấy mã khuyến mãi');
         return promotion;
     }
@@ -66,23 +48,16 @@ export class PromotionsService {
         if (data.startDate) data.startDate = new Date(data.startDate);
         if (data.endDate) data.endDate = new Date(data.endDate);
 
-        return this.prisma.promotion.update({
-            where: { id },
-            data,
-        });
+        return this.promotionsRepo.update(id, data);
     }
 
     async delete(id: number) {
         await this.findOne(id);
-        return this.prisma.promotion.delete({
-            where: { id },
-        });
+        return this.promotionsRepo.delete(id);
     }
 
     async applyPromotion(code: string, orderValue: number) {
-        const promotion = await this.prisma.promotion.findUnique({
-            where: { code },
-        });
+        const promotion = await this.promotionsRepo.findByCode(code);
 
         if (!promotion) {
             throw new BadRequestException('Mã khuyến mãi không hợp lệ');
@@ -117,7 +92,6 @@ export class PromotionsService {
             }
         }
 
-        // Ensure discount doesn't exceed order value
         if (discountAmount > orderValue) {
             discountAmount = orderValue;
         }

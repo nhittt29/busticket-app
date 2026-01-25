@@ -1,10 +1,3 @@
-// src/models/Ticket.ts
-import { Schedule } from './Schedule';
-import { Seat } from './Seat';
-import { User } from './User';
-import { DropoffPoint } from './DropoffPoint';
-import { PaymentHistory } from './PaymentHistory';
-
 export enum TicketStatus {
   BOOKED = 'BOOKED',
   PAID = 'PAID',
@@ -12,11 +5,18 @@ export enum TicketStatus {
 }
 
 export enum PaymentMethod {
-  CASH = 'CASH',
-  CREDIT_CARD = 'CREDIT_CARD',
   MOMO = 'MOMO',
   ZALOPAY = 'ZALOPAY',
   VNPAY = 'VNPAY',
+  CASH = 'CASH',
+  BANK_TRANSFER = 'BANK_TRANSFER',
+}
+
+export enum ScheduleStatus {
+  UPCOMING = 'UPCOMING',
+  ONGOING = 'ONGOING',
+  COMPLETED = 'COMPLETED',
+  CANCELLED = 'CANCELLED'
 }
 
 export interface Ticket {
@@ -28,35 +28,15 @@ export interface Ticket {
   surcharge: number;
   totalPrice: number;
   status: TicketStatus;
-  paymentMethod?: PaymentMethod | null;
+  paymentMethod: PaymentMethod;
   dropoffPointId?: number | null;
-
-  // TRƯỜNG MỚI – ĐỒNG BỘ VỚI PRISMA SCHEMA
   dropoffAddress?: string | null;
-
   paymentHistoryId?: number | null;
   createdAt: Date;
   updatedAt: Date;
-
-  // Quan hệ
-  user?: User;
-  schedule?: Schedule;
-  seat?: Seat;
-  dropoffPoint?: DropoffPoint | null;
-
-  // Thanh toán nhóm – CHỈ KHAI BÁO 1 LẦN DUY NHẤT
-  paymentHistory?: PaymentHistory | null;
-
-  // Bảng trung gian
-  ticketPayments?: TicketPayment[];
-}
-
-export interface TicketPayment {
-  id: number;
-  ticketId: number;
-  paymentId: number;
-  createdAt: Date;
-
-  ticket?: Ticket;
-  payment?: PaymentHistory;
+  // Relations (Partial)
+  user?: any;
+  schedule?: any;
+  seat?: any;
+  paymentHistory?: any;
 }

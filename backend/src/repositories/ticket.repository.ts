@@ -1,104 +1,107 @@
-// src/repositories/ticket.repository.ts
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../services/prisma.service';
-import { CreateTicketDto } from '../dtos/ticket.dto';
-import { TicketStatus } from '../models/Ticket';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository, Between } from 'typeorm';
+import { Ticket } from '../entities/Ticket.entity';
 
 @Injectable()
 export class TicketRepository {
-  constructor(private prisma: PrismaService) { }
+  constructor(
+    @InjectRepository(Ticket)
+    private readonly ticketRepo: Repository<Ticket>,
+  ) { }
 
-  // TẠO MỚI MỘT VÉ ĐÃ ĐẶT (TRẠNG THÁI BOOKED) - DÙNG CHO ĐẶT VÉ ONLINE HOẶC TẠI QUẦY
-  create(data: CreateTicketDto) {
-    return this.prisma.ticket.create({
-      data: {
-        userId: data.userId,
-        scheduleId: data.scheduleId,
-        seatId: data.seatId,
-        price: data.price,
-        status: TicketStatus.BOOKED,
-        paymentMethod: data.paymentMethod,
-        // ĐÃ XÓA bulkTicketId
-      },
-    });
+  // ... Previous methods ...
+  async create(data: any) {
+    const ticket = this.ticketRepo.create(data);
+    return this.ticketRepo.save(ticket);
   }
 
-  // LẤY THÔNG TIN CHI TIẾT MỘT VÉ THEO ID (KÈM THÔNG TIN GHẾ)
-  findById(id: number) {
-    return this.prisma.ticket.findUnique({
+  async findById(id: number) {
+    return this.ticketRepo.findOne({
       where: { id },
-      include: { seat: true },
+      relations: ['user', 'schedule', 'schedule.bus', 'seat'] // Loading relations as needed
     });
   }
 
-  // CẬP NHẬT TRẠNG THÁI HOẶC THÔNG TIN VÉ (THANH TOÁN, HỦY, HOÀN TIỀN...)
-  update(id: number, data: any) {
-    return this.prisma.ticket.update({
-      where: { id },
-      data,
+  async update(id: number, data: any) {
+    await this.ticketRepo.update(id, data);
+    return this.findById(id);
+  }
+
+  async delete(id: number) {
+    await this.ticketRepo.delete(id);
+    return { message: 'Deleted' };
+  }
+
+  async checkSeatBooked(scheduleId: number, seatId: number) {
+    return this.ticketRepo.findOne({
+      where: { scheduleId, seatId, status: 'BOOKED' } // Enum string value
     });
   }
 
-  // KIỂM TRA GHẾ ĐÃ ĐƯỢC ĐẶT CHƯA TRONG CHUYẾN XE ĐÓ (NGĂN ĐẶT TRÙNG GHẾ)
-  checkSeatBooked(scheduleId: number, seatId: number) {
-    return this.prisma.ticket.findFirst({
-      where: {
-        scheduleId,
-        seatId,
-        status: { in: [TicketStatus.BOOKED, TicketStatus.PAID] },
-      },
+  async findUserBookedToday(userId: number) {
+    // Logic for today count
+    const start = new Date(); start.setHours(0, 0, 0, 0);
+    const end = new Date(); end.setHours(23, 59, 59, 999);
+    return this.ticketRepo.count({
+      where: { userId, createdAt: Between(start, end) }
     });
   }
 
-  // ĐẾM SỐ LẦN ĐẶT VÉ CỦA MỘT NGƯỜI DÙNG TRONG NGÀY HIỆN TẠI (CHỐNG SPAM ĐẶT VÉ)
-  findUserBookedToday(userId: number) {
-    const now = new Date();
-    const start = new Date(now.setHours(0, 0, 0, 0));
-    const end = new Date(now.setHours(23, 59, 59, 999));
-    return this.prisma.ticket.count({
-      where: { userId, createdAt: { gte: start, lt: end } },
-    });
-  }
-
-  // LẤY DANH SÁCH VÉ CỦA MỘT NGƯỜI DÙNG (TRANG "VÉ CỦA TÔI") - KÈM THÔNG TIN CHUYẾN, GHẾ, THANH TOÁN, ĐIỂM TRẢ
-  getTicketsByUser(userId: number) {
-    return this.prisma.ticket.findMany({
+  async getTicketsByUser(userId: number) {
+    return this.ticketRepo.find({
       where: { userId },
-      include: {
-        schedule: {
-          include: {
-            route: true,
-            bus: true
-          }
-        },
-        seat: true,
-        paymentHistory: true,
-        dropoffPoint: true,
-      },
-      orderBy: { id: 'asc' },
+      relations: ['schedule', 'seat'],
+      order: { createdAt: 'DESC' }
     });
   }
 
-  // THỐNG KÊ SỐ VÉ ĐÃ BÁN TRONG NGÀY HIỆN TẠI CỦA MỘT NHÀ XE (DÙNG CHO BÁO CÁO DOANH THU)
-  // ĐẾM SỐ VÉ ĐÃ BÁN CỦA MỘT CHUYẾN XE (TRỪ VÉ HỦY)
-  countSoldTickets(scheduleId: number) {
-    return this.prisma.ticket.count({
-      where: {
-        scheduleId,
-        status: { not: TicketStatus.CANCELLED },
-      },
-    });
-  }
-
-  countBrandSoldToday(brandId: number) {
+  async findUnreviewedTickets(userId: number) {
     const now = new Date();
-    const start = new Date(now.setHours(0, 0, 0, 0));
-    const end = new Date(now.setHours(23, 59, 59, 999));
-    return this.prisma.ticket.count({
-      where: {
-        schedule: { bus: { brandId } },
-        createdAt: { gte: start, lt: end },
-      },
+    return this.ticketRepo.createQueryBuilder('ticket')
+      .leftJoinAndSelect('ticket.schedule', 'schedule')
+      .leftJoinAndSelect('schedule.route', 'route')
+      .leftJoinAndSelect('schedule.bus', 'bus')
+      .leftJoinAndSelect('bus.brand', 'brand')
+      .leftJoinAndSelect('ticket.seat', 'seat')
+      .leftJoinAndSelect('ticket.review', 'review')
+      .where('ticket.userId = :userId', { userId })
+      .andWhere('ticket.status = :ticketStatus', { ticketStatus: 'PAID' })
+      .andWhere('schedule.status = :scheduleStatus', { scheduleStatus: 'COMPLETED' })
+      .andWhere('schedule.arrivalAt < :now', { now })
+      .andWhere('review.id IS NULL')
+      .orderBy('schedule.departureAt', 'DESC')
+      .getMany();
+  }
+
+  async findForQrVerification(id: number) {
+    return this.ticketRepo.findOne({
+      where: { id },
+      relations: [
+        'user',
+        'seat',
+        'schedule',
+        'schedule.route',
+        'schedule.bus',
+        'ticketPayments',
+        'ticketPayments.payment' // Relation name in TicketPayment entity is 'payment'
+      ]
     });
   }
+
+  // NEW METHOD
+  async deleteByScheduleId(scheduleId: number) {
+    return this.ticketRepo.delete({ scheduleId });
+  }
+
+  // Helper to expose query builder or generic query if needed
+  async query(query: string, parameters?: any[]) {
+    return this.ticketRepo.query(query, parameters);
+  }
+
+  async createQueryBuilder(alias: string) {
+    return this.ticketRepo.createQueryBuilder(alias);
+  }
+
+  async count(options: any) { return this.ticketRepo.count(options); }
 }

@@ -1,17 +1,18 @@
 import { Process, Processor } from '@nestjs/bull';
 import type { Job } from 'bull';
 import { Logger } from '@nestjs/common';
-import { PrismaService } from '../services/prisma.service';
-import { TicketStatus } from '../models/Ticket';
-
+import { TicketRepository } from '../repositories/ticket.repository';
+import { SeatRepository } from '../repositories/seat.repository';
 import { NotificationService } from '../services/notification.service';
+import { TicketStatus } from '../models/Ticket'; // Ensure this enum/const is available
 
 @Processor('ticket')
 export class TicketProcessor {
   private readonly logger = new Logger(TicketProcessor.name);
 
   constructor(
-    private readonly prisma: PrismaService,
+    private readonly ticketRepo: TicketRepository,
+    private readonly seatRepo: SeatRepository,
     private readonly notificationService: NotificationService,
   ) { }
 
@@ -22,24 +23,17 @@ export class TicketProcessor {
   async handleHoldExpire(job: Job<{ ticketId: number }>) {
     const { ticketId } = job.data;
 
-    const ticket = await this.prisma.ticket.findUnique({
-      where: { id: ticketId },
-    });
+    const ticket = await this.ticketRepo.findById(ticketId);
 
     if (!ticket) return;
-    if (ticket.status === TicketStatus.PAID) return;
+    if (ticket.status === 'PAID') return; // String check if enum issue
 
     // ✅ Hủy vé + mở lại ghế
-    await this.prisma.$transaction([
-      this.prisma.ticket.update({
-        where: { id: ticketId },
-        data: { status: TicketStatus.CANCELLED },
-      }),
-      this.prisma.seat.update({
-        where: { id: ticket.seatId },
-        data: { isAvailable: true },
-      }),
-    ]);
+    // Sequential updates are fine here
+    await this.ticketRepo.update(ticketId, { status: 'CANCELLED' });
+    if (ticket.seatId) {
+      await this.seatRepo.updateAvailability(ticket.seatId, true);
+    }
 
     this.logger.warn(`⏰ Ticket #${ticketId} expired after 15 mins.`);
 
@@ -60,9 +54,9 @@ export class TicketProcessor {
   @Process('payment-reminder')
   async handlePaymentReminder(job: Job<{ ticketId: number }>) {
     const { ticketId } = job.data;
-    const ticket = await this.prisma.ticket.findUnique({ where: { id: ticketId } });
+    const ticket = await this.ticketRepo.findById(ticketId);
 
-    if (!ticket || ticket.status === TicketStatus.PAID || ticket.status === TicketStatus.CANCELLED) return;
+    if (!ticket || ticket.status === 'PAID' || ticket.status === 'CANCELLED') return;
 
     // 🔔 Gửi thông báo: Nhắc thanh toán
     if (ticket.userId) {
