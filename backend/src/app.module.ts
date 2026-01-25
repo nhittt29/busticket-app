@@ -65,7 +65,7 @@ import { Notification } from './entities/Notification.entity';
           Review, Promotion, Notification
         ],
         synchronize: false,
-        logging: true,
+        logging: false, // Disabled query logging as requested
       }),
     }),
 

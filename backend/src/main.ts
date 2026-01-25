@@ -6,13 +6,14 @@ import { join, resolve } from 'path';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import * as express from 'express';
 import * as admin from 'firebase-admin';
+import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 
 // BẮT BUỘC: LOAD .env TRƯỚC KHI KHỞI ĐỘNG APP
 import * as dotenv from 'dotenv';
 dotenv.config();
 
 function startRedis() {
-  const redisPath = resolve(__dirname, '../redis/redis-server.exe');
+  const redisPath = resolve(process.cwd(), 'redis/redis-server.exe');
   exec(`"${redisPath}"`, (err) => {
     if (err) console.error(`Redis start error: ${err.message}`);
   });
@@ -52,7 +53,17 @@ async function bootstrap() {
     prefix: '/images/',
   });
 
-  await app.listen(3000);
+  // Swagger Config
+  const config = new DocumentBuilder()
+    .setTitle('BusTicket API')
+    .setDescription('API documentation for BusTicket backend')
+    .setVersion('1.0')
+    .addBearerAuth()
+    .build();
+  const document = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup('api/docs', app, document);
+
+  await app.listen(3000); // 🚀 Start Server
 
   // Firebase check
   if (admin.apps.length) {
@@ -65,6 +76,7 @@ async function bootstrap() {
   const formattedPath = uploadsPath.replace(/\\/g, '/');
   console.log('🚀 Server running on: http://localhost:3000');
   console.log(`🖼️  Static files available at: http://localhost:3000/uploads`);
+  console.log('📄 Swagger Docs available at: http://localhost:3000/api/docs');
   console.log(`📂 Physical path: ${formattedPath}`);
 }
 bootstrap();

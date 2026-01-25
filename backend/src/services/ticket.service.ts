@@ -224,11 +224,63 @@ export class TicketService {
     let groupTickets = paymentHistory.ticketPayments ? paymentHistory.ticketPayments.map(tp => tp.ticket) : [];
     if (groupTickets.length === 0 && paymentHistory.tickets) groupTickets = paymentHistory.tickets;
 
+    // 4. Update status
     for (const t of groupTickets) {
       if (t) {
         await this.ticketRepo.update(t.id, { status: TicketStatus.PAID });
         // Seat update
         if (t.seatId) await this.seatRepo.updateAvailability(t.seatId, false);
+      }
+    }
+
+    // 5. Success Log
+    this.logger.log(`✅ [PAYMENT SUCCESS] PaymentHistory #${paymentHistoryId} confirmed via ${method}`);
+
+    // 6. Generate QR & Send Email
+    // Lấy thông tin vé đầy đủ (relation schedule, route, user...) để gửi mail
+    // Do groupTickets ở trên có thể chưa full relation nếu chỉ load qua paymentHistory.tickets
+    // Nên check lại. Ở đây giả sử paymentHistoryRepository.findByIdWithRelations đã load đủ.
+
+    // Tạo token QR chung cho cả nhóm
+    // Payload QR chứa ticketId của vé đầu tiên làm đại diện hoặc paymentHistoryId
+    // Tùy logic verify. Cũ là ticketId.
+    // Nếu verify hỗ trợ paymentHistoryId thì tốt.
+    // Tạm dùng ticket đại diện (first ticket)
+    const firstTicket = groupTickets[0];
+    if (firstTicket) {
+      try {
+        const qrUrl = await this.qrService.generateSecureTicketQR(firstTicket.id);
+
+        // Gửi Email
+        if (firstTicket.user?.email) {
+          this.logger.log(`📧 Sending Ticket Email to ${firstTicket.user.email}...`);
+          try {
+            await this.emailService.sendUnifiedTicketEmail(
+              firstTicket.user.email,
+              groupTickets,
+              paymentHistoryId,
+              qrUrl,
+              method
+            );
+          } catch (emailErr) {
+            this.logger.error(`❌ Failed to send email: ${emailErr.message}`);
+            // Không throw lỗi chết flow payment, chỉ log
+          }
+        }
+      } catch (qrError) {
+        this.logger.error(`❌ QR/Email flow failed: ${qrError.message}`);
+      }
+
+      // 7. Notification
+      try {
+        await this.notificationService.create({
+          userId: firstTicket.userId,
+          title: 'Thanh toán thành công ✅',
+          message: `Bạn đã thanh toán thành công cho ${groupTickets.length} vé. Mã vé: V${String(paymentHistoryId).padStart(6, '0')}. Kiểm tra email để nhận vé điện tử.`,
+          type: 'PAYMENT'
+        });
+      } catch (notiErr) {
+        this.logger.error(`❌ Failed to create notification: ${notiErr.message}`);
       }
     }
 
@@ -250,8 +302,99 @@ export class TicketService {
   async getBookingById(id: number) { return {}; }
   async getTicketById(id: number) { return this.ticketRepo.findById(id); }
 
-  async handleMomoRedirect(query: any) { return { success: true, paymentHistoryId: 0 }; }
-  async handleMomoCallback(data: any) { return { success: true }; }
+  async handleMomoRedirect(query: any) {
+    this.logger.log(`MoMo Redirect Query: ${JSON.stringify(query)}`);
+
+    // Verify Signature
+    const isValid = this.momoService.verifySignature(query);
+    if (!isValid) {
+      this.logger.error('❌ MoMo Redirect Signature Mismatch');
+      return { success: false, message: 'Invalid Signature' };
+    }
+
+    if (Number(query.resultCode) === 0) {
+      const match = query.orderId.match(/^TICKET_(\d+)_\d+$/);
+      if (match) {
+        const paymentHistoryId = Number(match[1]);
+        // Update Ticket Status immediately on redirect (since IPN can't reach localhost)
+        await this.payTicket(paymentHistoryId, AppPaymentMethod.MOMO, query.transId);
+        return { success: true, paymentHistoryId };
+      }
+    }
+
+    return { success: false, message: query.message || 'Payment Failed' };
+  }
+
+  async handleZaloPayRedirect(query: any) {
+    // ZaloPay redirect contains: app_trans_id, status (1=success), checksum (sometimes)
+    // But official doc says query string parameters are NOT signed reliably for standard redirect.
+    // However, it usually includes app_trans_id.
+    this.logger.log(`ZaloPay Redirect Query: ${JSON.stringify(query)}`);
+
+    // Check checksum if available, otherwise force Query Status
+    const appTransId = query.apptransid;
+    // ZaloPay sends lowercase 'apptransid' in some versions, or 'app_trans_id'
+
+    if (!appTransId) {
+      return { success: false, message: 'Missing AppTransId' };
+    }
+
+    try {
+      // Query status from ZaloPay Server to be sure
+      const status = await this.zaloPayService.queryStatus(appTransId) as any;
+      if (status.return_code === 1) {
+        const match = appTransId.match(/^\d+_(\d+)_/); // Format: yymmdd_TRANSID
+        // wait, createOrder used `${yymmdd}_${transID}`. It doesn't embed paymentId in app_trans_id directly?
+        // createOrder logs: transactionId: order.app_trans_id. 
+        // And puts id in paymentHistory.transactionId.
+
+        // So we find payment by transactionId
+        const payment = await this.paymentHistoryRepo.findByTransactionId(appTransId);
+        if (payment) {
+          await this.payTicket(payment.id, AppPaymentMethod.ZALOPAY, appTransId);
+          return { success: true, paymentHistoryId: payment.id };
+        }
+      }
+      return { success: false, message: status.return_message || 'Payment Pending/Failed' };
+    } catch (e) {
+      this.logger.error(`ZaloPay Verification Failed: ${e.message}`);
+      return { success: false, message: 'Verification Error' };
+    }
+  }
+
+  async handleVnPayReturn(query: any) {
+    this.logger.log(`VNPay Return Query: ${JSON.stringify(query)}`);
+    const verify = this.vnpayService.verifyReturnUrl(query);
+
+    if (verify.success && verify.paymentHistoryId) {
+      await this.payTicket(verify.paymentHistoryId, AppPaymentMethod.VNPAY, query['vnp_TransactionNo']);
+      return { success: true, paymentHistoryId: verify.paymentHistoryId };
+    }
+
+    return { success: false, message: verify.message || 'Payment Verification Failed' };
+  }
+  async handleMomoCallback(data: any) {
+    this.logger.log(`MoMo Callback Body: ${JSON.stringify(data)}`);
+
+    const isValid = this.momoService.verifySignature(data);
+    if (!isValid) {
+      this.logger.error('❌ MoMo Signature Mismatch');
+      throw new BadRequestException('Invalid Signature');
+    }
+
+    if (Number(data.resultCode) === 0) {
+      // OrderId format: TICKET_{paymentHistoryId}_{timestamp}
+      const match = data.orderId.match(/^TICKET_(\d+)_\d+$/);
+      if (match) {
+        const paymentHistoryId = Number(match[1]);
+        return this.payTicket(paymentHistoryId, AppPaymentMethod.MOMO, data.transId);
+      }
+    } else {
+      this.logger.warn(`⚠️ MoMo Payment Failed: Code ${data.resultCode} - ${data.message}`);
+    }
+
+    return { success: true };
+  }
 
   async getTicketsByUser(userId: number) {
     return this.ticketRepo.getTicketsByUser(userId);

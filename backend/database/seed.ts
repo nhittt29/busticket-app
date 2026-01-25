@@ -16,7 +16,7 @@ const dataSource = new DataSource({
     password: process.env.ORACLE_PASSWORD || 'test123@@',
     serviceName: process.env.ORACLE_SERVICE_NAME || 'FREEPDB1', // Changed from sid to serviceName
     entities: [path.join(__dirname, '../src/entities/*.entity.ts')],
-    synchronize: false, // Don't sync in seed, assume schema exists
+    synchronize: true, // Enable sync to recreate tables after reset
     logging: true,
 });
 

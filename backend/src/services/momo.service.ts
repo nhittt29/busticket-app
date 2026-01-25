@@ -32,8 +32,11 @@ export class MomoService {
     const defaultOrderInfo = `Thanh toán đơn hàng #${paymentHistoryId} - ${displayPrice}đ`;
     const finalOrderInfo = orderInfo || defaultOrderInfo;
 
+    // requestType: 'payWithMethod' => Shows Selection UI (Wallet, ATM, Visa)
     const requestType = 'payWithMethod';
-    const paymentCode = this.getTestPaymentCode();
+
+    // We do NOT send paymentCode for generic selection.
+    // The previous hardcoded paymentCode was causing "Bad format request"
 
     const rawSignature = `accessKey=${this.accessKey}&amount=${amount}&extraData=&ipnUrl=${ipnUrl}&orderId=${orderId}&orderInfo=${finalOrderInfo}&partnerCode=${this.partnerCode}&redirectUrl=${redirectUrl}&requestId=${requestId}&requestType=${requestType}`;
     const signature = crypto.createHmac('sha256', this.secretKey).update(rawSignature).digest('hex');
@@ -52,7 +55,6 @@ export class MomoService {
       requestType,
       autoCapture: true,
       extraData: '',
-      paymentCode,
       signature,
     };
 

@@ -23,6 +23,15 @@ export class TicketController {
     return this.zaloPayService.handleCallback(data);
   }
 
+  @Get('zalopay/redirect')
+  async zalopayRedirect(@Query() query: any) {
+    const result = await this.ticketService.handleZaloPayRedirect(query);
+    if (result.success) {
+      return { url: `busticket://payment-success?paymentId=${result.paymentHistoryId}` };
+    }
+    return { url: `busticket://payment-failed?message=${encodeURIComponent(result.message || 'Unknown Error')}` };
+  }
+
   // CHỦ ĐỘNG KIỂM TRA TRẠNG THÁI THANH TOÁN ZALOPAY (POLLING)
   @Post(':id/check-zalopay')
   async checkZaloPayStatus(@Param('id') id: string) {
@@ -83,6 +92,15 @@ export class TicketController {
   @Post('momo/callback')
   momoCallback(@Body() data: any) {
     return this.ticketService.handleMomoCallback(data);
+  }
+
+  @Get('vnpay/return')
+  async vnpayReturn(@Query() query: any) {
+    const result = await this.ticketService.handleVnPayReturn(query);
+    if (result.success) {
+      return { url: `busticket://payment-success?paymentId=${result.paymentHistoryId}` };
+    }
+    return { url: `busticket://payment-failed?message=${encodeURIComponent(result.message || 'Unknown Error')}` };
   }
 
   @Delete(':id')

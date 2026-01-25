@@ -25,8 +25,9 @@ export class ZaloPayService {
     ) { }
 
     async createOrder(bookingId: number, amount: number, userEmail: string) {
+        const backendUrl = process.env.BACKEND_URL || 'http://localhost:3000';
         const embed_data = {
-            redirecturl: 'https://busticket-app.demo/payment-result',
+            redirecturl: `${backendUrl}/api/tickets/zalopay/redirect`,
         };
 
         const items = [{ bookingId, userEmail }];
@@ -118,5 +119,25 @@ export class ZaloPayService {
         }
     }
 
-    async queryStatus(app_trans_id: string) { return {}; }
+    async queryStatus(app_trans_id: string) {
+        const params = {
+            app_id: this.config.app_id,
+            app_trans_id: app_trans_id,
+            mac: '',
+        };
+
+        const data = this.config.app_id + '|' + params.app_trans_id + '|' + this.config.key1;
+        params.mac = crypto.createHmac('sha256', this.config.key1).update(data).digest('hex');
+
+        try {
+            const result = await axios.post(this.config.query_endpoint, null, {
+                params: params,
+            });
+            this.logger.log(`ZaloPay Query Result: ${JSON.stringify(result.data)}`);
+            return result.data;
+        } catch (error) {
+            this.logger.error(`ZaloPay Query Failed: ${error.message}`);
+            return { return_code: -1, return_message: 'Query Failed' };
+        }
+    }
 }

@@ -44,7 +44,7 @@ export class Review {
     @JoinColumn({ name: 'busId' })
     bus: Bus;
 
-    @Column({ unique: true })
+    @Column()
     ticketId: number;
 
     @OneToOne(() => Ticket, (ticket) => ticket.review)

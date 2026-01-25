@@ -21,7 +21,7 @@ export class User {
     @Column({ nullable: true, length: 50 })
     phone: string;
 
-    @Column({ type: 'date', nullable: true, default: '1970-01-01' })
+    @Column({ type: 'date', nullable: true })
     dob: Date;
 
     @Column({ nullable: true, default: 'OTHER', length: 20 })
