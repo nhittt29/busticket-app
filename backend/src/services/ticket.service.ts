@@ -236,52 +236,22 @@ export class TicketService {
     // 5. Success Log
     this.logger.log(`✅ [PAYMENT SUCCESS] PaymentHistory #${paymentHistoryId} confirmed via ${method}`);
 
-    // 6. Generate QR & Send Email
-    // Lấy thông tin vé đầy đủ (relation schedule, route, user...) để gửi mail
-    // Do groupTickets ở trên có thể chưa full relation nếu chỉ load qua paymentHistory.tickets
-    // Nên check lại. Ở đây giả sử paymentHistoryRepository.findByIdWithRelations đã load đủ.
+    // 6. Generate QR & Send Email (ASYNC VIA QUEUE)
+    // Avoid blocking response on 4G networks
+    this.logger.log(`⏳ Adding 'generate-assets' job to queue for Payment #${paymentHistoryId}`);
 
-    // Tạo token QR chung cho cả nhóm
-    // Payload QR chứa ticketId của vé đầu tiên làm đại diện hoặc paymentHistoryId
-    // Tùy logic verify. Cũ là ticketId.
-    // Nếu verify hỗ trợ paymentHistoryId thì tốt.
-    // Tạm dùng ticket đại diện (first ticket)
+    // Tìm ticket đầu tiên để lấu userId cho job
     const firstTicket = groupTickets[0];
     if (firstTicket) {
-      try {
-        const qrUrl = await this.qrService.generateSecureTicketQR(firstTicket.id);
-
-        // Gửi Email
-        if (firstTicket.user?.email) {
-          this.logger.log(`📧 Sending Ticket Email to ${firstTicket.user.email}...`);
-          try {
-            await this.emailService.sendUnifiedTicketEmail(
-              firstTicket.user.email,
-              groupTickets,
-              paymentHistoryId,
-              qrUrl,
-              method
-            );
-          } catch (emailErr) {
-            this.logger.error(`❌ Failed to send email: ${emailErr.message}`);
-            // Không throw lỗi chết flow payment, chỉ log
-          }
-        }
-      } catch (qrError) {
-        this.logger.error(`❌ QR/Email flow failed: ${qrError.message}`);
-      }
-
-      // 7. Notification
-      try {
-        await this.notificationService.create({
-          userId: firstTicket.userId,
-          title: 'Thanh toán thành công ✅',
-          message: `Bạn đã thanh toán thành công cho ${groupTickets.length} vé. Mã vé: V${String(paymentHistoryId).padStart(6, '0')}. Kiểm tra email để nhận vé điện tử.`,
-          type: 'PAYMENT'
-        });
-      } catch (notiErr) {
-        this.logger.error(`❌ Failed to create notification: ${notiErr.message}`);
-      }
+      await this.ticketQueue.add('generate-assets', {
+        paymentHistoryId,
+        method,
+        userId: firstTicket.userId
+      }, {
+        attempts: 3,
+        backoff: 5000, // Wait 5s before retry
+        removeOnComplete: true
+      });
     }
 
     return { message: 'Thanh toán thành công', paymentHistoryId };
