@@ -63,7 +63,7 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api/docs', app, document);
 
-  await app.listen(3000); // 🚀 Start Server
+  await app.listen(4000); // 🚀 Start Server
 
   // Firebase check
   if (admin.apps.length) {
@@ -74,9 +74,9 @@ async function bootstrap() {
   }
 
   const formattedPath = uploadsPath.replace(/\\/g, '/');
-  console.log('🚀 Server running on: http://localhost:3000');
-  console.log(`🖼️  Static files available at: http://localhost:3000/uploads`);
-  console.log('📄 Swagger Docs available at: http://localhost:3000/api/docs');
+  console.log('🚀 Server running on: http://localhost:4000');
+  console.log(`🖼️  Static files available at: http://localhost:4000/uploads`);
+  console.log('📄 Swagger Docs available at: http://localhost:4000/api/docs');
   console.log(`📂 Physical path: ${formattedPath}`);
 }
 bootstrap();
