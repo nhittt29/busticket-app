@@ -19,22 +19,22 @@ async function checkSequences() {
         await dataSource.initialize();
         console.log('✅ Connected to DB');
 
-        // Query to find sequences related to USER table
-        // TypeORM usually uses "TableName_id_seq" or global sequence
+        // Query to find Identity Columns (which have system-generated sequences)
         const result = await dataSource.query(`
-      SELECT SEQUENCE_NAME, CACHE_SIZE, LAST_NUMBER 
-      FROM USER_SEQUENCES
-    `);
+          SELECT TABLE_NAME, COLUMN_NAME 
+          FROM USER_TAB_IDENTITY_COLS
+        `);
 
         console.table(result);
 
-        for (const seq of result) {
-            console.log(`🔧 Disabling cache for: ${seq.SEQUENCE_NAME}`);
+        for (const identity of result) {
+            console.log(`🔧 Disabling cache for identity column: ${identity.TABLE_NAME}.${identity.COLUMN_NAME}`);
             try {
-                await dataSource.query(`ALTER SEQUENCE "${seq.SEQUENCE_NAME}" NOCACHE`);
-                console.log(`✅ Fixed: ${seq.SEQUENCE_NAME}`);
+                // For Identity columns, we must use ALTER TABLE MODIFY
+                await dataSource.query(`ALTER TABLE "${identity.TABLE_NAME}" MODIFY ("${identity.COLUMN_NAME}" NOCACHE)`);
+                console.log(`✅ Fixed: ${identity.TABLE_NAME}`);
             } catch (err) {
-                console.error(`❌ Failed: ${seq.SEQUENCE_NAME}`, err.message);
+                console.error(`❌ Failed: ${identity.TABLE_NAME}`, err.message);
             }
         }
 
