@@ -1,13 +1,14 @@
 "use client";
 
 import { useLogin } from "@refinedev/core";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react"; // Added Suspense
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import Image from "next/image";
 import { Eye, EyeOff, Loader2, Moon, Sun, Bus } from "lucide-react";
+import { useSearchParams } from "next/navigation";
 
 const Typewriter = ({ text, className = "", delay = 50, startDelay = 0 }: { text: string, className?: string, delay?: number, startDelay?: number }) => {
     const [currentText, setCurrentText] = useState('');
@@ -36,46 +37,39 @@ const Typewriter = ({ text, className = "", delay = 50, startDelay = 0 }: { text
     return <span className={className}>{currentText}</span>;
 };
 
-export default function LoginPage() {
+// Create a component that consumes useSearchParams
+const LoginFormContent = () => {
     const { mutate: login, isPending } = useLogin();
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
     const [isDarkMode, setIsDarkMode] = useState(false);
 
+    const searchParams = useSearchParams();
+    const ssoToken = searchParams.get('sso_token');
+    const [isSSOProcessing, setIsSSOProcessing] = useState(!!ssoToken);
+
     const toggleTheme = () => setIsDarkMode(!isDarkMode);
 
     // SSO Handling
     useEffect(() => {
-        const params = new URLSearchParams(window.location.search);
-        const ssoToken = params.get('sso_token');
-
         if (ssoToken) {
-            // Auto login with custom token
-            // We need to use firebase auth directly here since refine's login mutation expects email/pass
-            // Importing auth from firebase config (need to check where it is)
-            // Actually, we can just use the login mutation if we modify the authProvider to accept token
-            // BUT, standard way is to modify authProvider or handle it here.
-
-            // Let's use the authProvider's updated capability if possible, 
-            // OR simpler: manually sign in with firebase here and then tell Refine we are logged in.
-            // Refine checks auth state via checkAuth. 
-
-            // Better approach: Call a custom login method or use the existing login mutation 
-            // but we need to pass the token. The useLogin hook calls authProvider.login.
-            // Let's call login with a special payload.
+            setIsSSOProcessing(true);
             login({ ssoToken } as any, {
                 onSuccess: () => {
                     toast.success("Đăng nhập SSO thành công!");
-                    // Remove token from URL to clean up
-                    window.history.replaceState({}, document.title, window.location.pathname);
+                    // The redirect happens automatically by Refine, 
+                    // but strictly we should clean URL if we stayed (we don't).
                 },
                 onError: (error) => {
                     toast.error("Lỗi đăng nhập SSO", { description: error?.message });
+                    setIsSSOProcessing(false);
+                    // Clear param so form shows up
+                    window.history.replaceState({}, document.title, window.location.pathname);
                 }
             });
         }
-    }, [login]);
+    }, [ssoToken, login]);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -93,6 +87,27 @@ export default function LoginPage() {
             }
         );
     };
+
+    // If processing SSO, show full screen loader
+    if (isSSOProcessing) {
+        return (
+            <div className={`min-h-screen w-full flex flex-col items-center justify-center font-sans transition-colors duration-500 ${isDarkMode ? 'bg-[#0f172a] text-white' : 'bg-[#DAF1DE] text-slate-800'}`}>
+                <div className="relative w-32 h-32 mb-8 animate-bounce">
+                    <Image
+                        src="/bus_logo.png"
+                        alt="BusTicket Logo"
+                        fill
+                        className="object-contain"
+                    />
+                </div>
+                <div className="flex items-center gap-3">
+                    <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                    <h2 className="text-xl font-bold">Đang xác thực thông tin...</h2>
+                </div>
+                <p className="mt-2 text-sm opacity-70">Vui lòng đợi trong giây lát</p>
+            </div>
+        );
+    }
 
     return (
         <div className={`min-h-screen w-full flex font-sans overflow-hidden transition-colors duration-500 ${isDarkMode ? 'bg-slate-950' : 'bg-white'}`}>
@@ -281,5 +296,14 @@ export default function LoginPage() {
                 </div>
             </div>
         </div>
+    );
+};
+
+// Wrap in Suspense as required by Next.js for useSearchParams
+export default function LoginPage() {
+    return (
+        <Suspense fallback={<div className="min-h-screen bg-white" />}>
+            <LoginFormContent />
+        </Suspense>
     );
 }
