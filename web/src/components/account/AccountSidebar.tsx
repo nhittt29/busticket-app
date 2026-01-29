@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/useAuthStore";
-import defaultAvatar from "@/assets/uploads/default.png";
+import { UserAvatar } from "@/components/ui/UserAvatar";
 
 const menuItems = [
     {
@@ -48,10 +48,11 @@ export function AccountSidebar() {
             {/* User Short Profile */}
             <div className="bg-white dark:bg-surface-dark rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 mb-6 flex flex-col items-center text-center">
                 <div className="relative mb-3">
-                    <img
-                        src={user?.avatar || defaultAvatar.src}
+                    <UserAvatar
+                        src={user?.avatar}
                         alt={user?.name || "User"}
-                        className="w-20 h-20 rounded-full object-cover border-4 border-slate-50 dark:border-slate-800 shadow-md"
+                        className="w-20 h-20 rounded-full border-4 border-slate-50 dark:border-slate-800 shadow-md"
+                        size={80}
                     />
                     <button className="absolute bottom-0 right-0 bg-primary text-white p-1 rounded-full shadow-sm hover:bg-sky-600 transition-colors">
                         <span className="material-symbols-outlined text-sm">edit</span>

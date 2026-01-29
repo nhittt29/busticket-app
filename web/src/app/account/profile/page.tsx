@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useAuthStore } from "@/store/useAuthStore";
 import api from "@/lib/api";
-import defaultAvatar from "@/assets/uploads/default.png";
+import { UserAvatar } from "@/components/ui/UserAvatar";
 
 export default function ProfilePage() {
     const { user, login } = useAuthStore(); // login used here to update store with new data
@@ -87,7 +87,7 @@ export default function ProfilePage() {
     };
 
     // Determine avatar source
-    const avatarSrc = previewUrl || user?.avatar || defaultAvatar.src;
+
 
     return (
         <div className="bg-white dark:bg-surface-dark rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
@@ -107,10 +107,11 @@ export default function ProfilePage() {
                     {/* Avatar Section */}
                     <div className="flex flex-col items-center gap-4">
                         <div className="relative group cursor-pointer" onClick={handleAvatarClick}>
-                            <img
-                                src={avatarSrc}
+                            <UserAvatar
+                                src={previewUrl || user?.avatar}
                                 alt="Avatar"
-                                className="w-32 h-32 rounded-full object-cover border-4 border-slate-100 dark:border-slate-800"
+                                className="w-32 h-32 rounded-full border-4 border-slate-100 dark:border-slate-800"
+                                size={128}
                             />
                             <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                                 <span className="material-symbols-outlined text-white">camera_alt</span>

@@ -3,9 +3,9 @@
 import Link from "next/link";
 import Image from "next/image";
 import busLogo from "@/assets/images/bus_logo.png";
-import defaultAvatar from "@/assets/uploads/default.png";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useState } from "react";
+import { UserAvatar } from "@/components/ui/UserAvatar";
 
 export function Header() {
     const { user, isAuthenticated, logout } = useAuthStore();
@@ -36,10 +36,11 @@ export function Header() {
                                 onClick={() => setIsMenuOpen(!isMenuOpen)}
                                 className="flex items-center gap-2 hover:bg-slate-100 dark:hover:bg-slate-800 p-1 pr-3 rounded-full transition-colors"
                             >
-                                <img
-                                    src={user.avatar || defaultAvatar.src}
+                                <UserAvatar
+                                    src={user.avatar}
                                     alt={user.name}
-                                    className="w-8 h-8 rounded-full border border-slate-200 dark:border-slate-700 object-cover"
+                                    className="w-8 h-8 rounded-full border border-slate-200 dark:border-slate-700"
+                                    size={32}
                                 />
                                 <span className="text-sm font-semibold text-slate-700 dark:text-slate-200 max-w-[100px] truncate">{user.name}</span>
                                 <span className="material-symbols-outlined text-slate-500 text-lg">expand_more</span>
