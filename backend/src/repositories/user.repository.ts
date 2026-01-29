@@ -77,6 +77,7 @@ export class UserRepository {
       faceUrl?: string;
       dob?: Date;
       gender?: string;
+      address?: string;
     }>,
   ) {
     await this.userRepo.update(id, data);

@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import api from '@/lib/api';
 
 interface User {
@@ -12,6 +12,7 @@ interface User {
     avatar?: string;
     dob?: string;
     gender?: string;
+    address?: string;
 }
 
 interface AuthState {
@@ -21,7 +22,7 @@ interface AuthState {
     isLoading: boolean;
     error: string | null;
 
-    login: (email: string, password: string) => Promise<void>;
+    login: (email: string, password: string, remember?: boolean) => Promise<void>;
     register: (data: any) => Promise<void>;
     logout: () => void;
     clearError: () => void;
@@ -36,17 +37,33 @@ export const useAuthStore = create<AuthState>()(
             isLoading: false,
             error: null,
 
-            login: async (email, password) => {
+            // login: async (email, password) => { // Old signature
+            login: async (email, password, remember = false) => {
+                // Set flag BEFORE setting state so setItem knows where to save
+                if (typeof window !== 'undefined') {
+                    if (remember) {
+                        localStorage.setItem('REMEMBER_ME', 'true');
+                    } else {
+                        localStorage.removeItem('REMEMBER_ME');
+                    }
+                }
+
                 set({ isLoading: true, error: null });
                 try {
                     const response = await api.post('/auth/login', { email, password });
-                    const { user, idToken } = response.data;
+                    const { user, idToken, customToken } = response.data;
                     set({
                         user,
                         token: idToken,
                         isAuthenticated: true,
                         isLoading: false
                     });
+
+                    // SSO Redirect for Admin
+                    if (user.role?.name === 'ADMIN' && customToken) {
+                        // Use window.location for full page redirect to another port
+                        window.location.href = `http://localhost:3001/login?sso_token=${customToken}`;
+                    }
                 } catch (error: any) {
                     const msg = error.response?.data?.message || 'Đăng nhập thất bại';
                     set({ error: msg, isLoading: false });
@@ -70,13 +87,38 @@ export const useAuthStore = create<AuthState>()(
 
             logout: () => {
                 set({ user: null, token: null, isAuthenticated: false });
-                localStorage.removeItem('auth-storage'); // Optional: explicitly clear
+                if (typeof window !== 'undefined') {
+                    localStorage.removeItem('auth-storage');
+                    sessionStorage.removeItem('auth-storage');
+                    localStorage.removeItem('REMEMBER_ME');
+                }
             },
 
             clearError: () => set({ error: null }),
         }),
         {
             name: 'auth-storage',
+            storage: createJSONStorage(() => ({
+                getItem: (name) => {
+                    if (typeof window === 'undefined') return null;
+                    return sessionStorage.getItem(name) || localStorage.getItem(name);
+                },
+                setItem: (name, value) => {
+                    if (typeof window === 'undefined') return;
+                    if (localStorage.getItem('REMEMBER_ME') === 'true') {
+                        localStorage.setItem(name, value);
+                        sessionStorage.removeItem(name);
+                    } else {
+                        sessionStorage.setItem(name, value);
+                        localStorage.removeItem(name);
+                    }
+                },
+                removeItem: (name) => {
+                    if (typeof window === 'undefined') return;
+                    localStorage.removeItem(name);
+                    sessionStorage.removeItem(name);
+                },
+            })),
             partialize: (state) => ({
                 user: state.user,
                 token: state.token,

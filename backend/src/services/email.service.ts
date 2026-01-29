@@ -164,4 +164,53 @@ export class EmailService {
       throw error;
     }
   }
+
+  async sendOtpEmail(to: string, otp: string) {
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <style>
+          body { font-family: 'Segoe UI', user-select, sans-serif; background-color: #f9f9f9; padding: 20px; }
+          .container { max-width: 500px; margin: 0 auto; background: #ffffff; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); overflow: hidden; }
+          .header { background: #1976d2; padding: 20px; text-align: center; color: white; }
+          .content { padding: 30px; text-align: center; }
+          .otp-code { font-size: 32px; font-weight: bold; color: #1976d2; letter-spacing: 5px; margin: 20px 0; display: block; }
+          .note { color: #666; font-size: 14px; }
+          .footer { background: #f1f1f1; padding: 10px; text-align: center; font-size: 12px; color: #888; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h2 style="margin:0">Xác thực OTP</h2>
+          </div>
+          <div class="content">
+            <p>Xin chào,</p>
+            <p>Mã xác thực (OTP) để đặt lại mật khẩu của bạn là:</p>
+            <span class="otp-code">${otp}</span>
+            <p class="note">Mã này sẽ hết hạn sau <strong>5 phút</strong>.<br>Vui lòng không chia sẻ mã này cho bất kỳ ai.</p>
+          </div>
+          <div class="footer">
+            © 2025 BusTicket System
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    try {
+      await this.transporter.sendMail({
+        from: '"BusTicket Security" <no-reply@busticket.vn>',
+        to,
+        subject: 'Mã xác thực đặt lại mật khẩu',
+        html,
+      });
+      this.logger.log(`OTP sent to ${to}`);
+    } catch (error) {
+      this.logger.error('Error sending OTP email:', error);
+      throw error;
+    }
+  }
 }

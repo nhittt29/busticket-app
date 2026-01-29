@@ -9,13 +9,18 @@ import { auth, firestore } from '../config/firebase';
 import { UserRepository } from '../repositories/user.repository';
 import { RoleRepository } from '../repositories/role.repository';
 import { User } from '../entities/User.entity';
+import { EmailService } from './email.service';
 import axios from 'axios';
+import Redis from 'ioredis';
 
 @Injectable()
 export class AuthService {
+  private readonly redis = new Redis({ host: '127.0.0.1', port: 6379 }); // Direct connection for simplicity
+
   constructor(
     private userRepository: UserRepository,
     private roleRepository: RoleRepository,
+    private emailService: EmailService,
   ) { }
 
   // Type guard to check if error is an Axios error
@@ -89,6 +94,7 @@ export class AuthService {
     password: string,
   ): Promise<{
     idToken: string;
+    customToken: string;
     uid: string;
     user: User & { role?: { id: number; name: string } };
   }> {
@@ -123,8 +129,12 @@ export class AuthService {
         role: user.role ? { id: user.role.id, name: user.role.name } : undefined
       };
 
+      // Generate Custom Token for SSO
+      const customToken = await auth.createCustomToken(uid);
+
       return {
         idToken,
+        customToken, // Return this for SSO
         uid,
         user: userWithRole as any,
       };
@@ -188,6 +198,66 @@ export class AuthService {
     } catch (error) {
       throw new Error(`Reset password failed: ${error.message}`);
     }
+  }
+
+  // ======================================================
+  // 🔹 Send OTP (Forgot Password Steps)
+  // ======================================================
+  async sendOtp(email: string): Promise<{ message: string; expiresIn: number }> {
+    const user = await this.userRepository.findByEmail(email);
+    if (!user) throw new NotFoundException('Email chưa được đăng ký trong hệ thống');
+
+    // Generate 6 digit OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const redisKey = `otp_reset:${email}`;
+    const ttlSeconds = 300; // 5 minutes
+
+    // Save to Redis
+    await this.redis.set(redisKey, otp, 'EX', ttlSeconds);
+
+    // Send Email
+    await this.emailService.sendOtpEmail(email, otp);
+
+    return { message: 'Mã OTP đã được gửi đến email của bạn', expiresIn: ttlSeconds };
+  }
+
+  // ======================================================
+  // 🔹 Verify OTP (Check Only)
+  // ======================================================
+  async verifyOtp(email: string, otp: string): Promise<{ valid: boolean; message: string }> {
+    const redisKey = `otp_reset:${email}`;
+    const storedOtp = await this.redis.get(redisKey);
+
+    if (!storedOtp || storedOtp !== otp) {
+      throw new BadRequestException('Mã OTP không chính xác hoặc đã hết hạn');
+    }
+
+    return { valid: true, message: 'Mã OTP hợp lệ' };
+  }
+
+  // ======================================================
+  // 🔹 Verify & Reset Password with OTP
+  // ======================================================
+  async resetPasswordWithOtp(email: string, otp: string, newPassword: string): Promise<{ message: string }> {
+    const redisKey = `otp_reset:${email}`;
+    const storedOtp = await this.redis.get(redisKey);
+
+    if (!storedOtp || storedOtp !== otp) {
+      throw new BadRequestException('Mã OTP không chính xác hoặc đã hết hạn');
+    }
+
+    // OTP Valid - Verify Password Length
+    if (newPassword.length < 8) {
+      throw new BadRequestException('Mật khẩu phải có tối thiểu 8 ký tự');
+    }
+
+    const userRecord = await auth.getUserByEmail(email);
+    await auth.updateUser(userRecord.uid, { password: newPassword });
+
+    // Delete OTP after usage
+    await this.redis.del(redisKey);
+
+    return { message: 'Mật khẩu đã được thay đổi thành công' };
   }
 
   async findUserByUid(uid: string): Promise<User> {

@@ -45,6 +45,38 @@ export default function LoginPage() {
 
     const toggleTheme = () => setIsDarkMode(!isDarkMode);
 
+    // SSO Handling
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const ssoToken = params.get('sso_token');
+
+        if (ssoToken) {
+            // Auto login with custom token
+            // We need to use firebase auth directly here since refine's login mutation expects email/pass
+            // Importing auth from firebase config (need to check where it is)
+            // Actually, we can just use the login mutation if we modify the authProvider to accept token
+            // BUT, standard way is to modify authProvider or handle it here.
+
+            // Let's use the authProvider's updated capability if possible, 
+            // OR simpler: manually sign in with firebase here and then tell Refine we are logged in.
+            // Refine checks auth state via checkAuth. 
+
+            // Better approach: Call a custom login method or use the existing login mutation 
+            // but we need to pass the token. The useLogin hook calls authProvider.login.
+            // Let's call login with a special payload.
+            login({ ssoToken } as any, {
+                onSuccess: () => {
+                    toast.success("Đăng nhập SSO thành công!");
+                    // Remove token from URL to clean up
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                },
+                onError: (error) => {
+                    toast.error("Lỗi đăng nhập SSO", { description: error?.message });
+                }
+            });
+        }
+    }, [login]);
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         login(

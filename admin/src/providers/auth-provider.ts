@@ -1,15 +1,24 @@
 "use client";
 
 import { AuthProvider } from "@refinedev/core";
-import { signInWithEmailAndPassword, signOut, User, setPersistence, browserSessionPersistence } from "firebase/auth";
+import { signInWithEmailAndPassword, signOut, User, setPersistence, browserSessionPersistence, signInWithCustomToken } from "firebase/auth";
 import { auth } from "../lib/firebase";
 
 export const authProvider: AuthProvider = {
-    login: async ({ email, password }) => {
+    login: async ({ email, password, ssoToken }) => {
         try {
             // Thiết lập persistence là SESSION (đóng tab là hết phiên đăng nhập)
             await setPersistence(auth, browserSessionPersistence);
-            const userCredential = await signInWithEmailAndPassword(auth, email, password);
+
+            let userCredential;
+
+            if (ssoToken) {
+                // SSO Login
+                userCredential = await signInWithCustomToken(auth, ssoToken);
+            } else {
+                // Regular Login
+                userCredential = await signInWithEmailAndPassword(auth, email, password);
+            }
             const user = userCredential.user;
             const token = await user.getIdToken();
 

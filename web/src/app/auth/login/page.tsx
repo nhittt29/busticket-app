@@ -12,6 +12,7 @@ export default function LoginPage() {
     const [showPassword, setShowPassword] = useState(false);
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+    const [rememberMe, setRememberMe] = useState(false);
     const router = useRouter();
     const { login, isLoading, error, clearError } = useAuthStore();
 
@@ -19,7 +20,7 @@ export default function LoginPage() {
         e.preventDefault();
         clearError();
         try {
-            await login(email, password);
+            await login(email, password, rememberMe);
             router.push("/"); // Redirect to home on success
         } catch (err) {
             // Error is handled in store and displayed
@@ -86,23 +87,40 @@ export default function LoginPage() {
                         {/* Password Field */}
                         <div className="flex flex-col gap-2">
                             <label className="text-[#0e161b] dark:text-white text-base font-medium leading-normal">Mật khẩu</label>
-                            <div className="flex w-full items-stretch rounded-lg group">
+                            <div className="relative w-full">
+                                <style jsx>{`
+                                    input::-ms-reveal,
+                                    input::-ms-clear {
+                                        display: none;
+                                    }
+                                `}</style>
                                 <input
                                     type={showPassword ? "text" : "password"}
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
-                                    className="flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-[#0e161b] dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/50 border border-[#d1dde6] dark:border-gray-700 bg-white dark:bg-gray-800 h-14 placeholder:text-[#507a95] px-4 rounded-r-none border-r-0 text-base font-normal leading-normal transition-all"
-                                    placeholder="Nhập mật khẩu của bạn"
+                                    className={`block w-full rounded-lg text-[#0e161b] dark:text-white focus:outline-0 focus:ring-2 border bg-white dark:bg-gray-800 h-14 placeholder:text-[#507a95] px-4 pr-16 text-base font-normal leading-normal transition-all ${password.length > 0 && password.length < 8
+                                        ? 'border-red-500 focus:ring-red-200'
+                                        : 'border-[#d1dde6] dark:border-gray-700 focus:ring-primary/50'
+                                        }`}
+                                    placeholder="Nhập mật khẩu (tối thiểu 8 ký tự)"
                                     required
+                                    minLength={8}
                                 />
                                 <button
                                     type="button"
-                                    onClick={() => setShowPassword(!showPassword)}
-                                    className="text-[#507a95] flex border border-[#d1dde6] dark:border-gray-700 bg-white dark:bg-gray-800 items-center justify-center px-4 rounded-r-lg border-l-0 cursor-pointer hover:text-primary transition-colors"
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        setShowPassword(!showPassword);
+                                    }}
+                                    className="absolute right-0 top-0 h-full w-16 flex items-center justify-center text-[#507a95] hover:text-primary transition-colors cursor-pointer z-[100] rounded-r-lg hover:bg-gray-100/50 dark:hover:bg-gray-700/50"
                                 >
-                                    <span className="material-symbols-outlined">{showPassword ? 'visibility_off' : 'visibility'}</span>
+                                    <span className="material-symbols-outlined select-none pointer-events-none text-2xl">{showPassword ? 'visibility_off' : 'visibility'}</span>
                                 </button>
                             </div>
+                            {password.length > 0 && password.length < 8 && (
+                                <p className="text-red-500 text-xs mt-1 font-medium pl-1">Mật khẩu phải có tối thiểu 8 ký tự</p>
+                            )}
                         </div>
 
                         {/* Actions: Remember Me & Forgot Password */}
@@ -110,11 +128,13 @@ export default function LoginPage() {
                             <label className="flex items-center gap-x-2 cursor-pointer group checkbox-custom">
                                 <input
                                     type="checkbox"
+                                    checked={rememberMe}
+                                    onChange={(e) => setRememberMe(e.target.checked)}
                                     className="h-5 w-5 rounded border-[#d1dde6] dark:border-gray-700 border-2 bg-transparent text-primary checked:bg-primary checked:border-primary focus:ring-0 focus:ring-offset-0 transition-all cursor-pointer"
                                 />
                                 <span className="text-[#0e161b] dark:text-gray-300 text-sm font-medium">Ghi nhớ đăng nhập</span>
                             </label>
-                            <Link href="#" className="text-primary hover:text-primary/80 text-sm font-bold transition-colors">Quên mật khẩu?</Link>
+                            <Link href="/auth/forgot-password" className="text-primary hover:text-primary/80 text-sm font-bold transition-colors">Quên mật khẩu?</Link>
                         </div>
 
                         {/* Login Button */}

@@ -27,6 +27,9 @@ export class User {
     @Column({ nullable: true, default: 'OTHER', length: 20 })
     gender: string;
 
+    @Column({ nullable: true, length: 255 })
+    address: string;
+
     @Column({ nullable: true, length: 1000 })
     avatar: string;
 

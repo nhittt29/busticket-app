@@ -8,6 +8,7 @@ import { AuthController } from './controllers/auth.controller';
 import { AuthService } from './services/auth.service';
 import { UserRepository } from './repositories/user.repository';
 import { RoleRepository } from './repositories/role.repository';
+import { EmailService } from './services/email.service';
 
 import { BusModule } from './modules/bus.module';
 import { BrandModule } from './modules/brand.module';
@@ -64,7 +65,7 @@ import { Notification } from './entities/Notification.entity';
           DropoffPoint, Ticket, PaymentHistory, TicketPayment,
           Review, Promotion, Notification
         ],
-        synchronize: false,
+        synchronize: true,
         logging: false, // Disabled query logging as requested
       }),
     }),
@@ -101,6 +102,6 @@ import { Notification } from './entities/Notification.entity';
     VnPayModule,
   ],
   controllers: [AuthController],
-  providers: [AuthService, UserRepository, RoleRepository],
+  providers: [AuthService, UserRepository, RoleRepository, EmailService],
 })
 export class AppModule { }

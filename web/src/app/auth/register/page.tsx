@@ -153,17 +153,31 @@ export default function RegisterPage() {
               <label className="text-[#0e161b] dark:text-gray-200 text-sm font-medium leading-normal">Mật khẩu</label>
               <div className="relative">
                 <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-xl">lock</span>
+                <style jsx>{`
+                  input::-ms-reveal,
+                  input::-ms-clear {
+                      display: none;
+                  }
+                `}</style>
                 <input
                   name="password"
                   value={formData.password}
                   onChange={handleChange}
                   type={showPassword ? "text" : "password"}
-                  className="flex w-full rounded-lg text-[#0e161b] dark:text-white focus:ring-2 focus:ring-primary/20 border border-[#d1dde6] dark:border-gray-700 bg-[#f8fafb] dark:bg-gray-800/50 focus:border-primary h-12 pl-12 pr-10 placeholder:text-[#507a95] dark:placeholder:text-gray-500 text-sm font-normal focus:outline-none transition-all"
+                  className="flex w-full rounded-lg text-[#0e161b] dark:text-white focus:ring-2 focus:ring-primary/20 border border-[#d1dde6] dark:border-gray-700 bg-[#f8fafb] dark:bg-gray-800/50 focus:border-primary h-12 pl-12 pr-16 placeholder:text-[#507a95] dark:placeholder:text-gray-500 text-sm font-normal focus:outline-none transition-all"
                   placeholder="Tạo mật khẩu"
                   required
                 />
-                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-primary transition-colors">
-                  <span className="material-symbols-outlined text-lg">{showPassword ? 'visibility_off' : 'visibility'}</span>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setShowPassword(!showPassword);
+                  }}
+                  className="absolute right-0 top-0 h-full w-12 flex items-center justify-center text-gray-400 hover:text-primary transition-colors cursor-pointer z-[100] rounded-r-lg hover:bg-gray-100/50 dark:hover:bg-gray-700/50"
+                >
+                  <span className="material-symbols-outlined text-lg select-none pointer-events-none">{showPassword ? 'visibility_off' : 'visibility'}</span>
                 </button>
               </div>
             </div>
@@ -178,12 +192,20 @@ export default function RegisterPage() {
                   value={formData.confirmPassword}
                   onChange={handleChange}
                   type={showConfirmPassword ? "text" : "password"}
-                  className="flex w-full rounded-lg text-[#0e161b] dark:text-white focus:ring-2 focus:ring-primary/20 border border-[#d1dde6] dark:border-gray-700 bg-[#f8fafb] dark:bg-gray-800/50 focus:border-primary h-12 pl-12 pr-10 placeholder:text-[#507a95] dark:placeholder:text-gray-500 text-sm font-normal focus:outline-none transition-all"
+                  className="flex w-full rounded-lg text-[#0e161b] dark:text-white focus:ring-2 focus:ring-primary/20 border border-[#d1dde6] dark:border-gray-700 bg-[#f8fafb] dark:bg-gray-800/50 focus:border-primary h-12 pl-12 pr-16 placeholder:text-[#507a95] dark:placeholder:text-gray-500 text-sm font-normal focus:outline-none transition-all"
                   placeholder="Nhập lại mật khẩu"
                   required
                 />
-                <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-primary transition-colors">
-                  <span className="material-symbols-outlined text-lg">{showConfirmPassword ? 'visibility_off' : 'visibility'}</span>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setShowConfirmPassword(!showConfirmPassword);
+                  }}
+                  className="absolute right-0 top-0 h-full w-12 flex items-center justify-center text-gray-400 hover:text-primary transition-colors cursor-pointer z-[100] rounded-r-lg hover:bg-gray-100/50 dark:hover:bg-gray-700/50"
+                >
+                  <span className="material-symbols-outlined text-lg select-none pointer-events-none">{showConfirmPassword ? 'visibility_off' : 'visibility'}</span>
                 </button>
               </div>
             </div>

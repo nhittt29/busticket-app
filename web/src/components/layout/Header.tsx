@@ -3,6 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import busLogo from "@/assets/images/bus_logo.png";
+import defaultAvatar from "@/assets/uploads/default.png";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useState } from "react";
 
@@ -36,7 +37,7 @@ export function Header() {
                                 className="flex items-center gap-2 hover:bg-slate-100 dark:hover:bg-slate-800 p-1 pr-3 rounded-full transition-colors"
                             >
                                 <img
-                                    src={user.avatar || "https://lh3.googleusercontent.com/aida-public/AB6AXuBi1zAeObCZJU8RuZGxIjCCCPUsl6vbeyVHLNHcO6_Dk3nWvisQwO9Yw-bKwmY7uOFq8dV_V_pM-vIVbCLMakU9yMfPyHeBh14OgeqisL7Omd9iuj0p38FgNg4Thg9bTY2bi5CLOUdMYh4FYjkm4ItJubYSo8nN9oZ_68lMa5O2s99gw2pVwTQLJV-yCNQFyyIefYx8HEnaMlL0ZWPwpVg-BciCOrzIl5WBm1UWnAtMTgfrj1WvV89L3feGJLzBK-UF7SZK24DzHJsG"}
+                                    src={user.avatar || defaultAvatar.src}
                                     alt={user.name}
                                     className="w-8 h-8 rounded-full border border-slate-200 dark:border-slate-700 object-cover"
                                 />
@@ -54,12 +55,12 @@ export function Header() {
                                     </div>
                                     <ul className="py-1">
                                         <li>
-                                            <Link href="#" className="block px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800">
+                                            <Link href="/account/profile" className="block px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800">
                                                 Hồ sơ
                                             </Link>
                                         </li>
                                         <li>
-                                            <Link href="#" className="block px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800">
+                                            <Link href="/account/tickets" className="block px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800">
                                                 Vé của tôi
                                             </Link>
                                         </li>

@@ -100,6 +100,41 @@ export class AuthController {
     @Body('newPassword') newPassword: string,
   ) {
     return this.authService.changePassword(uid, newPassword);
+    return this.authService.changePassword(uid, newPassword);
+  }
+
+  // ========================================
+  // 🔹 GỬI MÃ OTP (QUÊN MẬT KHẨU)
+  // ========================================
+  @Post('send-otp')
+  @HttpCode(HttpStatus.OK)
+  async sendOtp(@Body('email') email: string) {
+    return this.authService.sendOtp(email);
+  }
+
+  // ========================================
+  // 🔹 XÁC THỰC OTP (KIỂM TRA)
+  // ========================================
+  @Post('verify-otp')
+  @HttpCode(HttpStatus.OK)
+  async verifyOtp(
+    @Body('email') email: string,
+    @Body('otp') otp: string,
+  ) {
+    return this.authService.verifyOtp(email, otp);
+  }
+
+  // ========================================
+  // 🔹 ĐẶT LẠI MẬT KHẨU VỚI OTP
+  // ========================================
+  @Post('reset-password-with-otp')
+  @HttpCode(HttpStatus.OK)
+  async resetPasswordWithOtp(
+    @Body('email') email: string,
+    @Body('otp') otp: string,
+    @Body('newPassword') newPassword: string,
+  ) {
+    return this.authService.resetPasswordWithOtp(email, otp, newPassword);
   }
 
   // ========================================
