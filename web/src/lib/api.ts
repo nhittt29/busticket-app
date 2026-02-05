@@ -16,7 +16,7 @@ api.interceptors.request.use(
         // or rely on store's getState() in the component wrapper. 
         // Common pattern is to read from localStorage here.
         if (typeof window !== 'undefined') {
-            const storage = localStorage.getItem('auth-storage');
+            const storage = sessionStorage.getItem('auth-storage') || localStorage.getItem('auth-storage');
             if (storage) {
                 try {
                     const { state } = JSON.parse(storage);

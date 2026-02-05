@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import api from '@/lib/api';
+import { signInWithCustomToken, setPersistence, browserLocalPersistence, browserSessionPersistence } from 'firebase/auth';
+import { auth } from '@/config/firebase';
 
 interface User {
     id: number;
@@ -25,6 +27,8 @@ interface AuthState {
     login: (email: string, password: string, remember?: boolean) => Promise<void>;
     register: (data: any) => Promise<void>;
     logout: () => void;
+    updateUser: (data: Partial<User>) => void;
+    setToken: (token: string) => void;
     clearError: () => void;
 }
 
@@ -59,6 +63,22 @@ export const useAuthStore = create<AuthState>()(
                         isLoading: false
                     });
 
+                    // Sync with Firebase Client SDK
+                    if (customToken) {
+                        try {
+                            // Set persistence based on remember me flag
+                            await setPersistence(
+                                auth,
+                                remember ? browserLocalPersistence : browserSessionPersistence
+                            );
+                            await signInWithCustomToken(auth, customToken);
+                        } catch (firebaseError) {
+                            console.error("Firebase Client Sign-in failed", firebaseError);
+                            // We don't throw here to allow app to continue with backend token 
+                            // but warning is logged. AuthProvider might logout later if strict.
+                        }
+                    }
+
                     // SSO Redirect for Admin
                     if (user.role?.name === 'ADMIN' && customToken) {
                         // Use window.location for full page redirect to another port
@@ -87,11 +107,26 @@ export const useAuthStore = create<AuthState>()(
 
             logout: () => {
                 set({ user: null, token: null, isAuthenticated: false });
+                try {
+                    auth.signOut(); // Ensure firebase client is also cleared
+                } catch (e) {
+                    console.error("Firebase SignOut error", e);
+                }
                 if (typeof window !== 'undefined') {
                     localStorage.removeItem('auth-storage');
                     sessionStorage.removeItem('auth-storage');
                     localStorage.removeItem('REMEMBER_ME');
                 }
+            },
+
+            updateUser: (data) => {
+                set((state) => ({
+                    user: state.user ? { ...state.user, ...data } : null
+                }));
+            },
+
+            setToken: (token) => {
+                set({ token });
             },
 
             clearError: () => set({ error: null }),

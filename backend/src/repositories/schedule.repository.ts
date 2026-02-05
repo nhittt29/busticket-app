@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between, Like, MoreThanOrEqual, LessThanOrEqual } from 'typeorm';
+import { Repository, Between, Like, MoreThanOrEqual, LessThanOrEqual, Brackets } from 'typeorm';
 import { Schedule } from '../entities/Schedule.entity';
 
 @Injectable()
@@ -64,25 +64,86 @@ export class ScheduleRepository {
         const qb = this.scheduleRepo.createQueryBuilder('schedule')
             .leftJoinAndSelect('schedule.bus', 'bus')
             .leftJoinAndSelect('bus.brand', 'brand')
-            .leftJoinAndSelect('schedule.route', 'route');
+            .leftJoinAndSelect('schedule.route', 'route')
+            .leftJoinAndSelect('schedule.dropoffPoints', 'dropoff'); // Join dropoff points
 
+        // 1. Where Start Point (Route Start OR Dropoff Point)
         if (query.startPoint) {
-            qb.andWhere('route.startPoint LIKE :startPoint', { startPoint: `%${query.startPoint}%` });
+            const trimmedStart = query.startPoint.trim().toLowerCase();
+            // Search in Route Start OR Dropoff Points (assuming dropoff points can be pick up/intermediate stops)
+            // Note: Brackets are crucial for OR conditions
+            qb.andWhere(new Brackets(qb => {
+                qb.where('LOWER(route.startPoint) LIKE :startPoint', { startPoint: `%${trimmedStart}%` })
+                    .orWhere('LOWER(dropoff.name) LIKE :startPoint', { startPoint: `%${trimmedStart}%` })
+                    .orWhere('LOWER(dropoff.address) LIKE :startPoint', { startPoint: `%${trimmedStart}%` });
+            }));
         }
+
+        // 2. Where End Point (Route End OR Dropoff Point)
         if (query.endPoint) {
-            qb.andWhere('route.endPoint LIKE :endPoint', { endPoint: `%${query.endPoint}%` });
+            const trimmedEnd = query.endPoint.trim().toLowerCase();
+            qb.andWhere(new Brackets(qb => {
+                qb.where('LOWER(route.endPoint) LIKE :endPoint', { endPoint: `%${trimmedEnd}%` })
+                    .orWhere('LOWER(dropoff.name) LIKE :endPoint', { endPoint: `%${trimmedEnd}%` })
+                    .orWhere('LOWER(dropoff.address) LIKE :endPoint', { endPoint: `%${trimmedEnd}%` });
+            }));
         }
+
+        // 3. Where Date
         if (query.date) {
-            const date = new Date(query.date);
-            const nextDay = new Date(date);
-            nextDay.setDate(date.getDate() + 1);
-            qb.andWhere('schedule.departureAt >= :date AND schedule.departureAt < :nextDay', { date, nextDay });
+            const inputDate = new Date(query.date);
+            if (!isNaN(inputDate.getTime())) {
+                const startOfDay = new Date(inputDate);
+                startOfDay.setHours(0, 0, 0, 0);
+
+                const endOfDay = new Date(inputDate);
+                endOfDay.setHours(23, 59, 59, 999);
+
+                console.log('Date Range:', startOfDay.toISOString(), 'TO', endOfDay.toISOString());
+                qb.andWhere('schedule.departureAt BETWEEN :startOfDay AND :endOfDay', { startOfDay, endOfDay });
+            } else {
+                console.warn('Invalid Date provided:', query.date);
+            }
         }
 
-        // Other filters skipped for brevity but pattern is clear
-        qb.orderBy('schedule.departureAt', 'ASC');
+        // 4. Price Filter
+        if (query.minPrice && Number(query.minPrice) > 0) {
+            qb.andWhere('route.lowestPrice >= :minPrice', { minPrice: query.minPrice });
+        }
+        if (query.maxPrice && Number(query.maxPrice) > 0) {
+            qb.andWhere('route.lowestPrice <= :maxPrice', { maxPrice: query.maxPrice });
+        }
 
-        return qb.getMany();
+        // 5. Bus Type (Strict check: only if provided and not ALL)
+        if (query.busType && query.busType !== 'ALL' && query.busType !== '') {
+            qb.andWhere('bus.seatType = :busType', { busType: query.busType });
+        }
+
+        // 6. Brand
+        if (query.brandId && Number(query.brandId) > 0) {
+            qb.andWhere('brand.id = :brandId', { brandId: query.brandId });
+        }
+
+        // Sorting
+        const sortMap = {
+            'price_asc': 'route.lowestPrice ASC',
+            'price_desc': 'route.lowestPrice DESC',
+            'time_asc': 'schedule.departureAt ASC',
+            'time_desc': 'schedule.departureAt DESC'
+        };
+
+        const sortStr = sortMap[query.sortBy] || 'schedule.departureAt ASC';
+        const [sortCol, sortDir] = sortStr.split(' ');
+        qb.orderBy(sortCol, sortDir as 'ASC' | 'DESC');
+
+        try {
+            const results = await qb.getMany();
+            console.log(`[Search] Query: ${JSON.stringify(query)} | Found: ${results.length} records`);
+            return results;
+        } catch (err) {
+            console.error('Error executing query:', err);
+            throw err;
+        }
     }
 
     async getAllSchedulesForAdmin() {

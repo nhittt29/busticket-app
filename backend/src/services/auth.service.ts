@@ -117,7 +117,7 @@ export class AuthService {
 
       if (!user) throw new NotFoundException('Người dùng không tồn tại');
 
-      const baseUrl = 'http://10.0.2.2:3000';
+      const baseUrl = process.env.BACKEND_URL || 'http://10.0.2.2:4000';
       const avatarUrl = user.avatar
         ? `${baseUrl}/${user.avatar.replace(/\\/g, '/')}`
         : `${baseUrl}/uploads/avatars/default.png`;

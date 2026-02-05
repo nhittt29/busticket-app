@@ -5,7 +5,7 @@ const dotenv = require('dotenv');
 dotenv.config();
 
 (async () => {
-    const port = 3000;
+    const port = 4000;
     const isWin = process.platform === 'win32';
 
     // Windows uses NUL, Linux/Mac uses /dev/null
@@ -14,12 +14,12 @@ dotenv.config();
     console.log('🚀 Starting Smart Tunnel System...');
 
     // Strategy 1: Attempt localhost.run (Usually fast & stable)
-    const success = await tryTunnel('localhost.run', ['-o', 'StrictHostKeyChecking=no', '-o', `UserKnownHostsFile=${nullDevice}`, '-R', '80:localhost:3000', 'nokey@localhost.run']);
+    const success = await tryTunnel('localhost.run', ['-o', 'StrictHostKeyChecking=no', '-o', `UserKnownHostsFile=${nullDevice}`, '-R', '80:localhost:4000', 'nokey@localhost.run']);
 
     // Strategy 2: If failed, Fallback to serveo.net
     if (!success) {
         console.log('⚠️ Primary tunnel failed. Switching to backup (Serveo)...');
-        await tryTunnel('serveo.net', ['-o', 'StrictHostKeyChecking=no', '-o', `UserKnownHostsFile=${nullDevice}`, '-R', '80:localhost:3000', 'serveo.net']);
+        await tryTunnel('serveo.net', ['-o', 'StrictHostKeyChecking=no', '-o', `UserKnownHostsFile=${nullDevice}`, '-R', '80:localhost:4000', 'serveo.net']);
     }
 
     function tryTunnel(name, args) {

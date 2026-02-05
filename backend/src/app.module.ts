@@ -28,6 +28,7 @@ import { ZaloPayModule } from './modules/zalopay.module';
 import { NotificationModule } from './modules/notification.module';
 import { VnPayModule } from './modules/vnpay.module';
 import { AiModule } from './modules/ai.module';
+import { UploadModule } from './modules/upload.module';
 
 // Entities
 import { User } from './entities/User.entity';
@@ -100,6 +101,7 @@ import { Notification } from './entities/Notification.entity';
     StatsModule,
     ZaloPayModule,
     VnPayModule,
+    UploadModule,
   ],
   controllers: [AuthController],
   providers: [AuthService, UserRepository, RoleRepository, EmailService],

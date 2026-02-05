@@ -65,3 +65,5 @@ async function resetDatabase() {
 }
 
 resetDatabase();
+
+//npm run db:reset

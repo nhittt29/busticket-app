@@ -4,6 +4,7 @@ import "./globals.css";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import ChatWidget from "@/components/chat/ChatWidget";
+import { AuthProvider } from "@/components/providers/AuthProvider";
 
 const plusJakartaSans = Plus_Jakarta_Sans({
   variable: "--font-plus-jakarta",
@@ -30,12 +31,14 @@ export default function RootLayout({
       <body
         className={`${plusJakartaSans.className} antialiased bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-50 flex flex-col min-h-screen`}
       >
-        <Header />
-        <main className="flex-1 flex flex-col">
-          {children}
-        </main>
-        <ChatWidget />
-        <Footer />
+        <AuthProvider>
+          <Header />
+          <main className="flex-1 flex flex-col">
+            {children}
+          </main>
+          <ChatWidget />
+          <Footer />
+        </AuthProvider>
       </body>
     </html>
   );

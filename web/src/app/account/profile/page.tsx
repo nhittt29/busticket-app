@@ -55,32 +55,58 @@ export default function ProfilePage() {
         setMessage(null);
 
         try {
-            // Updated to use the correct endpoint based on user controller (Put :id)
             if (!user?.id) return;
 
-            // TO DO: Handle file upload to backend
-            // const formDataUpload = new FormData();
-            // if (selectedFile) formDataUpload.append('avatar', selectedFile);
+            let avatarUrl = user.avatar;
 
-            const response = await api.put(`/users/${user.id}`, formData);
+            // 1. Upload Avatar if selected
+            if (selectedFile) {
+                const formDataUpload = new FormData();
+                formDataUpload.append('file', selectedFile);
 
-            // Update local store
-            // Assuming response.data returns the updated user object
-            // We might need to handle properties mapping if backend response differs
+                try {
+                    console.log('Starting upload for file:', selectedFile.name);
+                    const uploadRes = await api.post<{ url: string }>('/upload/avatar', formDataUpload, {
+                        headers: {
+                            'Content-Type': 'multipart/form-data',
+                        },
+                    });
+                    console.log('Upload response:', uploadRes.data);
+                    avatarUrl = uploadRes.data.url;
+                } catch (err: any) {
+                    console.error('Avatar upload failed details:', err.response?.data || err.message);
+                    setMessage({ type: 'error', text: `Lỗi: ${err.response?.data?.message || err.message}` });
+                    setIsLoading(false);
+                    return;
+                }
+            }
+
+            // 2. Update User Profile
+            const updatePayload = {
+                ...formData,
+                avatar: avatarUrl,
+            };
+
+            const response = await api.put(`/users/${user.id}`, updatePayload);
+
+            // 3. Update Local Store
             if (response.data) {
-                // Re-login to update store (simplified way, ideally store should have update method)
-                // Or manually construct updated user.
-                // For now, let's assume we can merge.
-                // But wait, useAuthStore.login expects token too. 
-                // It's better to fetch profile again or manual update.
-                // Let's just assume simple update for now.
-                // Ideally we'd have a refreshUser method in the store.
+                // Assuming useAuthStore has an updateUser method (I just added it)
+                const { updateUser } = useAuthStore.getState();
+                if (updateUser) {
+                    updateUser(response.data);
+                } else {
+                    // Fallback if updateUser is missing for some reason (shouldn't happen)
+                    // Reload page or re-fetch profile
+                    window.location.reload();
+                }
             }
 
             setMessage({ type: "success", text: "Cập nhật thông tin thành công!" });
-        } catch (error) {
+        } catch (error: any) {
             console.error("Update profile error:", error);
-            setMessage({ type: "error", text: "Có lỗi xảy ra. Vui lòng thử lại." });
+            const msg = error.response?.data?.message || "Có lỗi xảy ra. Vui lòng thử lại.";
+            setMessage({ type: "error", text: msg });
         } finally {
             setIsLoading(false);
         }
