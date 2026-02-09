@@ -28,7 +28,7 @@ export class DropoffPointService {
       surcharge: dto.surcharge,
       isDefault: dto.isDefault ?? false,
       order: dto.order ?? 0,
-      schedule: { connect: { id: scheduleId } },
+      scheduleId: scheduleId, // FIX: Use scheduleId directly for TypeORM
     };
 
     return this.repo.create(data);

@@ -51,4 +51,9 @@ export class ScheduleService {
 
     return this.scheduleRepo.deleteSchedule(id);
   }
+
+  // LẤY DANH SÁCH ĐIỂM TRẢ
+  async getDropoffPoints(scheduleId: number) {
+    return this.scheduleRepo.getDropoffPoints(scheduleId);
+  }
 }

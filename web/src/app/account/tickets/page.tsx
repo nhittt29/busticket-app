@@ -1,107 +1,202 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { Loader2, ArrowUpDown } from "lucide-react";
+
+import { useAuthStore } from "@/store/useAuthStore";
+import { bookingApi } from "@/lib/api/booking";
+import { TicketCard } from "@/components/ticket/TicketCard";
 
 type Tab = "upcoming" | "history" | "cancelled";
+type SortOrder = "newest" | "oldest";
 
 export default function MyTicketsPage() {
+    const router = useRouter();
+    const { user } = useAuthStore();
+
     const [activeTab, setActiveTab] = useState<Tab>("upcoming");
+    const [sortOrder, setSortOrder] = useState<SortOrder>("newest");
+    const [tickets, setTickets] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [processingId, setProcessingId] = useState<number | null>(null);
+
+    // Fetch Tickets
+    useEffect(() => {
+        if (!user) return;
+
+        const fetchTickets = async () => {
+            setLoading(true);
+            try {
+                const data = await bookingApi.getUserTickets(Number(user.id));
+                setTickets(Array.isArray(data) ? data : []);
+            } catch (error) {
+                toast.error("Không thể tải danh sách vé");
+                console.error(error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchTickets();
+    }, [user]);
+
+    // Group & Filter Logic
+    const filteredGroups = useMemo(() => {
+        if (!tickets.length) return [];
+
+        // 1. Group by paymentHistoryId
+        const grouped: Record<string, any[]> = {};
+        tickets.forEach(t => {
+            const key = t.paymentHistoryId || `t_${t.id}`;
+            if (!grouped[key]) grouped[key] = [];
+            grouped[key].push(t);
+        });
+
+        const groups = Object.values(grouped);
+
+        // 2. Filter
+        const now = new Date();
+        const filtered = groups.filter(group => {
+            const first = group[0];
+            const status = first.status;
+            const departureTime = first.schedule?.departureAt ? new Date(first.schedule.departureAt) : null;
+
+            if (activeTab === 'cancelled') {
+                return status === 'CANCELLED';
+            }
+
+            if (activeTab === 'upcoming') {
+                // Not cancelled AND (future date OR pending payment)
+                // Note: If pending payment but date passed -> technically mapped to history or cancelled in backend logic usually.
+                // Here simple logic:
+                return status !== 'CANCELLED' && (departureTime && departureTime > now);
+            }
+
+            if (activeTab === 'history') {
+                // Completed/Paid AND date passed
+                return status === 'COMPLETED' || (status !== 'CANCELLED' && departureTime && departureTime <= now);
+            }
+
+            return true;
+        });
+
+        // 3. Sort
+        return filtered.sort((a, b) => {
+            const dateA = new Date(a[0].createdAt || 0).getTime();
+            const dateB = new Date(b[0].createdAt || 0).getTime();
+            return sortOrder === 'newest' ? dateB - dateA : dateA - dateB;
+        });
+
+    }, [tickets, activeTab, sortOrder]);
+
+    const handlePay = (ticket: any) => {
+        // Redirect to payment page
+        // Use paymentHistoryId if available, else ticket id logic
+        const id = ticket.paymentHistoryId || ticket.id; // Usually we prefer paymentHistoryId for bulk
+        // But our PaymentPage [id] expects ??? 
+        // Logic: PaymentPage expects PaymentHistoryId usually.
+        router.push(`/payment/${id}`);
+    };
+
+    const handleView = (ticket: any) => {
+        // View details
+        // View details
+        // Redirect to new Ticket Detail Page
+        router.push(`/account/tickets/${ticket.id}`);
+    };
+
+    if (!user) {
+        return (
+            <div className="p-12 text-center text-slate-500">
+                Vui lòng đăng nhập để xem vé.
+            </div>
+        );
+    }
+
+    if (loading) {
+        return (
+            <div className="flex justify-center p-12">
+                <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-6">
-            <div>
-                <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Vé của tôi</h1>
-                <p className="text-slate-500 text-sm mt-1">Quản lý các chuyến đi của bạn</p>
+            <div className="flex justify-between items-end">
+                <div>
+                    <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Vé của tôi</h1>
+                    <p className="text-slate-500 text-sm mt-1">Quản lý các chuyến đi của bạn</p>
+                </div>
+
+                {/* Sort Button */}
+                <button
+                    onClick={() => setSortOrder(prev => prev === 'newest' ? 'oldest' : 'newest')}
+                    className="flex items-center gap-2 text-sm font-medium text-blue-600 hover:bg-blue-50 px-3 py-1.5 rounded-lg transition-colors"
+                >
+                    <ArrowUpDown className="w-4 h-4" />
+                    {sortOrder === 'newest' ? 'Mới nhất' : 'Cũ nhất'}
+                </button>
             </div>
 
             {/* Tabs */}
-            <div className="flex border-b border-slate-200 dark:border-slate-800">
-                <button
-                    onClick={() => setActiveTab("upcoming")}
-                    className={`px-6 py-3 text-sm font-semibold transition-colors border-b-2 ${activeTab === "upcoming"
-                            ? "border-primary text-primary"
+            <div className="flex border-b border-slate-200 dark:border-slate-800 overflow-x-auto">
+                {[
+                    { id: 'upcoming', label: 'Sắp khởi hành' },
+                    { id: 'history', label: 'Lịch sử' },
+                    { id: 'cancelled', label: 'Đã hủy' }
+                ].map(tab => (
+                    <button
+                        key={tab.id}
+                        onClick={() => setActiveTab(tab.id as Tab)}
+                        className={`px-6 py-3 text-sm font-semibold transition-colors border-b-2 whitespace-nowrap ${activeTab === tab.id
+                            ? "border-blue-600 text-blue-600"
                             : "border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
-                        }`}
-                >
-                    Sắp khởi hành
-                </button>
-                <button
-                    onClick={() => setActiveTab("history")}
-                    className={`px-6 py-3 text-sm font-semibold transition-colors border-b-2 ${activeTab === "history"
-                            ? "border-primary text-primary"
-                            : "border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
-                        }`}
-                >
-                    Lịch sử
-                </button>
-                <button
-                    onClick={() => setActiveTab("cancelled")}
-                    className={`px-6 py-3 text-sm font-semibold transition-colors border-b-2 ${activeTab === "cancelled"
-                            ? "border-primary text-primary"
-                            : "border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
-                        }`}
-                >
-                    Đã hủy
-                </button>
+                            }`}
+                    >
+                        {tab.label}
+                    </button>
+                ))}
             </div>
 
             {/* Content */}
             <div className="space-y-4">
-                {/* Empty State */}
-                <div className="bg-white dark:bg-surface-dark rounded-xl border border-slate-200 dark:border-slate-800 p-12 text-center shadow-sm">
-                    <div className="inline-flex w-20 h-20 bg-slate-50 dark:bg-slate-800 rounded-full items-center justify-center mb-4">
-                        <span className="material-symbols-outlined text-4xl text-slate-300">confirmation_number</span>
-                    </div>
-                    <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">Chưa có vé nào</h3>
-                    <p className="text-slate-500 max-w-sm mx-auto mb-6">Bạn chưa có chuyến đi nào trong mục này. Hãy đặt vé ngay để trải nghiệm những hành trình thú vị.</p>
-                    <Link href="/">
-                        <button className="px-6 py-2.5 bg-primary text-white font-bold rounded-lg hover:bg-sky-600 transition-colors shadow-lg shadow-primary/20">
-                            Tìm chuyến xe
-                        </button>
-                    </Link>
-                </div>
-
-                {/* Example Mock Ticket (Hidden for Empty State demo, but structure for later) */}
-                {/* 
-                <div className="bg-white dark:bg-surface-dark rounded-xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm hover:shadow-md transition-shadow">
-                    <div className="flex flex-col md:flex-row justify-between gap-4">
-                        <div className="flex-1">
-                            <div className="flex items-center gap-3 mb-2">
-                                <span className="px-2 py-1 bg-green-50 text-green-700 text-xs font-bold rounded">Đã thanh toán</span>
-                                <span className="text-slate-400 text-sm">Mã vé: #XC9283</span>
-                            </div>
-                            <div className="flex items-center gap-4">
-                                <div>
-                                    <p className="text-xl font-bold text-slate-900 dark:text-white">20:00</p>
-                                    <p className="text-xs text-slate-500">20/05/2024</p>
-                                </div>
-                                <div className="flex-1 flex flex-col items-center px-4">
-                                     <p className="text-xs text-slate-400 mb-1">5h 30m</p>
-                                     <div className="w-full h-px bg-slate-200 relative">
-                                        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full border border-slate-300 bg-white"></div>
-                                        <div className="absolute right-0 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full border border-primary bg-primary"></div>
-                                     </div>
-                                </div>
-                                <div className="text-right">
-                                    <p className="text-xl font-bold text-slate-900 dark:text-white">05:30</p>
-                                    <p className="text-xs text-slate-500">21/05/2024</p>
-                                </div>
-                            </div>
-                            <div className="flex justify-between mt-3 px-1">
-                                <p className="font-semibold text-slate-700 dark:text-slate-200">Sài Gòn</p>
-                                <p className="font-semibold text-slate-700 dark:text-slate-200">Đà Lạt</p>
-                            </div>
+                {filteredGroups.length === 0 ? (
+                    /* Empty State */
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-12 text-center shadow-sm">
+                        <div className="inline-flex w-20 h-20 bg-slate-50 dark:bg-slate-800 rounded-full items-center justify-center mb-4">
+                            <span className="material-symbols-outlined text-4xl text-slate-300">confirmation_number</span>
                         </div>
-                        <div className="flex flex-col justify-center items-end border-l border-slate-100 dark:border-slate-800 pl-0 md:pl-6 pt-4 md:pt-0 border-t md:border-t-0">
-                             <p className="text-primary font-bold text-lg mb-2">350.000đ</p>
-                             <button className="w-full md:w-auto px-4 py-2 border border-primary text-primary text-sm font-bold rounded-lg hover:bg-primary hover:text-white transition-colors">
-                                Xem chi tiết
-                             </button>
-                        </div>
+                        <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">Chưa có vé nào</h3>
+                        <p className="text-slate-500 max-w-sm mx-auto mb-6">
+                            {activeTab === 'upcoming'
+                                ? 'Bạn chưa có chuyến đi sắp tới nào.'
+                                : activeTab === 'history'
+                                    ? 'Bạn chưa có lịch sử chuyến đi nào.'
+                                    : 'Bạn chưa có vé đã hủy nào.'}
+                        </p>
+                        <Link href="/">
+                            <button className="px-6 py-2.5 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/30">
+                                Tìm chuyến xe
+                            </button>
+                        </Link>
                     </div>
-                </div>
-                */}
+                ) : (
+                    /* Ticket List */
+                    filteredGroups.map(group => (
+                        <TicketCard
+                            key={group[0].id}
+                            ticket={group[0]}
+                            groupTickets={group}
+                            onPay={handlePay}
+                            onView={handleView}
+                            isProcessing={processingId === group[0].id}
+                        />
+                    ))
+                )}
             </div>
         </div>
     );

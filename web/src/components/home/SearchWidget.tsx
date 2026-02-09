@@ -112,7 +112,7 @@ export function SearchWidget() {
                         <div className="hidden xl:block text-xs font-semibold uppercase tracking-wider mb-2 ml-1 opacity-0 select-none">
                             Tìm kiếm
                         </div>
-                        <button type="submit" className="w-full h-[48px] bg-primary hover:from-sky-500 hover:to-blue-600 hover:scale-[1.02] bg-gradient-to-r from-sky-500 to-blue-600 text-white font-bold rounded-lg shadow-lg shadow-blue-500/30 flex items-center justify-center gap-2 transition-all active:scale-95">
+                        <button type="submit" className="w-full h-[48px] bg-brand-gradient hover:opacity-90 hover:scale-[1.02] text-white font-bold rounded-lg shadow-lg shadow-blue-500/30 flex items-center justify-center gap-2 transition-all active:scale-95">
                             <span className="material-symbols-outlined">search</span>
                             <span>Tìm chuyến</span>
                         </button>

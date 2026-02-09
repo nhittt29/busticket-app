@@ -6,10 +6,11 @@ import { SeatItem } from "./SeatItem";
 interface SeatLayout34Props {
     seats: Seat[];
     selectedSeats: Seat[];
+    invalidSeatId?: number | null;
     onSelectSeat: (seat: Seat) => void;
 }
 
-export function SeatLayout34({ seats, selectedSeats, onSelectSeat }: SeatLayout34Props) {
+export function SeatLayout34({ seats, selectedSeats, invalidSeatId, onSelectSeat }: SeatLayout34Props) {
     // 1. Separate Floors (Preserve API order which is sorted by Floor -> SeatNumber)
     const lowerSeats = seats.filter(s => s.floor === 1 || s.floor === null);
     const upperSeats = seats.filter(s => s.floor === 2);
@@ -49,6 +50,7 @@ export function SeatLayout34({ seats, selectedSeats, onSelectSeat }: SeatLayout3
                                     key={seat.id}
                                     seat={seat}
                                     isSelected={selectedSeats.some(s => s.id === seat.id)}
+                                    isInvalid={invalidSeatId === seat.id}
                                     onSelect={onSelectSeat}
                                 />
                             ))}

@@ -15,6 +15,11 @@ const plusJakartaSans = Plus_Jakarta_Sans({
 export const metadata: Metadata = {
   title: "BusTicket - Book Bus Tickets Online",
   description: "The world's largest online bus ticket booking service.",
+  icons: {
+    icon: "/bus_logo.png",
+    shortcut: "/bus_logo.png",
+    apple: "/bus_logo.png",
+  },
 };
 
 export default function RootLayout({

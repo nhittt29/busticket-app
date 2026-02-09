@@ -6,10 +6,11 @@ import { SeatItem } from "./SeatItem";
 interface SeatLayout45Props {
     seats: Seat[];
     selectedSeats: Seat[];
+    invalidSeatId?: number | null; // New prop
     onSelectSeat: (seat: Seat) => void;
 }
 
-export function SeatLayout45({ seats, selectedSeats, onSelectSeat }: SeatLayout45Props) {
+export function SeatLayout45({ seats, selectedSeats, invalidSeatId, onSelectSeat }: SeatLayout45Props) {
     // 1. Sort by ID as per Flutter logic
     const sortedSeats = [...seats].sort((a, b) => a.id - b.id);
 
@@ -30,6 +31,7 @@ export function SeatLayout45({ seats, selectedSeats, onSelectSeat }: SeatLayout4
                             key={seat.id}
                             seat={seat}
                             isSelected={selectedSeats.some(s => s.id === seat.id)}
+                            isInvalid={invalidSeatId === seat.id} // Check ID
                             onSelect={onSelectSeat}
                             type="SEAT"
                         />
@@ -41,6 +43,7 @@ export function SeatLayout45({ seats, selectedSeats, onSelectSeat }: SeatLayout4
                             key={seat.id}
                             seat={seat}
                             isSelected={selectedSeats.some(s => s.id === seat.id)}
+                            isInvalid={invalidSeatId === seat.id} // Check ID
                             onSelect={onSelectSeat}
                             type="SEAT"
                         />
@@ -75,6 +78,7 @@ export function SeatLayout45({ seats, selectedSeats, onSelectSeat }: SeatLayout4
                             key={seat.id}
                             seat={seat}
                             isSelected={selectedSeats.some(s => s.id === seat.id)}
+                            isInvalid={invalidSeatId === seat.id}
                             onSelect={onSelectSeat}
                             type="SEAT"
                         />

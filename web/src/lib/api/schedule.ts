@@ -4,7 +4,6 @@ import { Schedule, SearchParams } from '@/types/schedule';
 export const scheduleApi = {
     getSchedules: async (params: SearchParams): Promise<Schedule[]> => {
         try {
-            // Remove undefined or empty params
             const cleanParams: any = {};
             if (params.startPoint) cleanParams.startPoint = params.startPoint;
             if (params.endPoint) cleanParams.endPoint = params.endPoint;

@@ -32,7 +32,7 @@ export function UserAvatar({ src, alt = "User Avatar", className = "", size = 40
     let finalSrc = DEFAULT_AVATAR_PATH;
 
     if (isValidSrc && !hasError) {
-        if (src!.startsWith("http")) {
+        if (src!.startsWith("http") || src!.startsWith("blob:")) {
             finalSrc = src!;
         } else if (src!.startsWith("/")) {
             // If it starts with / but not in public... assume backend?

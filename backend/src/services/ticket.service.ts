@@ -161,8 +161,30 @@ export class TicketService {
     const schedule = await this.scheduleRepo.getScheduleById(firstDto.scheduleId);
     if (!schedule) throw new NotFoundException('Lịch trình không tồn tại');
 
+    // Calculate Surcharge based on First Ticket (Unified Dropoff)
+    let surcharge = 0;
+    let finalDropoffPointId: number | undefined = undefined;
+    let finalDropoffAddress: string | undefined = undefined;
+
+    if (firstDto.dropoffPointId != null) {
+      finalDropoffPointId = firstDto.dropoffPointId;
+      surcharge = 0;
+    } else if (firstDto.dropoffAddress && firstDto.dropoffAddress.trim() !== '') {
+      surcharge = 150000;
+      finalDropoffAddress = firstDto.dropoffAddress.trim();
+    }
+
+    // Calculate Base Total
     let calculatedTotal = dtos.reduce((sum, d) => sum + d.price, 0);
+
+    // Add Total Surcharge (Surcharge * Number of Tickets)
+    const totalSurcharge = surcharge * dtos.length;
+    calculatedTotal += totalSurcharge;
+
     if (discountAmount) calculatedTotal -= discountAmount;
+
+    // Use max(0, total) to prevent negative
+    calculatedTotal = Math.max(0, calculatedTotal);
 
     // Casting to any
     const paymentGroup: any = await this.paymentHistoryRepo.create({
@@ -180,10 +202,12 @@ export class TicketService {
         scheduleId: dto.scheduleId,
         seatId: dto.seatId,
         price: dto.price,
-        surcharge: 0,
-        totalPrice: dto.price,
+        surcharge: surcharge, // Save surcharge per ticket
+        totalPrice: dto.price + surcharge,
         status: TicketStatus.BOOKED,
         paymentMethod: dto.paymentMethod,
+        dropoffPointId: finalDropoffPointId, // Save dropoff info
+        dropoffAddress: finalDropoffAddress,
         paymentHistoryId: paymentGroup.id
       });
       await this.ticketPaymentRepo.create({ ticketId: ticket.id, paymentId: paymentGroup.id });
@@ -192,7 +216,21 @@ export class TicketService {
 
     let paymentResponse: any = null;
     const user = await this.userRepo.findById(firstDto.userId);
-    if (firstDto.paymentMethod === AppPaymentMethod.VNPAY) {
+
+    if (firstDto.paymentMethod === AppPaymentMethod.ZALOPAY) {
+      const res = await this.zaloPayService.createOrder(
+        paymentGroup.id,
+        calculatedTotal,
+        user?.email || 'unknown@user.com'
+      );
+      if (res.return_code === 1) {
+        paymentResponse = { payUrl: res.order_url, zpTransToken: res.zp_trans_token };
+      } else {
+        // Log error but prioritize returning tickets created? No, failing payment init is bad.
+        // But tickets are created. Ideally we should rollback or return pending payment.
+        // For now, return what we have, User can retry payment.
+      }
+    } else if (firstDto.paymentMethod === AppPaymentMethod.VNPAY) {
       paymentResponse = {
         payUrl: this.vnpayService.createPaymentUrl(paymentGroup.id, calculatedTotal, '127.0.0.1')
       };

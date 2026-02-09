@@ -19,7 +19,7 @@ export class TicketRepository {
   async findById(id: number) {
     return this.ticketRepo.findOne({
       where: { id },
-      relations: ['user', 'schedule', 'schedule.bus', 'seat'] // Loading relations as needed
+      relations: ['user', 'schedule', 'schedule.bus', 'schedule.route', 'seat', 'paymentHistory'] // Loading relations as needed
     });
   }
 

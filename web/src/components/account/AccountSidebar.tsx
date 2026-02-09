@@ -51,10 +51,10 @@ export function AccountSidebar() {
                     <UserAvatar
                         src={user?.avatar}
                         alt={user?.name || "User"}
-                        className="w-20 h-20 rounded-full border-4 border-slate-50 dark:border-slate-800 shadow-md"
-                        size={80}
+                        className="w-24 h-24 rounded-full border-4 border-white dark:border-slate-800 shadow-lg"
+                        size={96}
                     />
-                    <button className="absolute bottom-0 right-0 bg-primary text-white p-1 rounded-full shadow-sm hover:bg-sky-600 transition-colors">
+                    <button className="absolute bottom-0 right-0 z-10 bg-primary text-white p-2 rounded-full shadow-md hover:bg-sky-600 transition-transform hover:scale-105 border-2 border-white dark:border-slate-900">
                         <span className="material-symbols-outlined text-sm">edit</span>
                     </button>
                 </div>

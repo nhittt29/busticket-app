@@ -152,4 +152,11 @@ export class ScheduleRepository {
             order: { departureAt: 'DESC' }
         });
     }
+    async getDropoffPoints(scheduleId: number) {
+        const schedule = await this.scheduleRepo.findOne({
+            where: { id: scheduleId },
+            relations: ['dropoffPoints'],
+        });
+        return schedule ? schedule.dropoffPoints : [];
+    }
 }

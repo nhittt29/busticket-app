@@ -67,6 +67,12 @@ export class ScheduleController {
     return this.scheduleService.getScheduleById(Number(id));
   }
 
+  // LẤY ĐIỂM TRẢ CỦA MỘT CHUYẾN XE
+  @Get(':id/dropoff')
+  getDropoffPoints(@Param('id') id: string) {
+    return this.scheduleService.getDropoffPoints(Number(id));
+  }
+
   // XÓA CHUYẾN XE KHỎI HỆ THỐNG (ADMIN ONLY - THƯỜNG LÀ SOFT DELETE)
   @Delete(':id')
   async delete(@Param('id') id: string) {

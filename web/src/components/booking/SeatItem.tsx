@@ -6,21 +6,21 @@ import { cn } from "@/lib/utils";
 interface SeatItemProps {
     seat: Seat;
     isSelected: boolean;
+    isInvalid?: boolean; // New prop
     onSelect: (seat: Seat) => void;
-    type?: "SEAT" | "BED"; // Derived from bus type usually, but we can default to BED for now if mostly sleepers
+    type?: "SEAT" | "BED";
 }
 
-export function SeatItem({ seat, isSelected, onSelect, type = "BED" }: SeatItemProps) {
+export function SeatItem({ seat, isSelected, isInvalid, onSelect, type = "BED" }: SeatItemProps) {
     // Logic matching Flutter: isAvailable check
     const isAvailable = seat.isAvailable;
-    const isSold = !isAvailable; // For now assuming if not available, it's sold/booked
+    const isSold = !isAvailable;
 
-    // Colors matching Flutter design intent (approximate Tailwind classes)
-
-    // Base styles
+    // ... Base Styles ...
+    // Add animate-shaking effect if invalid (need custom keyframes or simple transition)
     const baseStyles = "relative flex flex-col items-center justify-center border transition-all duration-200 cursor-pointer rounded-lg";
 
-    // Size (Flutter 28x28 logic, scaled) -> Let's use w-10 h-10 or similar for Web
+    // Size check
     const sizeStyles = "w-10 h-10 md:w-12 md:h-12";
 
     // State Styles
@@ -28,21 +28,27 @@ export function SeatItem({ seat, isSelected, onSelect, type = "BED" }: SeatItemP
     let iconColor = "";
     let textColor = "";
 
-    if (isSelected) {
-        // Orange Selected (Flutter: 0xFFFFB74D)
-        stateStyles = "bg-orange-300 border-orange-400 shadow-md shadow-orange-300/50 scale-105 z-10";
+    if (isInvalid) {
+        // Red Invalid State (Error shake matching Flutter's intent of "Warning")
+        stateStyles = "bg-red-50 border-red-500 ring-2 ring-red-200 z-20 animate-pulse";
+        iconColor = "text-red-500";
+        textColor = "text-red-600 font-extrabold";
+    } else if (isSelected) {
+        // MATCH FLUTTER: Orange #FFB74D (approx tailwind orange-300/400)
+        stateStyles = "bg-[#FFB74D] border-[#FFB74D] shadow-lg shadow-orange-500/30 scale-105 z-10";
         iconColor = "text-white";
         textColor = "text-white";
     } else if (isAvailable) {
-        // Green Available (Flutter: 0xFF4CAF50) - using lighter bg opacity
-        stateStyles = "bg-green-50 border-green-500 hover:bg-green-100 hover:shadow-sm";
-        iconColor = "text-green-600";
-        textColor = "text-green-600";
+        // MATCH FLUTTER: Green #4CAF50 (approx tailwind green-500)
+        // Background is opacity 0.15 of base color
+        stateStyles = "bg-green-50 border-[#4CAF50] hover:bg-green-100 hover:shadow-md transition-all";
+        iconColor = "text-[#4CAF50]";
+        textColor = "text-[#4CAF50]";
     } else {
-        // Red Sold (Flutter: 0xFFEF5350)
-        stateStyles = "bg-red-50 border-red-400 cursor-not-allowed opacity-80";
-        iconColor = "text-red-500";
-        textColor = "text-red-500";
+        // MATCH FLUTTER: Red Sold #EF5350
+        stateStyles = "bg-red-50 border-[#EF5350] cursor-not-allowed opacity-60";
+        iconColor = "text-[#EF5350]";
+        textColor = "text-[#EF5350]";
     }
 
     const handleClick = () => {
@@ -57,6 +63,13 @@ export function SeatItem({ seat, isSelected, onSelect, type = "BED" }: SeatItemP
             className={cn(baseStyles, sizeStyles, stateStyles)}
             title={`Ghế ${seat.seatNumber} - ${new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(seat.price)}`}
         >
+            {/* MATCH FLUTTER: Invalid Overlay with Dark Background & Red X */}
+            {isInvalid && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black/30 rounded-lg z-30 animate-in fade-in zoom-in duration-200">
+                    <span className="material-symbols-outlined text-red-500 text-3xl font-bold drop-shadow-md">close</span>
+                </div>
+            )}
+
             <div className="flex flex-col items-center justify-center leading-none">
                 <span className={cn("material-symbols-outlined text-lg mb-[1px]", iconColor)}>
                     {type === "SEAT" ? "chair" : "bed"}
@@ -65,7 +78,8 @@ export function SeatItem({ seat, isSelected, onSelect, type = "BED" }: SeatItemP
                     {seat.seatNumber}
                 </span>
             </div>
-            {/* Floor indicator if needed, though usually context implies floor */}
+            {/* Floor indicator if needed */}
         </div>
     );
 }
+

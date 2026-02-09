@@ -46,16 +46,21 @@ function SearchResultsContent() {
     }, [startPoint, endPoint, date]);
 
     return (
-        <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pb-20">
+        <div className="min-h-screen bg-background dark:bg-slate-950 pb-20">
             {/* Header / Search Modification Area */}
-            <div className="bg-surface-light dark:bg-surface-dark pt-24 pb-32 px-4 border-b border-slate-200 dark:border-slate-800">
-                <div className="max-w-7xl mx-auto">
-                    <h1 className="text-3xl font-black mb-2 text-slate-800 dark:text-white">
+            {/* Header / Search Modification Area */}
+            <div className="bg-gradient-to-r from-[#6AB7F5] to-[#4A9EFF] pt-24 pb-32 px-4 border-b border-blue-400/30">
+                <div className="max-w-7xl mx-auto text-center lg:text-left">
+                    <h1 className="text-3xl font-black mb-2 text-white">
                         Kết quả tìm kiếm
                     </h1>
-                    <p className="text-slate-500 font-medium">
-                        {startPoint && endPoint ? `Hành trình từ ${startPoint} đi ${endPoint}` : "Khám phá các chuyến xe"}
-                        {date && <span className="mx-2">• {new Date(date).toLocaleDateString('vi-VN')}</span>}
+                    <p className="text-blue-50 font-medium">
+                        {startPoint && endPoint ? (
+                            <span className="flex items-center justify-center lg:justify-start gap-2">
+                                {startPoint} <span className="opacity-70">➜</span> {endPoint}
+                            </span>
+                        ) : "Khám phá các chuyến xe"}
+                        {date && <span className="block lg:inline lg:ml-2 opacity-90">• {date.split('-').reverse().join('/')}</span>}
                     </p>
                 </div>
             </div>

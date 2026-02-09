@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Post, Query, Redirect, Logger, BadRequestException } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Query, Redirect, Logger, BadRequestException, ParseIntPipe } from '@nestjs/common';
 import { TicketService } from '../services/ticket.service';
 import { CreateTicketDto } from '../dtos/ticket.dto';
 import { PaymentMethod } from '../models/Ticket';
@@ -23,25 +23,21 @@ export class TicketController {
     return this.zaloPayService.handleCallback(data);
   }
 
+  @Redirect()
   @Get('zalopay/redirect')
   async zalopayRedirect(@Query() query: any) {
     const result = await this.ticketService.handleZaloPayRedirect(query);
     if (result.success) {
-      return { url: `busticket://payment-success?paymentId=${result.paymentHistoryId}` };
+      // Redirect to Web Frontend
+      return { url: `http://localhost:3000/payment/success?paymentId=${result.paymentHistoryId}` };
     }
-    return { url: `busticket://payment-failed?message=${encodeURIComponent(result.message || 'Unknown Error')}` };
+    return { url: `http://localhost:3000/payment/failed?message=${encodeURIComponent(result.message || 'Unknown Error')}` };
   }
 
   // CHỦ ĐỘNG KIỂM TRA TRẠNG THÁI THANH TOÁN ZALOPAY (POLLING)
   @Post(':id/check-zalopay')
-  async checkZaloPayStatus(@Param('id') id: string) {
-    // Logic moved to Service or minimal wrapper here using Service
-    // Since TicketService has access to Repos, better there.
-    // But ZaloPayService has queryStatus?
-    // ZaloPayService is injected here.
-
-    const paymentHistoryId = Number(id);
-    return this.ticketService.checkZaloPayStatus(paymentHistoryId);
+  async checkZaloPayStatus(@Param('id', ParseIntPipe) id: number) {
+    return this.ticketService.checkZaloPayStatus(id);
   }
 
   @Get()
@@ -55,8 +51,8 @@ export class TicketController {
   }
 
   @Get('bookings/:id')
-  async getBookingById(@Param('id') id: string) {
-    return this.ticketService.getBookingById(Number(id));
+  async getBookingById(@Param('id', ParseIntPipe) id: number) {
+    return this.ticketService.getBookingById(id);
   }
 
   @Post()
@@ -75,8 +71,8 @@ export class TicketController {
   }
 
   @Get(':id')
-  async getTicketById(@Param('id') id: string) {
-    return this.ticketService.getTicketById(Number(id));
+  async getTicketById(@Param('id', ParseIntPipe) id: number) {
+    return this.ticketService.getTicketById(id);
   }
 
   @Redirect()
@@ -84,9 +80,9 @@ export class TicketController {
   async momoRedirect(@Query() query: any) {
     const result = await this.ticketService.handleMomoRedirect(query);
     if (!result.success) {
-      return { url: `busticket://payment-failed` };
+      return { url: `http://localhost:3000/payment/failed` };
     }
-    return { url: `busticket://payment-success?paymentId=${result.paymentHistoryId}` };
+    return { url: `http://localhost:3000/payment/success?paymentId=${result.paymentHistoryId}` };
   }
 
   @Post('momo/callback')
@@ -94,42 +90,43 @@ export class TicketController {
     return this.ticketService.handleMomoCallback(data);
   }
 
+  @Redirect()
   @Get('vnpay/return')
   async vnpayReturn(@Query() query: any) {
     const result = await this.ticketService.handleVnPayReturn(query);
     if (result.success) {
-      return { url: `busticket://payment-success?paymentId=${result.paymentHistoryId}` };
+      return { url: `http://localhost:3000/payment/success?paymentId=${result.paymentHistoryId}` };
     }
-    return { url: `busticket://payment-failed?message=${encodeURIComponent(result.message || 'Unknown Error')}` };
+    return { url: `http://localhost:3000/payment/failed?message=${encodeURIComponent(result.message || 'Unknown Error')}` };
   }
 
   @Delete(':id')
-  cancel(@Param('id') id: string) {
-    return this.ticketService.cancel(Number(id));
+  cancel(@Param('id', ParseIntPipe) id: number) {
+    return this.ticketService.cancel(id);
   }
 
   @Post(':id/pay')
-  pay(@Param('id') id: string) {
-    return this.ticketService.payTicket(Number(id), PaymentMethod.CASH);
+  pay(@Param('id', ParseIntPipe) id: number) {
+    return this.ticketService.payTicket(id, PaymentMethod.CASH);
   }
 
   @Get('user/:userId')
-  getUserTickets(@Param('userId') userId: string) {
-    return this.ticketService.getTicketsByUser(Number(userId));
+  getUserTickets(@Param('userId', ParseIntPipe) userId: number) {
+    return this.ticketService.getTicketsByUser(userId);
   }
 
   @Get(':id/status')
-  getStatus(@Param('id') id: string) {
-    return this.ticketService.getStatus(Number(id));
+  getStatus(@Param('id', ParseIntPipe) id: number) {
+    return this.ticketService.getStatus(id);
   }
 
   @Get(':id/payment')
-  async getPaymentHistory(@Param('id') id: string) {
-    return this.ticketService.getPaymentHistory(Number(id));
+  async getPaymentHistory(@Param('id', ParseIntPipe) id: number) {
+    return this.ticketService.getPaymentHistory(id);
   }
 
   @Get('/payments/history/:paymentHistoryId')
-  async getPaymentDetailByHistoryId(@Param('paymentHistoryId') id: string) {
-    return this.ticketService.getPaymentDetailByHistoryId(Number(id));
+  async getPaymentDetailByHistoryId(@Param('paymentHistoryId', ParseIntPipe) id: number) {
+    return this.ticketService.getPaymentDetailByHistoryId(id);
   }
 }

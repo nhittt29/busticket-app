@@ -19,7 +19,7 @@ export interface Route {
     endPoint: string;
     distance: number;
     duration: number; // in hours
-    basePrice: number;
+    lowestPrice: number;
 }
 
 export interface Schedule {

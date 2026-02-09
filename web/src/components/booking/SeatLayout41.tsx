@@ -6,10 +6,11 @@ import { SeatItem } from "./SeatItem";
 interface SeatLayout41Props {
     seats: Seat[];
     selectedSeats: Seat[];
+    invalidSeatId?: number | null;
     onSelectSeat: (seat: Seat) => void;
 }
 
-export function SeatLayout41({ seats, selectedSeats, onSelectSeat }: SeatLayout41Props) {
+export function SeatLayout41({ seats, selectedSeats, invalidSeatId, onSelectSeat }: SeatLayout41Props) {
     // 1. Separate Floors
     const lowerSeats = seats.filter(s => s.floor === 1).sort((a, b) => a.id - b.id);
     const upperSeats = seats.filter(s => s.floor === 2).sort((a, b) => a.id - b.id);
@@ -39,11 +40,11 @@ export function SeatLayout41({ seats, selectedSeats, onSelectSeat }: SeatLayout4
                 {groups.map((group, idx) => (
                     <div key={idx} className="flex gap-8 justify-between">
                         {/* Column 1 */}
-                        <div className="flex-1 flex justify-center">{group[0] && <SeatItem seat={group[0]} isSelected={selectedSeats.some(s => s.id === group[0].id)} onSelect={onSelectSeat} />}</div>
+                        <div className="flex-1 flex justify-center">{group[0] && <SeatItem seat={group[0]} isSelected={selectedSeats.some(s => s.id === group[0].id)} isInvalid={invalidSeatId === group[0].id} onSelect={onSelectSeat} />}</div>
                         {/* Column 2 */}
-                        <div className="flex-1 flex justify-center">{group[1] && <SeatItem seat={group[1]} isSelected={selectedSeats.some(s => s.id === group[1].id)} onSelect={onSelectSeat} />}</div>
+                        <div className="flex-1 flex justify-center">{group[1] && <SeatItem seat={group[1]} isSelected={selectedSeats.some(s => s.id === group[1].id)} isInvalid={invalidSeatId === group[1].id} onSelect={onSelectSeat} />}</div>
                         {/* Column 3 */}
-                        <div className="flex-1 flex justify-center">{group[2] && <SeatItem seat={group[2]} isSelected={selectedSeats.some(s => s.id === group[2].id)} onSelect={onSelectSeat} />}</div>
+                        <div className="flex-1 flex justify-center">{group[2] && <SeatItem seat={group[2]} isSelected={selectedSeats.some(s => s.id === group[2].id)} isInvalid={invalidSeatId === group[2].id} onSelect={onSelectSeat} />}</div>
                     </div>
                 ))}
             </div>
@@ -86,6 +87,7 @@ export function SeatLayout41({ seats, selectedSeats, onSelectSeat }: SeatLayout4
                                 key={seat.id}
                                 seat={seat}
                                 isSelected={selectedSeats.some(s => s.id === seat.id)}
+                                isInvalid={invalidSeatId === seat.id}
                                 onSelect={onSelectSeat}
                             />
                         ))}
