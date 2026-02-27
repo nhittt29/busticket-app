@@ -8,10 +8,11 @@ interface TicketCardProps {
     groupTickets?: any[]; // For grouped tickets (multi-seat)
     onPay?: (ticket: any) => void;
     onView?: (ticket: any) => void;
+    onReview?: (ticket: any) => void;
     isProcessing?: boolean;
 }
 
-export function TicketCard({ ticket, groupTickets, onPay, onView, isProcessing }: TicketCardProps) {
+export function TicketCard({ ticket, groupTickets, onPay, onView, onReview, isProcessing }: TicketCardProps) {
     // Data Extraction
     const schedule = ticket.schedule || {};
     const route = schedule.route || {};
@@ -165,7 +166,25 @@ export function TicketCard({ ticket, groupTickets, onPay, onView, isProcessing }
                         </div>
                     </div>
                 </div>
+                {/* Review Action */}
+                {onReview && !ticket.review && (
+                    <button
+                        onClick={() => onReview(ticket)}
+                        className="w-full py-2 bg-yellow-400 hover:bg-yellow-500 text-slate-900 text-sm font-bold rounded-lg shadow-sm transition-all active:scale-95 flex items-center justify-center gap-2"
+                    >
+                        <span className="material-symbols-outlined text-lg">rate_review</span>
+                        Đánh giá
+                    </button>
+                )}
+
+                {ticket.review && (
+                    <div className="w-full py-2 bg-slate-50 border border-slate-200 text-slate-500 text-sm font-bold rounded-lg flex items-center justify-center gap-2 cursor-default">
+                        <span className="material-symbols-outlined text-lg text-yellow-500 fill-current">star</span>
+                        Đã đánh giá ({ticket.review.rating}*)
+                    </div>
+                )}
             </div>
         </div>
+
     );
 }

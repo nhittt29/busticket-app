@@ -34,7 +34,7 @@ export class UploadService {
     return new Promise((resolve, reject) => {
       const uploadStream = cloudinary.uploader.upload_stream(
         {
-          folder: 'bus-tickets/upload',
+          folder: 'bus-tickets/avatars',
           public_id: `avatar_user_${userId}`,
           overwrite: true,
           resource_type: 'image',
@@ -44,19 +44,32 @@ export class UploadService {
           ],
         },
         (error, result) => {
-          if (error) {
-            this.logger.error('Cloudinary upload failed details:', JSON.stringify(error));
-            console.error('Cloudinary Error Object:', error);
-            return reject(new BadRequestException(`Image upload failed: ${error.message || 'Unknown error'}`));
-          }
-          if (!result) {
-            return reject(new BadRequestException('Image upload failed - No result'));
-          }
-          this.logger.log(`Avatar uploaded: ${result.secure_url}`);
+          if (error) return reject(new BadRequestException(`Image upload failed: ${error.message}`));
+          if (!result) return reject(new BadRequestException('Image upload failed - No result'));
           resolve(result.secure_url);
         },
       );
 
+      uploadStream.end(file.buffer);
+    });
+  }
+
+  async uploadReviewImage(file: Express.Multer.File): Promise<string> {
+    if (!file) throw new BadRequestException('File is required');
+
+    return new Promise((resolve, reject) => {
+      const uploadStream = cloudinary.uploader.upload_stream(
+        {
+          folder: 'bus-tickets/reviews',
+          resource_type: 'image',
+          transformation: [{ quality: 'auto', fetch_format: 'auto' }], // Optimize only
+        },
+        (error, result) => {
+          if (error) return reject(new BadRequestException(`Image upload failed: ${error.message}`));
+          if (!result) return reject(new BadRequestException('Image upload failed - No result'));
+          resolve(result.secure_url);
+        },
+      );
       uploadStream.end(file.buffer);
     });
   }

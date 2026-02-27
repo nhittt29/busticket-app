@@ -5,6 +5,7 @@ import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import ChatWidget from "@/components/chat/ChatWidget";
 import { AuthProvider } from "@/components/providers/AuthProvider";
+import { Toaster } from "sonner";
 
 const plusJakartaSans = Plus_Jakarta_Sans({
   variable: "--font-plus-jakarta",
@@ -34,7 +35,7 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
       </head>
       <body
-        className={`${plusJakartaSans.className} antialiased bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-50 flex flex-col min-h-screen`}
+        className={`${plusJakartaSans.className} antialiased bg-background dark:bg-background-dark text-slate-900 dark:text-slate-50 flex flex-col min-h-screen`}
       >
         <AuthProvider>
           <Header />
@@ -42,6 +43,7 @@ export default function RootLayout({
             {children}
           </main>
           <ChatWidget />
+          <Toaster position="top-center" richColors />
           <Footer />
         </AuthProvider>
       </body>

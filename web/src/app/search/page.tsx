@@ -46,7 +46,7 @@ function SearchResultsContent() {
     }, [startPoint, endPoint, date]);
 
     return (
-        <div className="min-h-screen bg-background dark:bg-slate-950 pb-20">
+        <div className="min-h-screen pb-20">
             {/* Header / Search Modification Area */}
             {/* Header / Search Modification Area */}
             <div className="bg-gradient-to-r from-[#6AB7F5] to-[#4A9EFF] pt-24 pb-32 px-4 border-b border-blue-400/30">

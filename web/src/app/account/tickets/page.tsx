@@ -13,6 +13,10 @@ import { TicketCard } from "@/components/ticket/TicketCard";
 type Tab = "upcoming" | "history" | "cancelled";
 type SortOrder = "newest" | "oldest";
 
+import { WriteReviewModal } from "@/components/reviews/WriteReviewModal";
+
+// ... imports
+
 export default function MyTicketsPage() {
     const router = useRouter();
     const { user } = useAuthStore();
@@ -23,27 +27,30 @@ export default function MyTicketsPage() {
     const [loading, setLoading] = useState(true);
     const [processingId, setProcessingId] = useState<number | null>(null);
 
+    // Review Modal State
+    const [reviewModalOpen, setReviewModalOpen] = useState(false);
+    const [selectedTicketId, setSelectedTicketId] = useState<number | null>(null);
+
     // Fetch Tickets
-    useEffect(() => {
+    const fetchTickets = async () => {
         if (!user) return;
+        setLoading(true);
+        try {
+            const data = await bookingApi.getUserTickets(Number(user.id));
+            setTickets(Array.isArray(data) ? data : []);
+        } catch (error) {
+            toast.error("Không thể tải danh sách vé");
+            console.error(error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
-        const fetchTickets = async () => {
-            setLoading(true);
-            try {
-                const data = await bookingApi.getUserTickets(Number(user.id));
-                setTickets(Array.isArray(data) ? data : []);
-            } catch (error) {
-                toast.error("Không thể tải danh sách vé");
-                console.error(error);
-            } finally {
-                setLoading(false);
-            }
-        };
-
+    useEffect(() => {
         fetchTickets();
     }, [user]);
 
-    // Group & Filter Logic
+    // ... (Filter Logic Same)
     const filteredGroups = useMemo(() => {
         if (!tickets.length) return [];
 
@@ -63,6 +70,7 @@ export default function MyTicketsPage() {
             const first = group[0];
             const status = first.status;
             const departureTime = first.schedule?.departureAt ? new Date(first.schedule.departureAt) : null;
+            const arrivalTime = first.schedule?.arrivalAt ? new Date(first.schedule.arrivalAt) : null;
 
             if (activeTab === 'cancelled') {
                 return status === 'CANCELLED';
@@ -70,14 +78,14 @@ export default function MyTicketsPage() {
 
             if (activeTab === 'upcoming') {
                 // Not cancelled AND (future date OR pending payment)
-                // Note: If pending payment but date passed -> technically mapped to history or cancelled in backend logic usually.
-                // Here simple logic:
                 return status !== 'CANCELLED' && (departureTime && departureTime > now);
             }
 
             if (activeTab === 'history') {
-                // Completed/Paid AND date passed
-                return status === 'COMPLETED' || (status !== 'CANCELLED' && departureTime && departureTime <= now);
+                // Completed/Paid AND date passed or arrived
+                // Using departureTime <= now as simple past check, or arrivalTime if available
+                const isPast = departureTime && departureTime <= now;
+                return status === 'COMPLETED' || status === 'PAID' && isPast && status !== 'CANCELLED';
             }
 
             return true;
@@ -93,19 +101,21 @@ export default function MyTicketsPage() {
     }, [tickets, activeTab, sortOrder]);
 
     const handlePay = (ticket: any) => {
-        // Redirect to payment page
-        // Use paymentHistoryId if available, else ticket id logic
-        const id = ticket.paymentHistoryId || ticket.id; // Usually we prefer paymentHistoryId for bulk
-        // But our PaymentPage [id] expects ??? 
-        // Logic: PaymentPage expects PaymentHistoryId usually.
+        const id = ticket.paymentHistoryId || ticket.id;
         router.push(`/payment/${id}`);
     };
 
     const handleView = (ticket: any) => {
-        // View details
-        // View details
-        // Redirect to new Ticket Detail Page
         router.push(`/account/tickets/${ticket.id}`);
+    };
+
+    const handleReview = (ticket: any) => {
+        setSelectedTicketId(ticket.id);
+        setReviewModalOpen(true);
+    };
+
+    const handleReviewSuccess = () => {
+        fetchTickets(); // Refresh to update "Reviewed" status
     };
 
     if (!user) {
@@ -186,18 +196,35 @@ export default function MyTicketsPage() {
                     </div>
                 ) : (
                     /* Ticket List */
-                    filteredGroups.map(group => (
-                        <TicketCard
-                            key={group[0].id}
-                            ticket={group[0]}
-                            groupTickets={group}
-                            onPay={handlePay}
-                            onView={handleView}
-                            isProcessing={processingId === group[0].id}
-                        />
-                    ))
+                    filteredGroups.map(group => {
+                        const ticket = group[0];
+                        // Only show review for History tab
+                        const showReview = activeTab === 'history';
+
+                        return (
+                            <TicketCard
+                                key={ticket.id}
+                                ticket={ticket}
+                                groupTickets={group}
+                                onPay={handlePay}
+                                onView={handleView}
+                                onReview={showReview ? handleReview : undefined}
+                                isProcessing={processingId === ticket.id}
+                            />
+                        );
+                    })
                 )}
             </div>
+
+            {/* Review Modal */}
+            {selectedTicketId && (
+                <WriteReviewModal
+                    isOpen={reviewModalOpen}
+                    onClose={() => setReviewModalOpen(false)}
+                    ticketId={selectedTicketId}
+                    onSuccess={handleReviewSuccess}
+                />
+            )}
         </div>
     );
 }

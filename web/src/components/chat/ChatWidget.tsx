@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { useAuthStore } from "@/store/useAuthStore";
 import defaultAvatar from "@/assets/uploads/default.png";
 import api from "@/lib/api";
+import { aiApi } from "@/lib/api/ai";
 import { useRouter } from "next/navigation";
 
 export default function ChatWidget() {
@@ -35,33 +36,18 @@ export default function ChatWidget() {
 
         try {
             // Prepare history for backend
-            const history = messages.map(m => ({
+            let formattedHistory = messages.map(m => ({
                 role: m.isBot ? 'model' : 'user',
                 parts: m.text
-            })).filter(h => !h.parts.includes("SEARCH_TRIP")); // Filter out raw JSON from history if needed
+            })).filter(h => !h.parts.includes("SEARCH_TRIP")); // Filter out raw JSON from history
 
-            // Placeholder for api.post - assuming 'api' is defined elsewhere (e.g., imported axios instance)
-            // If 'api' is not defined, this will cause an error.
-            // For demonstration, I'll use a mock 'api' if it's not imported.
-            // In a real app, you'd import it: `import api from "@/lib/api";`
-            const api = {
-                post: async (url: string, data: any) => {
-                    console.log("Mock API call:", url, data);
-                    // Simulate network delay
-                    await new Promise(resolve => setTimeout(resolve, 1000));
-                    if (data.message.toLowerCase().includes("chuyến xe")) {
-                        return { data: { answer: JSON.stringify({ action: "SEARCH_TRIP", from: "Hà Nội", to: "TP.HCM", date: "2024-12-25" }) } };
-                    }
-                    return { data: { answer: "Tính năng AI đang được phát triển! Sau này mình sẽ trả lời thông minh hơn nhé. 😄" } };
-                }
-            };
+            // Gemini Rule: First message in history must be from 'user'.
+            // Remove leading 'model' messages (like the Welcome message).
+            while (formattedHistory.length > 0 && formattedHistory[0].role === 'model') {
+                formattedHistory.shift();
+            }
 
-            const response = await api.post('/ai/chat', {
-                message: userMsg.text,
-                history: history
-            });
-
-            const answer = response.data.answer;
+            const answer = await aiApi.chat(userMsg.text, formattedHistory);
 
             // Check if answer is JSON (Action Command)
             if (answer.trim().startsWith('{') && answer.trim().endsWith('}')) {
@@ -85,15 +71,6 @@ export default function ChatWidget() {
 
                         setTimeout(() => {
                             router.push(`/?${queryUpdated}`);
-                            // Or /search if you have a dedicated search page, 
-                            // but currently SearchWidget is on Home. 
-                            // User verification says "Implement Home & Search" is done.
-                            // Assuming Home page handles query params to pre-fill search? 
-                            // Or better, just redirect to a Search Results page if it exists.
-                            // Conversation history says "Implement Search Results Page" is NEXT step.
-                            // so for now just push to Home with params, or maybe wait for Search Result page implementation.
-                            // Let's assume we push to Home and the SearchWidget picks it up, OR push to /search if that's the plan.
-                            // Let's stick to Home for now as safe bet.
                         }, 1500);
                     }
                 } catch (e) {
@@ -106,7 +83,7 @@ export default function ChatWidget() {
 
         } catch (error) {
             console.error("Chat Error:", error);
-            setMessages((prev) => [...prev, { id: Date.now() + 1, text: "Xin lỗi, tôi đang gặp sự cố kết nối. Vui lòng thử lại sau.", isBot: true }]);
+            setMessages((prev) => [...prev, { id: Date.now() + 1, text: "Xin lỗi, hiện tại hệ thống đang bận. Vui lòng thử lại sau.", isBot: true }]);
         } finally {
             setIsTyping(false);
         }

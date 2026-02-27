@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -37,11 +38,19 @@ export function AccountSidebar() {
     const pathname = usePathname();
     const router = useRouter();
     const { logout, user } = useAuthStore();
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
 
     const handleLogout = () => {
         logout();
         router.push("/auth/login");
     };
+
+    // Prevent hydration mismatch by only rendering user data on client
+    const displayedUser = mounted ? user : null;
 
     return (
         <aside className="w-full lg:w-[280px] flex-shrink-0">
@@ -49,8 +58,8 @@ export function AccountSidebar() {
             <div className="bg-white dark:bg-surface-dark rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 mb-6 flex flex-col items-center text-center">
                 <div className="relative mb-3">
                     <UserAvatar
-                        src={user?.avatar}
-                        alt={user?.name || "User"}
+                        src={displayedUser?.avatar}
+                        alt={displayedUser?.name || "User"}
                         className="w-24 h-24 rounded-full border-4 border-white dark:border-slate-800 shadow-lg"
                         size={96}
                     />
@@ -58,10 +67,20 @@ export function AccountSidebar() {
                         <span className="material-symbols-outlined text-sm">edit</span>
                     </button>
                 </div>
-                <h3 className="text-lg font-bold text-slate-900 dark:text-white truncate max-w-full">
-                    {user?.name || "Khách hàng"}
-                </h3>
-                <p className="text-sm text-slate-500 truncate max-w-full">{user?.email}</p>
+                {mounted ? (
+                    <>
+                        <h3 className="text-lg font-bold text-slate-900 dark:text-white truncate max-w-full">
+                            {displayedUser?.name || "Khách hàng"}
+                        </h3>
+                        <p className="text-sm text-slate-500 truncate max-w-full">{displayedUser?.email}</p>
+                    </>
+                ) : (
+                    /* Skeleton for SSR/Loading */
+                    <div className="w-full flex flex-col items-center gap-2">
+                        <div className="h-6 w-32 bg-slate-200 dark:bg-slate-700 rounded animate-pulse"></div>
+                        <div className="h-4 w-48 bg-slate-100 dark:bg-slate-800 rounded animate-pulse"></div>
+                    </div>
+                )}
             </div>
 
             {/* Menu */}

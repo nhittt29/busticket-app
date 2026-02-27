@@ -54,7 +54,7 @@ export default function LoginPage() {
             </div>
 
             {/* Right Side: Login Form */}
-            <div className="flex-1 flex flex-col justify-center items-center p-8 md:p-16 bg-white dark:bg-background-dark">
+            <div className="flex-1 flex flex-col justify-center items-center p-8 md:p-16 dark:bg-background-dark">
                 <div className="w-full max-w-[480px]">
                     {/* Page Heading */}
                     <div className="mb-10">

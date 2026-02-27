@@ -305,9 +305,16 @@ export class TicketService {
     return { message: 'Hủy vé thành công' };
   }
 
-  async getAllTickets() { return []; }
-  async getAllBookingsForAdmin() { return []; }
-  async getBookingById(id: number) { return {}; }
+  async getAllTickets() {
+    return this.ticketRepo.findAllForAdmin();
+  }
+
+  async getAllBookingsForAdmin() {
+    return this.ticketRepo.findAllForAdmin();
+  }
+  async getBookingById(id: number) {
+    return this.getTicketById(id);
+  }
   async getTicketById(id: number) { return this.ticketRepo.findById(id); }
 
   async handleMomoRedirect(query: any) {

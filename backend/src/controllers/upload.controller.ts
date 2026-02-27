@@ -38,4 +38,12 @@ export class UploadController {
         const url = await this.uploadService.uploadAvatar(file, userId);
         return { url };
     }
+
+    @Post('review')
+    @UseInterceptors(FileInterceptor('file'))
+    async uploadReviewImage(@UploadedFile() file: Express.Multer.File) {
+        if (!file) throw new BadRequestException('No file uploaded');
+        const url = await this.uploadService.uploadReviewImage(file);
+        return { url };
+    }
 }

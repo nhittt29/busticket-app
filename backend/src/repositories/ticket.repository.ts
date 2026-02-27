@@ -51,7 +51,7 @@ export class TicketRepository {
   async getTicketsByUser(userId: number) {
     return this.ticketRepo.find({
       where: { userId },
-      relations: ['schedule', 'seat'],
+      relations: ['schedule', 'schedule.bus', 'schedule.route', 'seat', 'review'],
       order: { createdAt: 'DESC' }
     });
   }
@@ -104,4 +104,12 @@ export class TicketRepository {
   }
 
   async count(options: any) { return this.ticketRepo.count(options); }
+
+  // ADMIN: Retrieve all tickets with full details
+  async findAllForAdmin() {
+    return this.ticketRepo.find({
+      relations: ['user', 'schedule', 'schedule.bus', 'schedule.route', 'seat', 'paymentHistory'],
+      order: { createdAt: 'DESC' }
+    });
+  }
 }

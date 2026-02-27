@@ -79,7 +79,7 @@ export default function RegisterPage() {
       </div>
 
       {/* Right Panel: Registration Form */}
-      <div className="flex-1 flex flex-col justify-center items-center bg-white dark:bg-background-dark px-6 py-12 lg:px-20">
+      <div className="flex-1 flex flex-col justify-center items-center dark:bg-background-dark px-6 py-12 lg:px-20">
         <div className="w-full max-w-[480px]">
           {/* Page Heading Component */}
           <div className="mb-8">

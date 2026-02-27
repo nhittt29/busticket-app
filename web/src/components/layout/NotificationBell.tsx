@@ -56,7 +56,7 @@ export function NotificationBell() {
                                 onClick={markAllAsRead}
                                 className="text-xs font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400"
                             >
-                                Đánh dấu đã đọc
+                                Đánh dấu đã đọc tất cả
                             </button>
                         )}
                     </div>

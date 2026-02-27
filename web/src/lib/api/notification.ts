@@ -16,7 +16,7 @@ export const notificationApi = {
     // Mark a specific notification as read
     markAsRead: async (id: number, userId: number) => {
         try {
-            await api.patch(`/notifications/${id}/read`, { userId });
+            await api.patch(`/notifications/${id}/read/${userId}`);
             return true;
         } catch (error) {
             console.error("Error marking notification as read:", error);
@@ -27,7 +27,7 @@ export const notificationApi = {
     // Mark all notifications as read
     markAllAsRead: async (userId: number) => {
         try {
-            await api.patch(`/notifications/read-all`, { userId });
+            await api.patch(`/notifications/read-all/${userId}`);
             return true;
         } catch (error) {
             console.error("Error marking all notifications as read:", error);

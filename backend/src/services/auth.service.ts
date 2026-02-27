@@ -117,10 +117,18 @@ export class AuthService {
 
       if (!user) throw new NotFoundException('Người dùng không tồn tại');
 
-      const baseUrl = process.env.BACKEND_URL || 'http://10.0.2.2:4000';
-      const avatarUrl = user.avatar
-        ? `${baseUrl}/${user.avatar.replace(/\\/g, '/')}`
-        : `${baseUrl}/uploads/avatars/default.png`;
+      const baseUrl = process.env.BACKEND_URL || 'http://10.0.2.2:4000'; // Default for Android Emulator, change if needed
+      let avatarUrl = user.avatar;
+
+      if (user.avatar) {
+        if (user.avatar.startsWith('http')) {
+          avatarUrl = user.avatar;
+        } else {
+          avatarUrl = `${baseUrl}/${user.avatar.replace(/\\/g, '/')}`;
+        }
+      } else {
+        avatarUrl = `${baseUrl}/uploads/avatars/default.png`;
+      }
 
       // Helper to match return type - casting to any to bypass strict checks for now as structure matches
       const userWithRole = {
