@@ -11,6 +11,6 @@ import { Ticket } from '../entities/Ticket.entity';
   imports: [TypeOrmModule.forFeature([Schedule, Ticket])],
   controllers: [ScheduleController],
   providers: [ScheduleService, ScheduleRepository, TicketRepository],
-  exports: [ScheduleService],
+  exports: [ScheduleService, ScheduleRepository], // Exported ScheduleRepository so ScheduleQueueModule can use it
 })
 export class ScheduleModule { }

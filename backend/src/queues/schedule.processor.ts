@@ -6,6 +6,7 @@ import { ScheduleRepository } from '../repositories/schedule.repository';
 import { ScheduleStatus } from '../models/Ticket';
 import { SCHEDULE_QUEUE, UPDATE_STATUS_JOB } from './schedule.queue';
 import { In, LessThanOrEqual } from 'typeorm';
+import { Cron, CronExpression } from '@nestjs/schedule';
 
 @Processor(SCHEDULE_QUEUE)
 export class ScheduleProcessor {
@@ -13,8 +14,14 @@ export class ScheduleProcessor {
 
   constructor(private readonly scheduleRepo: ScheduleRepository) { }
 
+  @Cron(CronExpression.EVERY_5_MINUTES)
+  async handleCron() {
+    this.logger.log('Cron job trigger: Kiểm tra trạng thái chuyến xe (Mỗi 5 phút)');
+    await this.handleUpdateStatus();
+  }
+
   @Process(UPDATE_STATUS_JOB)
-  async handleUpdateStatus(job: Job<unknown>) {
+  async handleUpdateStatus(job?: Job<unknown>) {
     const now = new Date();
     this.logger.log(`Bắt đầu kiểm tra cập nhật trạng thái chuyến xe – ${now.toLocaleString('vi-VN')}`);
 

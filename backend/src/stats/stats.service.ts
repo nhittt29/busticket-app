@@ -210,8 +210,8 @@ export class StatsService {
         const result = await this.ticketRepo.query(`
             SELECT r."startPoint" || ' - ' || r."endPoint" as "name", SUM(t."totalPrice") as "value"
             FROM "Ticket" t
-            JOIN "Schedule" s ON t."scheduleId" = s.id
-            JOIN "Route" r ON s."routeId" = r.id
+            JOIN "Schedule" s ON t."scheduleId" = s."id"
+            JOIN "Route" r ON s."routeId" = r."id"
             WHERE t."status" = 'PAID'
             GROUP BY r."startPoint", r."endPoint"
             HAVING SUM(t."totalPrice") > 0

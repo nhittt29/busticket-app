@@ -196,21 +196,30 @@ export default function MyTicketsPage() {
                     </div>
                 ) : (
                     /* Ticket List */
-                    filteredGroups.map(group => {
+                    filteredGroups.map((group, index) => {
                         const ticket = group[0];
                         // Only show review for History tab
                         const showReview = activeTab === 'history';
+                        const isLast = index === filteredGroups.length - 1;
 
                         return (
-                            <TicketCard
-                                key={ticket.id}
-                                ticket={ticket}
-                                groupTickets={group}
-                                onPay={handlePay}
-                                onView={handleView}
-                                onReview={showReview ? handleReview : undefined}
-                                isProcessing={processingId === ticket.id}
-                            />
+                            <div key={ticket.id} className="relative">
+                                {/* Vertical Connecting Line */}
+                                {!isLast && (
+                                    <div className="absolute left-6 top-[60px] bottom-[-40px] w-0.5 bg-slate-200 dark:bg-slate-700 z-0 hidden md:block"></div>
+                                )}
+
+                                <div className="relative z-10 w-full">
+                                    <TicketCard
+                                        ticket={ticket}
+                                        groupTickets={group}
+                                        onPay={handlePay}
+                                        onView={handleView}
+                                        onReview={showReview ? handleReview : undefined}
+                                        isProcessing={processingId === ticket.id}
+                                    />
+                                </div>
+                            </div>
                         );
                     })
                 )}

@@ -30,7 +30,7 @@ export const dataProvider: DataProvider = {
             "buses": "bus",
             "admin-schedules": "schedules/admin",
             "bookings": "tickets/bookings",
-            // Add other mappings here if needed
+            "promotions": "promotions/admin",
         };
         const endpoint = resourceMap[resource] || resource;
 
@@ -69,7 +69,7 @@ export const dataProvider: DataProvider = {
             "buses": "bus",
         };
         const endpoint = resourceMap[resource] || resource;
-        const { data } = await api.patch(`/${endpoint}/${id}`, variables);
+        const { data } = await api.put(`/${endpoint}/${id}`, variables);
         return {
             data,
         };
@@ -87,7 +87,7 @@ export const dataProvider: DataProvider = {
     },
 
     getApiUrl: () => {
-        return process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api";
+        return process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
     },
 
     // Optional methods (can be implemented later)
@@ -115,13 +115,11 @@ export const dataProvider: DataProvider = {
         let response;
         switch (method) {
             case "put":
+            case "patch":
                 response = await api.put(requestUrl, payload, { headers });
                 break;
             case "post":
                 response = await api.post(requestUrl, payload, { headers });
-                break;
-            case "patch":
-                response = await api.patch(requestUrl, payload, { headers });
                 break;
             case "delete":
                 response = await api.delete(requestUrl, { headers });

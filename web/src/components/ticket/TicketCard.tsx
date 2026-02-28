@@ -2,6 +2,7 @@ import { format } from "date-fns";
 import { vi } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { Loader2 } from "lucide-react";
+import { TicketTimeline } from "./TicketTimeline";
 
 interface TicketCardProps {
     ticket: any; // Using any for now to match backend response structure flexibility
@@ -89,43 +90,29 @@ export function TicketCard({ ticket, groupTickets, onPay, onView, onReview, isPr
                         </div>
 
                         {/* Header: Bus Name & ID */}
-                        <div className="flex justify-between items-start mb-4">
-                            <div>
-                                <h3 className="font-bold text-slate-700 dark:text-slate-300 text-sm uppercase tracking-wider">
-                                    {bus.name || "Xe Khách"}
+                        <div className="flex flex-col gap-2 mb-4 border-b border-slate-100 dark:border-slate-800 pb-3">
+                            <div className="flex justify-between items-start">
+                                <h3 className="font-bold text-slate-800 dark:text-white text-base flex items-center flex-wrap gap-2">
+                                    <span>{bus.name || "Xe Khách"}</span>
+                                    {route.startPoint && (
+                                        <span className="text-sm text-slate-500 font-semibold bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md flex items-center gap-1">
+                                            {route.startPoint} <span className="text-[10px]">➔</span> {route.endPoint}
+                                        </span>
+                                    )}
                                 </h3>
-                                <p className="text-xs text-slate-400 mt-1">
-                                    Mã vé: <span className="font-mono font-bold text-slate-600 dark:text-slate-400">#{ticket.id}</span>
-                                </p>
+                                <span className={cn("px-3 py-1 rounded-full text-xs font-bold border", statusStyle, "whitespace-nowrap")}>
+                                    {statusText}
+                                </span>
                             </div>
-                            <span className={cn("px-3 py-1 rounded-full text-xs font-bold border", statusStyle)}>
-                                {statusText}
-                            </span>
-                        </div>
-
-                        {/* Journey Info */}
-                        <div className="flex items-center gap-6 mb-4">
-                            <div className="text-center min-w-[60px]">
-                                <p className="text-2xl font-bold text-slate-800 dark:text-white">{timeStr}</p>
-                                <p className="text-xs text-slate-500 font-medium">{dateStr}</p>
-                            </div>
-
-                            {/* Journey Line */}
-                            <div className="flex-1 flex flex-col gap-1">
-                                <div className="flex justify-between text-xs text-slate-500 font-medium">
-                                    <span>{route.startPoint}</span>
-                                    <span>{route.endPoint}</span>
-                                </div>
-                                <div className="relative h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full w-full">
-                                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-2.5 h-2.5 bg-blue-500 rounded-full border-2 border-white dark:border-slate-900 shadow-sm"></div>
-                                    <div className="absolute right-0 top-1/2 -translate-y-1/2 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white dark:border-slate-900 shadow-sm"></div>
-                                    <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-red-500 opacity-20 rounded-full"></div>
-                                </div>
-                                <div className="text-center text-[10px] text-slate-400 mt-1">
-                                    {fullDateStr}
-                                </div>
+                            <div className="flex items-center gap-3 text-xs text-slate-500">
+                                <span>Mã vé: <span className="font-mono font-bold text-slate-700 dark:text-slate-300">#{ticket.id}</span></span>
+                                <span className="text-slate-300">•</span>
+                                <span>Khởi hành: <span className="font-semibold text-slate-700 dark:text-slate-300">{timeStr} {dateStr}</span></span>
                             </div>
                         </div>
+
+                        {/* Timeline */}
+                        <TicketTimeline ticket={ticket} />
                     </div>
 
                     {/* RIGHT: Price & Actions (30%) */}
@@ -170,7 +157,7 @@ export function TicketCard({ ticket, groupTickets, onPay, onView, onReview, isPr
                 {onReview && !ticket.review && (
                     <button
                         onClick={() => onReview(ticket)}
-                        className="w-full py-2 bg-yellow-400 hover:bg-yellow-500 text-slate-900 text-sm font-bold rounded-lg shadow-sm transition-all active:scale-95 flex items-center justify-center gap-2"
+                        className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-lg shadow-sm transition-all active:scale-95 flex items-center justify-center gap-2"
                     >
                         <span className="material-symbols-outlined text-lg">rate_review</span>
                         Đánh giá
@@ -178,7 +165,7 @@ export function TicketCard({ ticket, groupTickets, onPay, onView, onReview, isPr
                 )}
 
                 {ticket.review && (
-                    <div className="w-full py-2 bg-slate-50 border border-slate-200 text-slate-500 text-sm font-bold rounded-lg flex items-center justify-center gap-2 cursor-default">
+                    <div className="w-full py-2 bg-blue-50 dark:bg-slate-800/50 border border-blue-100 dark:border-slate-700 text-blue-600 dark:text-blue-400 text-sm font-bold rounded-lg flex items-center justify-center gap-2 cursor-default">
                         <span className="material-symbols-outlined text-lg text-yellow-500 fill-current">star</span>
                         Đã đánh giá ({ticket.review.rating}*)
                     </div>
