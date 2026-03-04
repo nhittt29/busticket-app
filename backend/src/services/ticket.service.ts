@@ -295,14 +295,81 @@ export class TicketService {
     return { message: 'Thanh toán thành công', paymentHistoryId };
   }
 
-  async cancel(id: number) {
-    const ticket = await this.ticketRepo.findById(id);
+  async getCancellationInfo(id: number) {
+    const ticket: any = await this.ticketRepo.findById(id);
     if (!ticket) throw new NotFoundException('Vé không tồn tại');
 
-    await this.ticketRepo.update(id, { status: TicketStatus.CANCELLED });
-    if (ticket.seatId) await this.seatRepo.updateAvailability(ticket.seatId, true);
+    const departureAt = new Date(ticket.schedule.departureAt);
+    const now = new Date();
+    const diffMs = departureAt.getTime() - now.getTime();
+    const diffHours = diffMs / (1000 * 60 * 60);
 
-    return { message: 'Hủy vé thành công' };
+    let isCancelable = true;
+    let cancellationFee = 0;
+    let refundAmount = 0;
+    let message = 'Có thể hủy vé';
+
+    if (diffHours < 2) {
+      isCancelable = false;
+      message = 'Không thể hủy vé vì chuyến đi khởi hành trong vòng 2 giờ tới';
+    } else {
+      if (ticket.status === TicketStatus.PAID) {
+        if (diffHours >= 24) {
+          cancellationFee = ticket.totalPrice * 0.10;
+        } else {
+          // Between 2 and 24 hours
+          cancellationFee = ticket.totalPrice * 0.30;
+        }
+        refundAmount = ticket.totalPrice - cancellationFee;
+        message = 'Bạn sẽ bị trừ phí hủy vé theo quy định';
+      } else if (ticket.status === TicketStatus.BOOKED) {
+        cancellationFee = 0;
+        refundAmount = 0;
+        message = 'Hủy vé miễn phí (chưa thanh toán)';
+      } else {
+        isCancelable = false;
+        message = `Không thể hủy vé ở trạng thái ${ticket.status}`;
+      }
+    }
+
+    return {
+      ticketId: ticket.id,
+      isCancelable,
+      cancellationFee,
+      refundAmount,
+      message,
+      status: ticket.status
+    };
+  }
+
+  async cancel(id: number) {
+    const info = await this.getCancellationInfo(id);
+
+    if (!info.isCancelable) {
+      throw new BadRequestException(info.message);
+    }
+
+    const updateData: any = {
+      status: TicketStatus.CANCELLED,
+      cancellationFee: info.cancellationFee,
+      refundAmount: info.refundAmount
+    };
+
+    await this.ticketRepo.update(id, updateData);
+
+    // Release the seat
+    const ticket: any = await this.ticketRepo.findById(id);
+    if (ticket && ticket.seatId) {
+      await this.seatRepo.updateAvailability(ticket.seatId, true);
+    }
+
+    // TODO: Later on, if there's a real refund API logic with MoMo/ZaloPay, trigger it here.
+
+    return {
+      message: 'Hủy vé thành công',
+      cancellationFee: info.cancellationFee,
+      refundAmount: info.refundAmount
+    };
   }
 
   async getAllTickets() {

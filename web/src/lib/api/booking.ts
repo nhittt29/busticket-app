@@ -53,5 +53,17 @@ export const bookingApi = {
     getTicketById: async (ticketId: number) => {
         const response = await api.get(`/tickets/${ticketId}`);
         return response.data;
+    },
+
+    // Get Cancellation Info
+    getCancellationInfo: async (ticketId: number) => {
+        const response = await api.get(`/tickets/${ticketId}/cancellation-info`);
+        return response.data;
+    },
+
+    // Cancel Ticket
+    cancelTicket: async (ticketId: number) => {
+        const response = await api.delete(`/tickets/${ticketId}`);
+        return response.data;
     }
 };

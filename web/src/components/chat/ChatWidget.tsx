@@ -5,6 +5,7 @@ import { useAuthStore } from "@/store/useAuthStore";
 import defaultAvatar from "@/assets/uploads/default.png";
 import api from "@/lib/api";
 import { aiApi } from "@/lib/api/ai";
+import { scheduleApi } from "@/lib/api/schedule";
 import { useRouter } from "next/navigation";
 
 export default function ChatWidget() {
@@ -54,24 +55,50 @@ export default function ChatWidget() {
                 try {
                     const command = JSON.parse(answer);
                     if (command.action === 'SEARCH_TRIP') {
+                        // PRE-CHECK: Is there any trip available?
+                        try {
+                            const schedules = await scheduleApi.getSchedules({
+                                startPoint: command.from,
+                                endPoint: command.to,
+                                date: command.date
+                            });
 
-                        const botMsg = {
-                            id: Date.now() + 1,
-                            text: `Đang tìm chuyến xe từ ${command.from} đến ${command.to} ngày ${command.date}...`,
-                            isBot: true
-                        };
-                        setMessages((prev) => [...prev, botMsg]);
+                            if (schedules.length === 0) {
+                                // No trips found, stay in chat
+                                setMessages((prev) => [...prev, {
+                                    id: Date.now() + 1,
+                                    text: `Rất tiếc 😢, mình không tìm thấy chuyến xe nào từ ${command.from} đến ${command.to} vào ngày ${command.date}. Bạn có muốn thử tìm vào một ngày khác không?`,
+                                    isBot: true
+                                }]);
+                            } else {
+                                // Trips found, proceed with redirect
+                                const botMsg = {
+                                    id: Date.now() + 1,
+                                    text: `Tuyệt vời! 😍 Đã tìm thấy ${schedules.length} chuyến xe từ ${command.from} đến ${command.to} ngày ${command.date}. Mình đang chuyển bạn đến trang chọn xe nhé...`,
+                                    isBot: true
+                                };
+                                setMessages((prev) => [...prev, botMsg]);
 
-                        // Redirect to search
-                        const queryUpdated = new URLSearchParams({
-                            from: command.from,
-                            to: command.to,
-                            date: command.date
-                        }).toString();
+                                // Redirect to search
+                                const queryUpdated = new URLSearchParams({
+                                    from: command.from,
+                                    to: command.to,
+                                    date: command.date
+                                }).toString();
 
-                        setTimeout(() => {
+                                setTimeout(() => {
+                                    router.push(`/?${queryUpdated}`);
+                                }, 2000);
+                            }
+                        } catch (err) {
+                            // If API fails, just redirect and let the search page handle the empty state/error
+                            const queryUpdated = new URLSearchParams({
+                                from: command.from,
+                                to: command.to,
+                                date: command.date
+                            }).toString();
                             router.push(`/?${queryUpdated}`);
-                        }, 1500);
+                        }
                     }
                 } catch (e) {
                     // Not valid JSON, treat as text

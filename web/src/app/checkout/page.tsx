@@ -17,6 +17,7 @@ export default function CheckoutPage() {
     const store = useBookingStore();
 
     const [processing, setProcessing] = useState(false);
+    const [isRedirecting, setIsRedirecting] = useState(false);
     const [selectedMethod, setSelectedMethod] = useState<"MOMO" | "ZALOPAY" | "VNPAY">("MOMO");
     const [promotions, setPromotions] = useState<Promotion[]>([]);
 
@@ -24,13 +25,15 @@ export default function CheckoutPage() {
     const [mounted, setMounted] = useState(false);
     useEffect(() => {
         setMounted(true);
+        if (isRedirecting) return; // Prevent redirecting back to home when clearing store for payment
+
         if (!store.scheduleId || store.selectedSeats.length === 0) {
             router.push('/');
         } else {
             // Fetch Promotions
             promotionApi.getActivePromotions().then(setPromotions);
         }
-    }, [store.scheduleId, store.selectedSeats, router]);
+    }, [store.scheduleId, store.selectedSeats, router, isRedirecting]);
 
     const handleApplyPromotion = async (code: string) => {
         try {
@@ -83,6 +86,9 @@ export default function CheckoutPage() {
                 toast.error("Lỗi: Không nhận được mã đơn hàng");
                 return;
             }
+
+            // Prevent the useEffect from sending us back to the home page when we empty the store
+            setIsRedirecting(true);
 
             // Clear Store after successful booking creation
             store.reset();

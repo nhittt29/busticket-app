@@ -202,6 +202,32 @@ export function BookingPageContent({ scheduleId }: BookingPageContentProps) {
                     </div>
 
                     {renderLayout()}
+
+                    {/* Cancellation Policy */}
+                    <div className="mt-8 bg-blue-50/50 dark:bg-slate-900 border border-blue-100 dark:border-slate-800 rounded-2xl p-6">
+                        <div className="flex items-center gap-2 mb-4">
+                            <span className="material-symbols-outlined text-blue-600">policy</span>
+                            <h3 className="font-bold text-slate-800 dark:text-slate-200">Quy định hủy vé & chuyển nhượng</h3>
+                        </div>
+
+                        <div className="space-y-4 text-sm text-slate-600 dark:text-slate-400">
+                            <div>
+                                <h4 className="font-semibold text-slate-700 dark:text-slate-300 mb-2">1. Vé đã thanh toán (Paid)</h4>
+                                <ul className="space-y-2 list-disc pl-5">
+                                    <li><span className="font-medium text-slate-700 dark:text-slate-300">Trước &gt; 24 giờ:</span> Phí hủy 10% (Hoàn 90%)</li>
+                                    <li><span className="font-medium text-slate-700 dark:text-slate-300">Trước 4 – 24 giờ:</span> Phí hủy 30% (Hoàn 70%)</li>
+                                    <li><span className="font-medium text-red-500">Trước &lt; 2 giờ:</span> Không hỗ trợ hủy vé</li>
+                                </ul>
+                            </div>
+
+                            <div className="pt-2 border-t border-blue-100 dark:border-slate-800">
+                                <h4 className="font-semibold text-slate-700 dark:text-slate-300 mb-2">2. Vé đặt chỗ (Booked - Chưa thanh toán)</h4>
+                                <ul className="space-y-2 list-disc pl-5">
+                                    <li>Được phép hủy miễn phí nếu còn &gt; 2 tiếng trước giờ khởi hành.</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 

@@ -42,6 +42,12 @@ export class Ticket {
     @Column('float', { default: 0 })
     totalPrice: number;
 
+    @Column('float', { nullable: true })
+    cancellationFee: number;
+
+    @Column('float', { nullable: true })
+    refundAmount: number;
+
     @Column({ default: 'BOOKED', length: 50 })
     status: string;
 

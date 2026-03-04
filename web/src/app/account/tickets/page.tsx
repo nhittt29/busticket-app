@@ -14,6 +14,7 @@ type Tab = "upcoming" | "history" | "cancelled";
 type SortOrder = "newest" | "oldest";
 
 import { WriteReviewModal } from "@/components/reviews/WriteReviewModal";
+import { CancelTicketModal } from "@/components/ticket/CancelTicketModal";
 
 // ... imports
 
@@ -30,6 +31,10 @@ export default function MyTicketsPage() {
     // Review Modal State
     const [reviewModalOpen, setReviewModalOpen] = useState(false);
     const [selectedTicketId, setSelectedTicketId] = useState<number | null>(null);
+
+    // Cancel Modal State
+    const [cancelModalOpen, setCancelModalOpen] = useState(false);
+    const [ticketToCancelId, setTicketToCancelId] = useState<number | null>(null);
 
     // Fetch Tickets
     const fetchTickets = async () => {
@@ -114,8 +119,17 @@ export default function MyTicketsPage() {
         setReviewModalOpen(true);
     };
 
+    const handleCancel = (ticket: any) => {
+        setTicketToCancelId(ticket.id);
+        setCancelModalOpen(true);
+    };
+
     const handleReviewSuccess = () => {
         fetchTickets(); // Refresh to update "Reviewed" status
+    };
+
+    const handleCancelSuccess = () => {
+        fetchTickets(); // Refresh to update status to "Cancelled"
     };
 
     if (!user) {
@@ -216,6 +230,7 @@ export default function MyTicketsPage() {
                                         onPay={handlePay}
                                         onView={handleView}
                                         onReview={showReview ? handleReview : undefined}
+                                        onCancel={handleCancel}
                                         isProcessing={processingId === ticket.id}
                                     />
                                 </div>
@@ -232,6 +247,16 @@ export default function MyTicketsPage() {
                     onClose={() => setReviewModalOpen(false)}
                     ticketId={selectedTicketId}
                     onSuccess={handleReviewSuccess}
+                />
+            )}
+
+            {/* Cancel Modal */}
+            {ticketToCancelId && (
+                <CancelTicketModal
+                    isOpen={cancelModalOpen}
+                    onClose={() => setCancelModalOpen(false)}
+                    ticketId={ticketToCancelId}
+                    onSuccess={handleCancelSuccess}
                 />
             )}
         </div>

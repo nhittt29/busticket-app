@@ -100,6 +100,11 @@ export class TicketController {
     return { url: `http://localhost:3000/payment/failed?message=${encodeURIComponent(result.message || 'Unknown Error')}` };
   }
 
+  @Get(':id/cancellation-info')
+  getCancellationInfo(@Param('id', ParseIntPipe) id: number) {
+    return this.ticketService.getCancellationInfo(id);
+  }
+
   @Delete(':id')
   cancel(@Param('id', ParseIntPipe) id: number) {
     return this.ticketService.cancel(id);

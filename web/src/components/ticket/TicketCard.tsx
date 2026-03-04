@@ -10,10 +10,11 @@ interface TicketCardProps {
     onPay?: (ticket: any) => void;
     onView?: (ticket: any) => void;
     onReview?: (ticket: any) => void;
+    onCancel?: (ticket: any) => void;
     isProcessing?: boolean;
 }
 
-export function TicketCard({ ticket, groupTickets, onPay, onView, onReview, isProcessing }: TicketCardProps) {
+export function TicketCard({ ticket, groupTickets, onPay, onView, onReview, onCancel, isProcessing }: TicketCardProps) {
     // Data Extraction
     const schedule = ticket.schedule || {};
     const route = schedule.route || {};
@@ -148,6 +149,16 @@ export function TicketCard({ ticket, groupTickets, onPay, onView, onReview, isPr
                                     className="w-full py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-sm font-bold rounded-lg transition-all active:scale-95"
                                 >
                                     Xem chi tiết
+                                </button>
+                            )}
+
+                            {(ticket.status === 'BOOKED' || ticket.status === 'PAID') && onCancel && (
+                                <button
+                                    onClick={() => onCancel(ticket)}
+                                    disabled={isProcessing}
+                                    className="w-full py-2 bg-red-50 hover:bg-red-100 border border-red-200 text-red-600 text-sm font-bold rounded-lg shadow-sm transition-all active:scale-95 disabled:opacity-70 flex items-center justify-center"
+                                >
+                                    Hủy vé
                                 </button>
                             )}
                         </div>
