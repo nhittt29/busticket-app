@@ -18,7 +18,7 @@ export function PopularRoutes() {
                         <div className="absolute top-4 left-4 bg-white/90 backdrop-blur px-3 py-1.5 rounded-xl text-[10px] font-black tracking-widest uppercase text-blue-600 z-10 flex items-center gap-1.5 shadow-sm">
                             <span className="material-symbols-outlined text-xs">trending_up</span> Popular
                         </div>
-                        <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuBHD3BiYaalyygXWOl09FSIlm8eN5MhB78NTS5E9zr_00Me8qEe4DQgxpBuaypl_R0KEX3GzVZUhaLxolZ5nYoizP3D6R_h1LiyjtjEpCrfgG5pJKFAvU5r9M7NfbKQMP3eRu7Tjin4mm2IEZTBjQESlxC9mxZAsS3_Dfec17RQMYpcEXqqO_19k-ji_Rz6lqmQxBMnTnHtcuhSFVnON2Iafa4d8tdBw2wolv-FGgsOvUG-Malp9VbcsWvXVxFFrgCkMEOl_qpa-Rvs" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt="Hồ Chí Minh" />
+                        <img src="/images/hcmc_landmark.png" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt="Hồ Chí Minh" />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
                     </div>
                     <div className="p-6">
@@ -45,7 +45,7 @@ export function PopularRoutes() {
                 {/* Card 2 */}
                 <div className="group bg-white dark:bg-slate-900 rounded-3xl overflow-hidden shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-[0_20px_40px_rgba(0,0,0,0.08)] transition-all duration-500 border border-slate-100 dark:border-slate-800">
                     <div className="h-56 overflow-hidden relative">
-                        <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuDc4sUQ9o-o7QlLh3ByG-N317NANv6D3WXdzyIqFa5CX7fBEFlTCT4XxUI_RkBSLD2HpO7N38WTYxtWQ2FBV1eQ3KexEYAz3-sGNUcRh0iHQh-1OwGrijEJTJPe1WPf2gc_ERgcSc_y61PJULqcdfsepB7J5LGPo-F8abWjnCN5R6f5mItSEtmIjeBz27HCfC6nYQSEjowXTRzMlXAtuKjefv4aG9GXlTR3umThsXQfaeJkyPCtm-gyfcgZ2HMoOoDt5hi1ZWe0biji" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt="Hà Nội" />
+                        <img src="/images/hanoi_landmark.png" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt="Hà Nội" />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
                     </div>
                     <div className="p-6">
@@ -75,7 +75,7 @@ export function PopularRoutes() {
                         <div className="absolute top-4 left-4 bg-orange-500/90 backdrop-blur px-3 py-1.5 rounded-xl text-[10px] font-black tracking-widest uppercase text-white z-10 flex items-center gap-1.5 shadow-sm">
                             <span className="material-symbols-outlined text-xs">local_offer</span> Giá tốt nhất
                         </div>
-                        <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuC1U_wz2HPoKp82dKkY_cOEXf7ZxO_CXuuGbwutSkrth24K1ftOvZLSFC8fYS9GtAf0vuWO5iPmueI-YsMoIBqtzoCVQqlfcclExa4uJrjePHgSd5RwLkqN_i3hRl7fjyB0xa2gZ8IvaIiRf0O_Kr1hKWPMSTvx56yJQqD9Nhq7M-Qi68Tn4JxLuMrDjI8V0C1OGU4uGrtH9RF7zHeSp6ebejkfxeG93dqzTRNEGuhPS6zvURfSfxNEVV-QxcJK28zrRHbDJALLkccC" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt="Đà Nẵng" />
+                        <img src="/images/danang_landmark.png" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt="Đà Nẵng" />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
                     </div>
                     <div className="p-6">
@@ -102,7 +102,7 @@ export function PopularRoutes() {
                 {/* Card 4 */}
                 <div className="group bg-white dark:bg-slate-900 rounded-3xl overflow-hidden shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-[0_20px_40px_rgba(0,0,0,0.08)] transition-all duration-500 border border-slate-100 dark:border-slate-800">
                     <div className="h-56 overflow-hidden relative">
-                        <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuAU1Xk2zCoe69Q2N87n1odbsZvh94geNlXU8xUi5GNp1xtNGvaX2mtXvZuwfcKDh1_HXQ5hD5HDj_njtWGj-5uLpVx7gMbgL4bex0Y9yMlWXS3bON9-Io8Bnvubwq5VAIHTZfZxgHR_ZuhdNa6Oed0OGq61VmMpigigbnZT_gg2kldg-3WW4agKTHt1GjRb7Y6PWTOfYUmwcuPhG7yfPUtrDEhNaonZeeBl6wrxkeYPbNE0mrWsu-RumLD-i5vQv6nETr4RR2Egsh2S" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt="Cần Thơ" />
+                        <img src="/images/cantho_landmark.png" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt="Cần Thơ" />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
                     </div>
                     <div className="p-6">
