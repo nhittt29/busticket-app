@@ -12,12 +12,15 @@ export default function ProfilePage() {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const [isDobFocused, setIsDobFocused] = useState(false);
 
     const [formData, setFormData] = useState({
         name: "",
         email: "",
         phone: "",
         address: "",
+        dob: "",
+        gender: "OTHER",
     });
 
     useEffect(() => {
@@ -26,7 +29,9 @@ export default function ProfilePage() {
                 name: user.name || "",
                 email: user.email || "",
                 phone: user.phone || "",
-                address: user.address || "", // Assuming address is in user object, if not need to add to interface
+                address: user.address || "",
+                dob: user.dob ? user.dob.split('T')[0] : "", // Safely handle formatting
+                gender: user.gender || "OTHER",
             });
         }
     }, [user]);
@@ -177,6 +182,35 @@ export default function ProfilePage() {
                                     className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all text-sm"
                                     placeholder="Nhập số điện thoại"
                                 />
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                            <div className="space-y-1.5">
+                                <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Ngày sinh</label>
+                                <input
+                                    type={isDobFocused ? "date" : "text"}
+                                    name="dob"
+                                    value={isDobFocused ? formData.dob : (formData.dob ? formData.dob.split('-').reverse().join('-') : '')}
+                                    onFocus={() => setIsDobFocused(true)}
+                                    onBlur={() => setIsDobFocused(false)}
+                                    onChange={handleChange}
+                                    placeholder="dd-mm-yyyy"
+                                    className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all text-sm"
+                                />
+                            </div>
+                            <div className="space-y-1.5">
+                                <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Giới tính</label>
+                                <select
+                                    name="gender"
+                                    value={formData.gender}
+                                    onChange={(e: any) => handleChange(e)}
+                                    className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all text-sm"
+                                >
+                                    <option value="MALE">Nam</option>
+                                    <option value="FEMALE">Nữ</option>
+                                    <option value="OTHER">Khác</option>
+                                </select>
                             </div>
                         </div>
 

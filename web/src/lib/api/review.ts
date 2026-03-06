@@ -60,8 +60,8 @@ export const reviewApi = {
         const formData = new FormData();
         formData.append('file', file);
 
-        // Use a direct axios call to avoid default headers from the 'api' instance
-        const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api'}/upload/review`, formData, {
+        // Use the configured 'api' instance so the Authorization interceptor attaches the token
+        const response = await api.post<{ url: string }>('/upload/review', formData, {
             headers: {
                 'Content-Type': 'multipart/form-data',
             }
