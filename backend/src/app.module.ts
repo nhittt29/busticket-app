@@ -9,6 +9,7 @@ import { AuthService } from './services/auth.service';
 import { UserRepository } from './repositories/user.repository';
 import { RoleRepository } from './repositories/role.repository';
 import { EmailService } from './services/email.service';
+import { UploadService } from './services/upload.service';
 
 import { BusModule } from './modules/bus.module';
 import { BrandModule } from './modules/brand.module';
@@ -104,6 +105,6 @@ import { Notification } from './entities/Notification.entity';
     UploadModule,
   ],
   controllers: [AuthController],
-  providers: [AuthService, UserRepository, RoleRepository, EmailService],
+  providers: [AuthService, UserRepository, RoleRepository, EmailService, UploadService],
 })
 export class AppModule { }

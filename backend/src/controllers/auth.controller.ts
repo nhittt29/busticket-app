@@ -14,16 +14,23 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
 import { extname } from 'path';
+import { diskStorage } from 'multer';
+import * as fs from 'fs';
+import axios from 'axios';
+import FormData from 'form-data';
 import { AuthService } from '../services/auth.service';
+import { UploadService } from '../services/upload.service';
 import { RegisterDto } from '../dtos/register.dto';
 import { LoginDto } from '../dtos/login.dto';
 import { auth } from '../config/firebase';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private authService: AuthService) { }
+  constructor(
+    private authService: AuthService,
+    private uploadService: UploadService,
+  ) { }
 
   // ========================================
   // 🔹 ĐĂNG KÝ NGƯỜI DÙNG (CÓ UPLOAD ẢNH)
@@ -235,8 +242,64 @@ export class AuthController {
 
     if (!file) throw new BadRequestException('Vui lòng tải lên ảnh khuôn mặt');
 
+    // Bắt đầu quy trình kiểm tra DeepFace
     const faceUrl = file.path;
-    return this.authService.updateFaceAuth(user.id, faceUrl);
+    try {
+      const formData = new FormData();
+      formData.append('img', fs.createReadStream(faceUrl));
+
+      // Gọi API DeepFace (Server Python chạy ở localhost:5000)
+      const deepfaceResponse = await axios.post('http://localhost:5000/represent', formData, {
+        headers: {
+          ...formData.getHeaders(),
+        },
+      });
+
+      const results = (deepfaceResponse.data as any).results;
+
+      // 1. Kiểm tra số lượng khuôn mặt
+      if (!results || results.length === 0) {
+        throw new BadRequestException('Không nhận diện được khuôn mặt nào trong ảnh. Vui lòng chụp rõ mặt.');
+      }
+      if (results.length > 1) {
+        throw new BadRequestException(`Phát hiện ${results.length} người trong ảnh. Vui lòng chụp riêng bạn.`);
+      }
+
+      // 2. Kiểm tra độ rõ nét / tin cậy (Confidence)
+      const faceData = results[0];
+      const faceConfidence = faceData.face_confidence || 0;
+
+      // Threshold 0.85 (85%) là hệ số tương đối an toàn cho các model nhận diện tiêu chuẩn
+      if (faceConfidence < 0.85) {
+        throw new BadRequestException('Ảnh không đủ chất lượng hoặc bị mờ. Vui lòng chụp ở nơi đủ sáng.');
+      }
+
+      // Vượt qua vòng loại DeepFace! 
+      // 3. Upload lên Cloudinary
+      const cloudinaryUrl = await this.uploadService.uploadFaceImage(faceUrl, user.id);
+
+      // 4. Lưu DB FaceUrl mới và trả về
+      return await this.authService.updateFaceAuth(user.id, cloudinaryUrl);
+
+    } catch (error) {
+      // Axios error handling cho DeepFace
+      if (error?.isAxiosError) {
+        console.error('Lỗi khi kết nối đến DeepFace Server:', error.message);
+        throw new BadRequestException('Lỗi hệ thống phân tích khuôn mặt. Máy chủ AI có thể đang bận hoặc offline.');
+      }
+
+      // Quăng tiếp các lỗi BadRequest xuất phát từ cục kiểm tra 1, 2 lên
+      throw error;
+    } finally {
+      // Dọn rác: Luôn luôn xoá ảnh tạm ở backend server dù thành công (đã đẩy lên Cloudinary) hay thất bại
+      if (fs.existsSync(faceUrl)) {
+        try {
+          fs.unlinkSync(faceUrl);
+        } catch (cleanupError) {
+          console.error('Không thể xoá file tạm FaceID:', cleanupError);
+        }
+      }
+    }
   }
 
   // ========================================

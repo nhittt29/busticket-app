@@ -28,12 +28,16 @@ export class QrController {
     if (!ticket.user || !ticket.user.faceUrl) throw new BadRequestException('User chưa đăng ký FaceID');
 
     // Fix path resolution
-    let facePath = ticket.user.faceUrl;
-    if (facePath.startsWith('/')) facePath = facePath.substring(1); // Remove leading slash
-    if (facePath.startsWith('\\')) facePath = facePath.substring(1);
+    let absoluteFacePath = ticket.user.faceUrl;
 
-    // Ensure we are pointing to d:\busticket-app\backend
-    const absoluteFacePath = require('path').join(process.cwd(), facePath);
+    // If it's not a URL, resolve as a local file
+    if (!absoluteFacePath.startsWith('http')) {
+      let facePath = absoluteFacePath;
+      if (facePath.startsWith('/')) facePath = facePath.substring(1); // Remove leading slash
+      if (facePath.startsWith('\\')) facePath = facePath.substring(1);
+      absoluteFacePath = require('path').join(process.cwd(), facePath);
+    }
+
     try {
       console.log(`[DEEPFACE] Verifying... Ticket ${ticket.id}`);
       const response = await lastValueFrom(

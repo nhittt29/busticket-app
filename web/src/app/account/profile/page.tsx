@@ -14,6 +14,18 @@ export default function ProfilePage() {
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [isDobFocused, setIsDobFocused] = useState(false);
 
+    // Face ID States
+    const faceInputRef = useRef<HTMLInputElement>(null);
+    const [facePreviewUrl, setFacePreviewUrl] = useState<string | null>(null);
+    const [selectedFaceFile, setSelectedFaceFile] = useState<File | null>(null);
+    const [isUploadingFace, setIsUploadingFace] = useState(false);
+
+    // Webcam States
+    const [isWebcamOpen, setIsWebcamOpen] = useState(false);
+    const videoRef = useRef<HTMLVideoElement>(null);
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
+
     const [formData, setFormData] = useState({
         name: "",
         email: "",
@@ -22,6 +34,23 @@ export default function ProfilePage() {
         dob: "",
         gender: "OTHER",
     });
+
+    useEffect(() => {
+        // Fetch fresh profile on mount to prevent stale data after F5
+        const fetchFreshProfile = async () => {
+            if (user?.id) {
+                try {
+                    const response = await api.get('/auth/me');
+                    if (response.data) {
+                        useAuthStore.getState().updateUser(response.data);
+                    }
+                } catch (error) {
+                    console.error("Failed to fetch fresh profile:", error);
+                }
+            }
+        };
+        fetchFreshProfile();
+    }, []); // Run only once on mount
 
     useEffect(() => {
         if (user) {
@@ -52,6 +81,112 @@ export default function ProfilePage() {
 
     const handleAvatarClick = () => {
         fileInputRef.current?.click();
+    };
+
+    const handleFaceFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            setSelectedFaceFile(file);
+            setFacePreviewUrl(URL.createObjectURL(file));
+            closeWebcam(); // Close webcam if open
+        }
+    };
+
+    const openWebcam = async () => {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            setCameraStream(stream);
+            setIsWebcamOpen(true);
+            setSelectedFaceFile(null); // Clear selected file when opening webcam
+            setFacePreviewUrl(null);
+            // Binding is now handled by useEffect since videoRef doesn't exist yet
+        } catch (err: any) {
+            console.error("Camera access error:", err);
+            setMessage({ type: 'error', text: 'Không thể truy cập Camera. Vui lòng cấp quyền hoặc dùng tính năng Tải ảnh lên.' });
+        }
+    };
+
+    const closeWebcam = () => {
+        if (cameraStream) {
+            cameraStream.getTracks().forEach(track => track.stop());
+            setCameraStream(null);
+        }
+        setIsWebcamOpen(false);
+    };
+
+    const capturePhoto = () => {
+        if (videoRef.current && canvasRef.current) {
+            const video = videoRef.current;
+            const canvas = canvasRef.current;
+
+            // Draw video frame to canvas
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const context = canvas.getContext('2d');
+            if (context) {
+                context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+                // Convert canvas to Blob (File)
+                canvas.toBlob((blob) => {
+                    if (blob) {
+                        const file = new File([blob], `web_capture_${Date.now()}.jpg`, { type: 'image/jpeg' });
+                        setSelectedFaceFile(file);
+                        setFacePreviewUrl(URL.createObjectURL(file));
+                        closeWebcam(); // Close webcam after capturing
+                    }
+                }, 'image/jpeg', 0.95); // High quality
+            }
+        }
+    };
+
+    // Make sure to clean up stream on unmount
+    useEffect(() => {
+        return () => {
+            if (cameraStream) {
+                cameraStream.getTracks().forEach(track => track.stop());
+            }
+        };
+    }, [cameraStream]);
+
+    // Bind stream to video element when modal opens
+    useEffect(() => {
+        if (isWebcamOpen && videoRef.current && cameraStream) {
+            videoRef.current.srcObject = cameraStream;
+        }
+    }, [isWebcamOpen, cameraStream]);
+
+    const handleFaceUpload = async () => {
+        if (!selectedFaceFile || !user?.id) return;
+        setIsUploadingFace(true);
+        setMessage(null);
+
+        try {
+            const formData = new FormData();
+            formData.append('faceImage', selectedFaceFile);
+
+            // Gửi API cập nhật FaceID (sẽ đi qua bước kiểm duyệt của DeepFace ở Backend)
+            const response = await api.put('/auth/update-face-auth', formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                },
+            });
+
+            // Nếu update thành công, xoá file đệm hiển thị thông báo
+            setSelectedFaceFile(null);
+            setMessage({ type: 'success', text: 'Cập nhật khuôn mặt thành công!' });
+
+            // Cập nhật lại Auth Store để lấy tấm hình FaceID vừa lưu
+            const { updateUser } = useAuthStore.getState();
+            if (updateUser && response.data) {
+                updateUser(response.data);
+            }
+        } catch (error: any) {
+            console.error('Face ID Error:', error);
+            const msg = error.response?.data?.message || 'Có lỗi xảy ra khi cập nhật khuôn mặt.';
+            setMessage({ type: 'error', text: msg });
+        } finally {
+            setIsUploadingFace(false);
+        }
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -250,6 +385,135 @@ export default function ProfilePage() {
                     </form>
                 </div>
             </div>
+
+            {/* FACE ID REGISTRATION SECTION */}
+            <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 mt-4">
+                <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <span className="material-symbols-outlined text-primary">face_recognition</span>
+                    Xác thực khuôn mặt (Face ID)
+                </h2>
+                <p className="text-slate-500 text-sm mt-1 mb-6">Đăng ký khuôn mặt để quét khi lên xe thay thế mã QR.</p>
+
+                <div className="flex flex-col items-center sm:flex-row gap-6">
+                    <div className="relative group mx-auto sm:mx-0 w-full sm:w-auto flex justify-center">
+                        <div
+                            className={`w-40 h-40 md:w-48 md:h-48 rounded-2xl border-2 overflow-hidden flex items-center justify-center bg-white dark:bg-surface-dark ${selectedFaceFile || user?.faceUrl ? 'border-primary' : 'border-dashed border-slate-300 dark:border-slate-700'}`}
+                        >
+                            {facePreviewUrl || user?.faceUrl ? (
+                                <img
+                                    src={facePreviewUrl || (user?.faceUrl?.startsWith('http') ? user?.faceUrl : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api'}/${user?.faceUrl}`)}
+                                    alt="Face ID Preview"
+                                    className="w-full h-full object-cover"
+                                />
+                            ) : (
+                                <div className="text-center text-slate-400 p-4">
+                                    <span className="material-symbols-outlined text-4xl mb-2 opacity-50">account_box</span>
+                                    <p className="text-xs">Chưa đăng ký khuôn mặt</p>
+                                </div>
+                            )}
+                        </div>
+                        <input
+                            type="file"
+                            ref={faceInputRef}
+                            className="hidden"
+                            accept="image/*"
+                            // Cho phép bật camera chụp liền nếu đang duyệt web bằng Mobile
+                            capture="user"
+                            onChange={handleFaceFileChange}
+                        />
+                    </div>
+
+                    <div className="flex-1 flex flex-col justify-center gap-3 w-full sm:w-auto">
+                        <div className="p-4 bg-sky-50 dark:bg-sky-900/20 text-sky-800 dark:text-sky-300 rounded-lg border border-sky-100 dark:border-sky-800 text-sm">
+                            <ul className="list-disc list-inside space-y-1">
+                                <li>Chỉ cung cấp hình ảnh có <strong>đúng 1 khuôn mặt</strong>.</li>
+                                <li>Đảm bảo nơi chụp <strong>đủ sáng</strong>, chụp thẳng xoáy vào ngũ quan.</li>
+                                <li>Ảnh của bạn sẽ được hệ thống AI DeepFace kiểm định trước khi lưu trữ.</li>
+                            </ul>
+                        </div>
+
+                        <div className="flex flex-col sm:flex-row gap-3 mt-2">
+                            <button
+                                type="button"
+                                onClick={openWebcam}
+                                className="px-5 py-2.5 bg-blue-50 border border-blue-200 dark:bg-blue-900/30 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-800 text-blue-700 dark:text-blue-300 font-medium rounded-lg transition-all"
+                            >
+                                <span className="flex items-center justify-center gap-2">
+                                    <span className="material-symbols-outlined text-[18px]">photo_camera</span>
+                                    Chụp ảnh trực tiếp
+                                </span>
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={() => faceInputRef.current?.click()}
+                                className="px-5 py-2.5 bg-white border border-slate-200 dark:bg-slate-800 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-750 text-slate-700 dark:text-white font-medium rounded-lg transition-all"
+                            >
+                                <span className="flex items-center justify-center gap-2">
+                                    <span className="material-symbols-outlined text-[18px]">upload_file</span>
+                                    Tải ảnh mặt lên
+                                </span>
+                            </button>
+
+                            {selectedFaceFile && (
+                                <button
+                                    type="button"
+                                    onClick={handleFaceUpload}
+                                    disabled={isUploadingFace}
+                                    className="px-5 py-2.5 bg-primary hover:bg-sky-600 text-white font-bold rounded-lg shadow-lg shadow-primary/20 transition-all active:scale-95 disabled:opacity-70 flex-1 sm:flex-none"
+                                >
+                                    {isUploadingFace ? "Đang xử lý AI..." : "Lưu khuôn mặt"}
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* WEBCAM MODAL */}
+            {isWebcamOpen && (
+                <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl animate-fade-in-up">
+                        <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                            <h3 className="font-bold text-lg text-slate-900 dark:text-white">Chụp ảnh Face ID trực tiếp</h3>
+                            <button onClick={closeWebcam} className="text-slate-400 hover:text-red-500 transition-colors">
+                                <span className="material-symbols-outlined">close</span>
+                            </button>
+                        </div>
+                        <div className="p-6 relative bg-black flex flex-col items-center justify-center">
+                            <video
+                                ref={videoRef}
+                                autoPlay
+                                playsInline
+                                className="w-full h-[400px] object-cover rounded-xl transform scale-x-[-1]"
+                            />
+                            <canvas ref={canvasRef} className="hidden" />
+
+                            {/* Overlay frame guide */}
+                            <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+                                <div className="w-56 h-72 border-2 border-white/60 rounded-full border-dashed shadow-[0_0_0_9999px_rgba(0,0,0,0.4)]"></div>
+                            </div>
+                        </div>
+                        <div className="p-4 bg-slate-50 dark:bg-slate-800 border-t border-slate-100 dark:border-slate-700 flex justify-center gap-4">
+                            <button
+                                type="button"
+                                onClick={closeWebcam}
+                                className="px-5 py-2.5 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-600 transition-all font-medium"
+                            >
+                                Hủy bỏ
+                            </button>
+                            <button
+                                type="button"
+                                onClick={capturePhoto}
+                                className="px-6 py-2.5 bg-primary hover:bg-sky-600 text-white font-bold rounded-lg shadow-lg flex items-center gap-2 transition-all active:scale-95"
+                            >
+                                <span className="material-symbols-outlined text-[20px]">photo_camera</span>
+                                Chụp ảnh
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

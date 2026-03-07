@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { onIdTokenChanged } from "firebase/auth";
 import { auth } from "@/config/firebase";
 import { useAuthStore } from "@/store/useAuthStore";
+import api from "@/lib/api";
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { setToken, logout } = useAuthStore();
@@ -16,6 +17,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     const token = await user.getIdToken();
                     setToken(token);
                     console.log("[AuthProvider] Token synced/refreshed");
+
+                    // Fetch fresh profile from backend to sync faceUrl, avatar, etc
+                    const response = await api.get('/auth/me', {
+                        headers: {
+                            Authorization: `Bearer ${token}`
+                        }
+                    });
+
+                    if (response.data) {
+                        useAuthStore.getState().updateUser(response.data);
+                    }
                 } catch (error) {
                     console.error("[AuthProvider] Failed to get fresh token", error);
                 }

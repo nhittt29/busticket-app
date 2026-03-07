@@ -73,4 +73,33 @@ export class UploadService {
       uploadStream.end(file.buffer);
     });
   }
+
+  async uploadFaceImage(filePath: string, userId: number): Promise<string> {
+    if (!filePath) {
+      throw new BadRequestException('File path is required');
+    }
+
+    return new Promise((resolve, reject) => {
+      cloudinary.uploader.upload(
+        filePath,
+        {
+          folder: 'bus-tickets/faces',
+          public_id: `face_user_${userId}`,
+          overwrite: true,
+          resource_type: 'image',
+          transformation: [
+            { width: 500, height: 500, crop: 'fill', gravity: 'face' },
+            { quality: 'auto', fetch_format: 'auto' },
+          ],
+        },
+        (error, result) => {
+          if (error) return reject(new BadRequestException(`Face ID upload failed: ${error.message}`));
+          if (!result) return reject(new BadRequestException('Face ID upload failed - No result'));
+
+          this.logger.log(`[Cloudinary] Successfully uploaded Face ID for User ${userId}. URL: ${result.secure_url}`);
+          resolve(result.secure_url);
+        },
+      );
+    });
+  }
 }

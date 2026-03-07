@@ -13,7 +13,8 @@ interface User {
     roleId?: number;
     avatar?: string;
     dob?: string;
-    gender?: string;
+    gender?: 'MALE' | 'FEMALE' | 'OTHER';
+    faceUrl?: string; // e.g., 'uploads/faces/123.jpg'
     address?: string;
 }
 
