@@ -110,6 +110,11 @@ export class TicketController {
     return this.ticketService.cancel(id);
   }
 
+  @Post(':id/refund')
+  processRefund(@Param('id', ParseIntPipe) id: number) {
+    return this.ticketService.processRefund(id);
+  }
+
   @Post(':id/pay')
   pay(@Param('id', ParseIntPipe) id: number) {
     return this.ticketService.payTicket(id, PaymentMethod.CASH);

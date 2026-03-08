@@ -159,4 +159,33 @@ export class ScheduleRepository {
         });
         return schedule ? schedule.dropoffPoints : [];
     }
+
+    // UPDATE STATUSES AUTOMATICALLY (CRON)
+    async autoUpdateScheduleStatuses(currentTime: Date) {
+        try {
+            // 1. UPCOMING -> ONGOING when departureAt <= currentTime
+            const ongoingResult = await this.scheduleRepo.createQueryBuilder()
+                .update(Schedule)
+                .set({ status: 'ONGOING' })
+                .where('status = :status', { status: 'UPCOMING' })
+                .andWhere('"departureAt" <= :time', { time: currentTime })
+                .execute();
+
+            // 2. ONGOING -> COMPLETED when arrivalAt <= currentTime
+            const completedResult = await this.scheduleRepo.createQueryBuilder()
+                .update(Schedule)
+                .set({ status: 'COMPLETED' })
+                .where('status = :status', { status: 'ONGOING' })
+                .andWhere('"arrivalAt" <= :time', { time: currentTime })
+                .execute();
+
+            return {
+                started: ongoingResult.affected || 0,
+                completed: completedResult.affected || 0,
+            };
+        } catch (err) {
+            console.error('[CRON Error] Failed to auto-update schedule statuses:', err);
+            return { started: 0, completed: 0 };
+        }
+    }
 }

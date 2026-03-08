@@ -48,6 +48,9 @@ export class Ticket {
     @Column('float', { nullable: true })
     refundAmount: number;
 
+    @Column({ default: false })
+    isRefunded: boolean;
+
     @Column({ default: 'BOOKED', length: 50 })
     status: string;
 

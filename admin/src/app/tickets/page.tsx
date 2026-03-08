@@ -59,13 +59,20 @@ export default function TicketListPage() {
         }
     };
 
-    const getStatusBadge = (status: TicketStatus) => {
+    const getStatusBadge = (status: TicketStatus, refundAmount?: number, isRefunded?: boolean) => {
         switch (status) {
             case TicketStatus.PAID:
                 return <Badge className="bg-green-100 text-green-700 hover:bg-green-100">Đã thanh toán</Badge>;
             case TicketStatus.BOOKED:
                 return <Badge className="bg-yellow-100 text-yellow-700 hover:bg-yellow-100">Chờ thanh toán</Badge>;
             case TicketStatus.CANCELLED:
+                if (refundAmount && refundAmount > 0) {
+                    if (isRefunded) {
+                        return <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100">Đã hoàn tiền</Badge>;
+                    } else {
+                        return <Badge className="bg-red-500 text-white animate-pulse hover:bg-red-600">Cần hoàn tiền</Badge>;
+                    }
+                }
                 return <Badge className="bg-red-100 text-red-700 hover:bg-red-100">Đã hủy</Badge>;
             default:
                 return <Badge variant="outline">{status}</Badge>;
@@ -152,12 +159,12 @@ export default function TicketListPage() {
                                 </TableCell>
                                 <TableCell>
                                     <Badge variant="secondary" className="font-mono">
-                                        {booking.seatCount} vé
+                                        1 vé
                                     </Badge>
                                 </TableCell>
                                 <TableCell>
                                     <span className="text-sm font-mono text-muted-foreground">
-                                        {booking.seatList}
+                                        {booking.seat?.seatNumber ? `Ghế ${booking.seat?.seatNumber}` : "N/A"}
                                     </span>
                                 </TableCell>
                                 <TableCell>
@@ -178,7 +185,7 @@ export default function TicketListPage() {
                                     </div>
                                 </TableCell>
                                 <TableCell>
-                                    {getStatusBadge(booking.status)}
+                                    {getStatusBadge(booking.status, booking.refundAmount, booking.isRefunded)}
                                 </TableCell>
                                 <TableCell className="text-muted-foreground text-sm">
                                     {formatDateTime(booking.createdAt)}

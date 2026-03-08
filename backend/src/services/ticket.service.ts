@@ -352,7 +352,8 @@ export class TicketService {
     const updateData: any = {
       status: TicketStatus.CANCELLED,
       cancellationFee: info.cancellationFee,
-      refundAmount: info.refundAmount
+      refundAmount: info.refundAmount,
+      isRefunded: false // explicitly set false when cancelled
     };
 
     await this.ticketRepo.update(id, updateData);
@@ -370,6 +371,27 @@ export class TicketService {
       cancellationFee: info.cancellationFee,
       refundAmount: info.refundAmount
     };
+  }
+
+  async processRefund(id: number) {
+    const ticket: any = await this.ticketRepo.findById(id);
+    if (!ticket) throw new NotFoundException('Vé không tồn tại');
+
+    if (ticket.status !== TicketStatus.CANCELLED) {
+      throw new BadRequestException('Chỉ có thể hoàn tiền cho vé đã bị hủy');
+    }
+
+    if (ticket.refundAmount <= 0) {
+      throw new BadRequestException('Vé này không có số tiền cần hoàn');
+    }
+
+    if (ticket.isRefunded) {
+      throw new BadRequestException('Vé này đã được hoàn tiền rồi');
+    }
+
+    await this.ticketRepo.update(id, { isRefunded: true });
+
+    return { message: 'Đã xác nhận hoàn tiền thành công' };
   }
 
   async getAllTickets() {
