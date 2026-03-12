@@ -1,9 +1,9 @@
-import { Body, Controller, Delete, Get, Param, Post, Query, Redirect, Logger, BadRequestException, ParseIntPipe } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Query, Redirect, Logger, BadRequestException, ParseIntPipe, UseGuards, Req, UnauthorizedException } from '@nestjs/common';
 import { TicketService } from '../services/ticket.service';
 import { CreateTicketDto } from '../dtos/ticket.dto';
 import { PaymentMethod } from '../models/Ticket';
 import { BulkCreateResponse } from '../dtos/ticket.response.dto';
-// import { PrismaService } from '../services/prisma.service'; // REMOVED
+import { FirebaseAuthGuard } from '../guards/firebase-auth.guard';
 import { ZaloPayService } from '../services/zalopay.service';
 import { Inject, forwardRef } from '@nestjs/common';
 
@@ -43,6 +43,16 @@ export class TicketController {
   @Get()
   async findAll() {
     return this.ticketService.getAllTickets();
+  }
+
+  @Get('my-brand')
+  @UseGuards(FirebaseAuthGuard)
+  async getMyBrandTickets(@Req() req: any) {
+    const brandId = req.user?.dbUser?.brandId;
+    if (!brandId) {
+      throw new UnauthorizedException('Người dùng không thuộc nhà xe nào.');
+    }
+    return this.ticketService.getTicketsByBrand(brandId);
   }
 
   @Get('bookings')

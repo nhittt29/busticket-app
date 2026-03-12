@@ -1,6 +1,6 @@
 "use client";
 
-import { useList, useUpdate } from "@refinedev/core";
+import { useList, useUpdate, useDelete } from "@refinedev/core";
 import { ListLayout } from "@/components/common/ListLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,7 +13,7 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Users, Search, Filter, Eye, Edit, Lock, Unlock, MoreHorizontal, ArrowLeft } from "lucide-react";
+import { Users, Search, Filter, Eye, Edit, Lock, Unlock, MoreHorizontal, ArrowLeft, Trash2 } from "lucide-react";
 import { IUser } from "@/interfaces/user";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -28,6 +28,17 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { useState } from "react";
 
 export default function UserListPage() {
     const router = useRouter();
@@ -45,6 +56,10 @@ export default function UserListPage() {
     const isLoading = query?.isLoading;
 
     const { mutate: updateUser } = useUpdate();
+    const { mutate: deleteUser } = useDelete();
+
+    const [deleteId, setDeleteId] = useState<number | null>(null);
+    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
     const handleToggleStatus = (id: number, currentStatus: boolean) => {
         updateUser(
@@ -68,6 +83,26 @@ export default function UserListPage() {
         );
     };
 
+    const handleDelete = (id: number) => {
+        deleteUser(
+            {
+                resource: "users",
+                id,
+            },
+            {
+                onSuccess: () => {
+                    toast.success("Xóa tài khoản thành công");
+                    setIsDeleteDialogOpen(false);
+                },
+                onError: (error) => {
+                    toast.error("Xóa tài khoản thất bại", {
+                        description: error.message,
+                    });
+                },
+            }
+        );
+    };
+
     const formatDateTime = (dateString: string) => {
         try {
             return format(new Date(dateString), "dd/MM/yyyy", { locale: vi });
@@ -82,10 +117,15 @@ export default function UserListPage() {
             description="Danh sách tài khoản người dùng và quản trị viên."
             icon={Users}
             actions={
-                <Button variant="outline" onClick={() => router.push("/")}>
-                    <ArrowLeft className="w-4 h-4 mr-2" />
-                    Quay lại
-                </Button>
+                <div className="flex gap-2">
+                    <Button variant="outline" onClick={() => router.push("/")}>
+                        <ArrowLeft className="w-4 h-4 mr-2" />
+                        Quay lại
+                    </Button>
+                    <Button onClick={() => router.push("/users/create")}>
+                        Thêm Người dùng
+                    </Button>
+                </div>
             }
             filters={
                 <div className="flex flex-col sm:flex-row gap-4">
@@ -199,6 +239,18 @@ export default function UserListPage() {
                                                     </>
                                                 )}
                                             </DropdownMenuItem>
+                                            <DropdownMenuSeparator />
+                                            <DropdownMenuItem
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setDeleteId(user.id);
+                                                    setIsDeleteDialogOpen(true);
+                                                }}
+                                                className="text-red-600 focus:text-red-600"
+                                            >
+                                                <Trash2 className="w-4 h-4 mr-2" />
+                                                Xóa tài khoản
+                                            </DropdownMenuItem>
                                         </DropdownMenuContent>
                                     </DropdownMenu>
                                 </TableCell>
@@ -207,6 +259,26 @@ export default function UserListPage() {
                     )}
                 </TableBody>
             </Table>
+
+            <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Bạn có chắc chắn muốn xóa?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Hành động này không thể hoàn tác. Tài khoản sẽ bị xóa vĩnh viễn khỏi hệ thống.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Hủy</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={() => deleteId && handleDelete(deleteId)}
+                            className="bg-red-600 hover:bg-red-700"
+                        >
+                            Xác nhận xóa
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </ListLayout>
     );
 }

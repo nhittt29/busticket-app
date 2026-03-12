@@ -6,9 +6,13 @@ import {
   Param,
   Post,
   Query,
+  UseGuards,
+  Req,
+  UnauthorizedException
 } from '@nestjs/common';
 import { ScheduleService } from '../services/schedule.service';
 import { CreateScheduleDto } from '../dtos/schedule.dto';
+import { FirebaseAuthGuard } from '../guards/firebase-auth.guard';
 
 @Controller('schedules')
 export class ScheduleController {
@@ -20,7 +24,7 @@ export class ScheduleController {
     return this.scheduleService.createSchedule(dto);
   }
 
-  // TÌM KIẾM CHUYẾN XE CHO KHÁCH HÀNG: THEO ĐIỂM ĐI - ĐIỂM ĐẾN - NGÀY (DÙNG CHO KHÁCH HÀNG ĐẶT VÉ)
+  // TÌM KIẾM CHUYẾN XE CHO KHÁCH HÀNG
   @Get()
   findAll(
     @Query('startPoint') startPoint?: string,
@@ -59,6 +63,17 @@ export class ScheduleController {
   @Get('admin')
   findAllForAdmin() {
     return this.scheduleService.getAllSchedulesForAdmin();
+  }
+
+  // LẤY DANH SÁCH CHUYẾN XE CỦA NHÀ XE ĐANG ĐĂNG NHẬP
+  @Get('my-brand')
+  @UseGuards(FirebaseAuthGuard)
+  getMyBrandSchedules(@Req() req: any) {
+    const brandId = req.user?.dbUser?.brandId;
+    if (!brandId) {
+      throw new UnauthorizedException('Người dùng không thuộc nhà xe nào.');
+    }
+    return this.scheduleService.getSchedulesByBrandId(brandId);
   }
 
   // LẤY THÔNG TIN CHI TIẾT MỘT CHUYẾN XE THEO ID

@@ -406,6 +406,10 @@ export class TicketService {
   }
   async getTicketById(id: number) { return this.ticketRepo.findById(id); }
 
+  async getTicketsByBrand(brandId: number) {
+    return this.ticketRepo.findByBrandId(brandId);
+  }
+
   async handleMomoRedirect(query: any) {
     this.logger.log(`MoMo Redirect Query: ${JSON.stringify(query)}`);
 

@@ -30,6 +30,15 @@ export class BusRepository {
     });
   }
 
+  // LẤY DANH SÁCH XE CỦA MỘT BRAND CỤ THỂ
+  async findByBrandId(brandId: number) {
+    return this.busRepo.find({
+      where: { brandId },
+      relations: ['brand', 'schedules', 'seats'],
+      order: { id: 'ASC' },
+    });
+  }
+
   // TẠO MỚI MỘT XE BUÝT + TỰ ĐỘNG TẠO ĐỦ GHẾ
   async create(data: CreateBusDto) {
     // Bước 1: Tạo xe

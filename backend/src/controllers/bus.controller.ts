@@ -1,8 +1,9 @@
-import { Body, Controller, Delete, Get, Param, Post, Put } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Put, UseGuards, Req, UnauthorizedException } from '@nestjs/common';
 import { BusService } from '../services/bus.service';
 import { CreateBusDto, UpdateBusDto } from '../dtos/bus.dto';
+import { FirebaseAuthGuard } from '../guards/firebase-auth.guard';
 
-@Controller('bus')
+@Controller('buses')
 export class BusController {
   constructor(private readonly busService: BusService) { }
 
@@ -10,6 +11,17 @@ export class BusController {
   @Get()
   getAll() {
     return this.busService.findAll();
+  }
+
+  // LẤY DANH SÁCH XE CỦA NHÀ XE ĐANG ĐĂNG NHẬP
+  @Get('my-brand')
+  @UseGuards(FirebaseAuthGuard)
+  getMyBrandBuses(@Req() req: any) {
+    const brandId = req.user?.dbUser?.brandId;
+    if (!brandId) {
+      throw new UnauthorizedException('Người dùng không thuộc nhà xe nào.');
+    }
+    return this.busService.findByBrandId(brandId);
   }
 
   // LẤY THÔNG TIN CHI TIẾT MỘT XE BUÝT THEO ID

@@ -326,4 +326,126 @@ export class StatsService {
         }
         return chartData;
     }
+
+    async getBrandPortalSummary(brandId: number) {
+        const todayStart = new Date();
+        todayStart.setHours(0, 0, 0, 0);
+        const todayEnd = new Date();
+        todayEnd.setHours(23, 59, 59, 999);
+
+        const yesterdayStart = new Date(todayStart);
+        yesterdayStart.setDate(yesterdayStart.getDate() - 1);
+        const yesterdayEnd = new Date(todayEnd);
+        yesterdayEnd.setDate(yesterdayEnd.getDate() - 1);
+
+        // 1. Day Revenue & Tickets Sold
+        const getRevenueAndTickets = async (start: Date, end: Date) => {
+            const result = await this.ticketRepo.createQueryBuilder('ticket')
+                .leftJoin('ticket.schedule', 'schedule')
+                .leftJoin('schedule.bus', 'bus')
+                .select('SUM(ticket.totalPrice)', 'revenue')
+                .addSelect('COUNT(ticket.id)', 'ticketsSold')
+                .where('bus.brandId = :brandId', { brandId })
+                .andWhere('ticket.status = :status', { status: 'PAID' })
+                .andWhere('ticket.updatedAt BETWEEN :start AND :end', { start, end })
+                .getRawOne();
+             
+           return {
+               revenue: parseFloat(result?.revenue) || 0,
+               ticketsSold: parseInt(result?.ticketsSold) || 0
+           };
+        };
+
+        const todayStats = await getRevenueAndTickets(todayStart, todayEnd);
+        const yesterdayStats = await getRevenueAndTickets(yesterdayStart, yesterdayEnd);
+
+        const calcGrowth = (current: number, past: number) => {
+            if (past === 0) return current > 0 ? 100 : 0;
+            return ((current - past) / past) * 100;
+        };
+
+        // 2. Occupancy Rate (Today's schedules)
+        const totalCapacityResult = await this.scheduleRepo
+            .createQueryBuilder('schedule')
+            .leftJoin('schedule.bus', 'bus')
+            .select('SUM(bus.seatCount)', 'total')
+            .where('bus.brandId = :brandId', { brandId })
+            .andWhere('schedule.departureAt BETWEEN :start AND :end', { start: todayStart, end: todayEnd })
+            .andWhere('schedule.status != :cancelledStatus', { cancelledStatus: 'CANCELLED' })
+            .getRawOne();
+            
+        const totalSoldResult = await this.ticketRepo
+            .createQueryBuilder('ticket')
+            .leftJoin('ticket.schedule', 'schedule')
+            .leftJoin('schedule.bus', 'bus')
+            .select('COUNT(ticket.id)', 'count')
+            .where('bus.brandId = :brandId', { brandId })
+            .andWhere('schedule.departureAt BETWEEN :start AND :end', { start: todayStart, end: todayEnd })
+            .andWhere('schedule.status != :cancelledStatus', { cancelledStatus: 'CANCELLED' })
+            .andWhere('ticket.status IN (:...statuses)', { statuses: ['PAID', 'BOOKED'] })
+            .getRawOne();
+
+        const totalCapacity = Number(totalCapacityResult?.total) || 0;
+        const totalSold = Number(totalSoldResult?.count) || 0;
+        const occupancyRate = totalCapacity > 0 ? (totalSold / totalCapacity) * 100 : 0;
+
+        // 3. Weekly Revenue Chart
+        const weekStart = new Date();
+        weekStart.setDate(weekStart.getDate() - 6);
+        weekStart.setHours(0,0,0,0);
+
+        const weekTickets = await this.ticketRepo.createQueryBuilder('ticket')
+            .leftJoin('ticket.schedule', 'schedule')
+            .leftJoin('schedule.bus', 'bus')
+            .select('ticket.updatedAt', 'date')
+            .addSelect('ticket.totalPrice', 'price')
+            .where('bus.brandId = :brandId', { brandId })
+            .andWhere('ticket.status = :status', { status: 'PAID' })
+            .andWhere('ticket.updatedAt >= :weekStart', { weekStart })
+            .getRawMany();
+
+        const chartData: any[] = [];
+        for (let i = 6; i >= 0; i--) {
+            const d = new Date();
+            d.setDate(d.getDate() - i);
+            const dateStr = d.toISOString().split('T')[0];
+            const rev = weekTickets.filter(t => t.date && t.date.toISOString().split('T')[0] === dateStr)
+                                 .reduce((sum, current) => sum + Number(current.price), 0);
+            chartData.push({
+                date: `${d.getDate()}/${d.getMonth() + 1}`,
+                fullDate: dateStr,
+                revenue: rev
+            });
+        }
+
+        // 4. Upcoming Trips
+        const upcomingTrips = await this.scheduleRepo.find({
+            where: {
+                bus: { brandId: brandId },
+                status: 'UPCOMING',
+                departureAt: MoreThanOrEqual(new Date())
+            },
+            relations: ['bus', 'route'],
+            order: { departureAt: 'ASC' },
+            take: 3
+        });
+
+        return {
+            dayRevenue: todayStats.revenue,
+            revenueGrowth: parseFloat(calcGrowth(todayStats.revenue, yesterdayStats.revenue).toFixed(1)),
+            ticketsSoldToday: todayStats.ticketsSold,
+            ticketsSoldGrowth: parseFloat(calcGrowth(todayStats.ticketsSold, yesterdayStats.ticketsSold).toFixed(1)),
+            occupancyRate: Math.round(occupancyRate * 10) / 10,
+            totalSchedulesToday: await this.scheduleRepo.count({
+                 where: { bus: { brandId }, departureAt: Between(todayStart, todayEnd), status: Not('CANCELLED') }
+            }),
+            weeklyRevenueChart: chartData,
+            upcomingTrips: upcomingTrips.map(s => ({
+                id: s.id,
+                route: `${s.route?.startPoint} → ${s.route?.endPoint}`,
+                departureAt: s.departureAt,
+                busPlate: s.bus?.licensePlate
+            }))
+        };
+    }
 }

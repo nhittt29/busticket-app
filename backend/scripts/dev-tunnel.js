@@ -19,7 +19,13 @@ dotenv.config();
     // Strategy 2: If failed, Fallback to serveo.net
     if (!success) {
         console.log('⚠️ Primary tunnel failed. Switching to backup (Serveo)...');
-        await tryTunnel('serveo.net', ['-o', 'StrictHostKeyChecking=no', '-o', `UserKnownHostsFile=${nullDevice}`, '-R', '80:localhost:4000', 'serveo.net']);
+        const successServeo = await tryTunnel('serveo.net', ['-o', 'StrictHostKeyChecking=no', '-o', `UserKnownHostsFile=${nullDevice}`, '-R', '80:localhost:4000', 'serveo.net']);
+        
+        // Final Fallback: Start backend without tunnel
+        if (!successServeo) {
+            console.log('⚠️ All tunnels failed. Starting backend offline...');
+            startBackend('http://localhost:4000/api/tickets/zalopay/callback', { pid: 0 }); // Mock tunnelProc
+        }
     }
 
     function tryTunnel(name, args) {
@@ -58,11 +64,21 @@ dotenv.config();
                     console.log(`✅ ${serverName} Active: ${tunnelUrl}`);
                     console.log(`📌 Callback URL: ${callbackUrl}`);
 
-                    startBackend(callbackUrl, tunnelProc);
                     backendStarted = true;
+                    if (timeoutId) clearTimeout(timeoutId);
+                    startBackend(callbackUrl, tunnelProc);
                     resolve(true); // Success
                 }
             }
+
+            // Timeout fallback: if tunnel does not establish in 8 seconds, skip it so we don't block
+            const timeoutId = setTimeout(() => {
+                if (!backendStarted) {
+                    console.error(`⌛ ${name} connection timed out. Skipping...`);
+                    tunnel.kill(); // this will trigger the 'close' event
+                    resolve(false);
+                }
+            }, 8000);
         });
     }
 

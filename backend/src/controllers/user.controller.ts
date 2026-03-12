@@ -17,10 +17,18 @@ export class UserController {
         return this.userService.findOne(+id);
     }
 
-    // CẬP NHẬT THÔNG TIN NGƯỜI DÙNG (HỌ TÊN, SỐ ĐIỆN THOẠI, ĐỊA CHỈ, VAI TRÒ...)
+    // CẬP NHẬT THÔNG TIN NGƯỜI DÙNG (HỌ TÊN, SỐ ĐIỆN THOẠI, ĐỊA CHỈ, VAI TRÒ, BRAND...)
     @Put(':id')
     update(@Param('id') id: string, @Body() body: any) {
-        return this.userService.update(+id, body);
+        // Prepare allowed keys for update including roleId and brandId
+        const updateData: any = {};
+        const allowedKeys = ['name', 'phone', 'isActive', 'roleId', 'brandId', 'avatar', 'faceUrl', 'dob', 'gender', 'address'];
+        allowedKeys.forEach(key => {
+            if (body[key] !== undefined) {
+                updateData[key] = body[key];
+            }
+        });
+        return this.userService.update(+id, updateData);
     }
 
     // XÓA NGƯỜI DÙNG KHỎI HỆ THỐNG (SOFT DELETE HOẶC HARD DELETE TÙY SERVICE)

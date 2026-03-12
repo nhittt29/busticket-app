@@ -33,6 +33,33 @@ export class AuthController {
   ) { }
 
   // ========================================
+  // 🔹 ĐĂNG KÝ BỞI ADMIN (KHÔNG CẦN DUYỆT EMAIL)
+  // ========================================
+  @Post('admin-register')
+  async adminRegister(@Body() body: any) {
+    const { email, password, name, phone, roleId, brandId } = body;
+    if (!email || !password || !name) {
+      throw new BadRequestException('Email, password, and name are required.');
+    }
+    try {
+        const user = await this.authService.registerAsAdmin(
+          email,
+          password,
+          name,
+          phone,
+          parseInt(roleId),
+          brandId ? parseInt(brandId) : undefined,
+        );
+        return {
+          message: 'Người dùng được tạo thành công.',
+          user,
+        };
+    } catch (error: any) {
+        throw new BadRequestException(error.message || 'Lỗi hệ thống khi tạo người dùng');
+    }
+  }
+
+  // ========================================
   // 🔹 ĐĂNG KÝ NGƯỜI DÙNG (CÓ UPLOAD ẢNH)
   // ========================================
   @Post('register')

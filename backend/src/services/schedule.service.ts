@@ -26,6 +26,11 @@ export class ScheduleService {
     return this.scheduleRepo.getAllSchedulesForAdmin();
   }
 
+  // LẤY DANH SÁCH CHUYẾN XE CỦA NHÀ XE
+  async getSchedulesByBrandId(brandId: number) {
+    return this.scheduleRepo.getSchedulesByBrandId(brandId);
+  }
+
   // LẤY CHI TIẾT MỘT CHUYẾN XE
   async getScheduleById(id: number) {
     const schedule = await this.scheduleRepo.getScheduleById(id);

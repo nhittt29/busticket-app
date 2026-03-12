@@ -87,6 +87,67 @@ export class AuthService {
   }
 
   // ======================================================
+  // 🔹 Đăng ký Tài khoản bởi Admin (Hỗ trợ roleId, brandId)
+  // ======================================================
+  async registerAsAdmin(
+    email: string,
+    password: string,
+    name: string,
+    phone?: string,
+    roleId?: number,
+    brandId?: number,
+  ): Promise<any> {
+    const existingUser = await this.userRepository.findByEmail(email);
+    if (existingUser) {
+      throw new ConflictException('Email đã tồn tại!');
+    }
+
+    try {
+      // 1. Create user in Firebase Auth
+      const userRecord = await auth.createUser({
+        email,
+        password,
+        displayName: name,
+      });
+
+      // 2. Add to Firestore DB
+      await firestore.collection('users').doc(userRecord.uid).set({
+        name,
+        email,
+        phone: phone || null,
+        avatar: 'uploads/avatars/default.png',
+        dob: null,
+        gender: 'OTHER',
+        createdAt: new Date(),
+      });
+
+      // 3. Add to Postgres DB
+      const rId = roleId || 2; // Default to Passenger (2) if not specified
+      const newUser = await this.userRepository.createUser({
+        uid: userRecord.uid,
+        name,
+        email,
+        phone: phone || undefined,
+        isActive: true,
+        roleId: rId,
+        avatar: 'uploads/avatars/default.png',
+        dob: undefined,
+        gender: 'OTHER',
+      });
+
+      // Update brandId if specified
+      if (brandId && newUser) {
+         await this.userRepository.updateUser(newUser.id, { brandId: brandId });
+      }
+
+      return newUser;
+    } catch (error) {
+      if (error instanceof ConflictException) throw error;
+      throw new Error(`Admin user creation failed: ${error.message}`);
+    }
+  }
+
+  // ======================================================
   // 🔹 Đăng nhập
   // ======================================================
   async login(
@@ -137,8 +198,11 @@ export class AuthService {
         role: user.role ? { id: user.role.id, name: user.role.name } : undefined
       };
 
-      // Generate Custom Token for SSO
-      const customToken = await auth.createCustomToken(uid);
+      // Generate Custom Token for SSO and inject brandId and roleId
+      const customToken = await auth.createCustomToken(uid, {
+        brandId: user.brand?.id || null,
+        roleId: user.roleId || 2, // Default to passenger
+      });
 
       return {
         idToken,

@@ -56,6 +56,20 @@ export class TicketRepository {
     });
   }
 
+  // BRAND: Retrieve tickets for a specific brand
+  async findByBrandId(brandId: number) {
+    return this.ticketRepo.createQueryBuilder('ticket')
+      .leftJoinAndSelect('ticket.user', 'user')
+      .leftJoinAndSelect('ticket.schedule', 'schedule')
+      .leftJoinAndSelect('schedule.bus', 'bus')
+      .leftJoinAndSelect('schedule.route', 'route')
+      .leftJoinAndSelect('ticket.seat', 'seat')
+      .leftJoinAndSelect('ticket.paymentHistory', 'paymentHistory')
+      .where('bus.brandId = :brandId', { brandId })
+      .orderBy('ticket.createdAt', 'DESC')
+      .getMany();
+  }
+
   async findUnreviewedTickets(userId: number) {
     const now = new Date();
     return this.ticketRepo.createQueryBuilder('ticket')

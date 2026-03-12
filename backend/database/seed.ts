@@ -32,7 +32,7 @@ async function main() {
         // ======================================
         // 🔹 1. Tạo Roles
         // ======================================
-        const roles = ['ADMIN', 'PASSENGER'];
+        const roles = ['ADMIN', 'PASSENGER', 'BRAND_MANAGER'];
         const roleMap = new Map<string, Role>();
 
         for (const roleName of roles) {

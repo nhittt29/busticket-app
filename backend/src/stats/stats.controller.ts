@@ -1,5 +1,6 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, UseGuards, Req, UnauthorizedException } from '@nestjs/common';
 import { StatsService } from './stats.service';
+import { FirebaseAuthGuard } from '../guards/firebase-auth.guard';
 
 @Controller('stats')
 export class StatsController {
@@ -8,6 +9,16 @@ export class StatsController {
     @Get('summary')
     async getSummary() {
         return this.statsService.getSummary();
+    }
+
+    @Get('my-brand-summary')
+    @UseGuards(FirebaseAuthGuard)
+    async getMyBrandSummary(@Req() req: any) {
+        const brandId = req.user?.dbUser?.brandId;
+        if (!brandId) {
+            throw new UnauthorizedException('Người dùng không thuộc nhà xe nào.');
+        }
+        return this.statsService.getBrandPortalSummary(brandId);
     }
 
     @Get('revenue-chart')

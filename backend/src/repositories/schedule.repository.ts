@@ -152,6 +152,14 @@ export class ScheduleRepository {
             order: { departureAt: 'DESC' }
         });
     }
+
+    async getSchedulesByBrandId(brandId: number) {
+        return this.scheduleRepo.find({
+            where: { bus: { brandId: brandId } },
+            relations: ['bus', 'bus.brand', 'route'],
+            order: { departureAt: 'DESC' }
+        });
+    }
     async getDropoffPoints(scheduleId: number) {
         const schedule = await this.scheduleRepo.findOne({
             where: { id: scheduleId },

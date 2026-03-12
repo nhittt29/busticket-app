@@ -3,6 +3,7 @@ import { Role } from './Role.entity';
 import { Ticket } from './Ticket.entity';
 import { Review } from './Review.entity';
 import { Notification } from './Notification.entity';
+import { Brand } from './Brand.entity';
 
 @Entity('User')
 export class User {
@@ -51,6 +52,13 @@ export class User {
     @ManyToOne(() => Role, (role) => role.users)
     @JoinColumn({ name: 'roleId' })
     role: Role;
+
+    @Column({ nullable: true })
+    brandId: number;
+
+    @ManyToOne(() => Brand, { nullable: true })
+    @JoinColumn({ name: 'brandId' })
+    brand: Brand;
 
     @OneToMany(() => Ticket, (ticket) => ticket.user)
     tickets: Ticket[];

@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, MiddlewareConsumer } from '@nestjs/common';
 import { BullModule } from '@nestjs/bull';
 import { ScheduleModule as NestScheduleModule } from '@nestjs/schedule';
 import { ConfigModule, ConfigService } from '@nestjs/config';
@@ -10,6 +10,7 @@ import { UserRepository } from './repositories/user.repository';
 import { RoleRepository } from './repositories/role.repository';
 import { EmailService } from './services/email.service';
 import { UploadService } from './services/upload.service';
+import { ScheduleCronService } from './services/schedule.cron';
 
 import { BusModule } from './modules/bus.module';
 import { BrandModule } from './modules/brand.module';
@@ -105,6 +106,15 @@ import { Notification } from './entities/Notification.entity';
     UploadModule,
   ],
   controllers: [AuthController],
-  providers: [AuthService, UserRepository, RoleRepository, EmailService, UploadService],
+  providers: [
+    AuthService, 
+    UserRepository, 
+    RoleRepository, 
+    EmailService, 
+    UploadService,    
+    ScheduleCronService,
+  ],
 })
-export class AppModule { }
+export class AppModule {
+  configure(consumer: MiddlewareConsumer) {}
+}

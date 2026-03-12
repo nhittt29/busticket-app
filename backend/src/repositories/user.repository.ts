@@ -45,7 +45,7 @@ export class UserRepository {
   async findById(id: number) {
     return this.userRepo.findOne({
       where: { id },
-      relations: ['role', 'tickets'],
+      relations: ['role', 'brand', 'tickets'],
     });
   }
 
@@ -53,7 +53,7 @@ export class UserRepository {
   async findByEmail(email: string) {
     return this.userRepo.findOne({
       where: { email },
-      relations: ['role', 'tickets'],
+      relations: ['role', 'brand', 'tickets'],
     });
   }
 
@@ -61,7 +61,7 @@ export class UserRepository {
   async findByUid(uid: string) {
     return this.userRepo.findOne({
       where: { uid },
-      relations: ['role', 'tickets'],
+      relations: ['role', 'brand', 'tickets'],
     });
   }
 
@@ -73,6 +73,7 @@ export class UserRepository {
       phone?: string;
       isActive?: boolean;
       roleId?: number;
+      brandId?: number;
       avatar?: string;
       faceUrl?: string;
       dob?: Date;
@@ -96,7 +97,7 @@ export class UserRepository {
   // LẤY DANH SÁCH TẤT CẢ NGƯỜI DÙNG
   async findAll() {
     return this.userRepo.find({
-      relations: ['role', 'tickets'],
+      relations: ['role', 'brand', 'tickets'],
       order: { id: 'ASC' },
     });
   }

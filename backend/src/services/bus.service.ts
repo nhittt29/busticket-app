@@ -12,6 +12,10 @@ export class BusService {
     return this.busRepo.findAll();
   }
 
+  async findByBrandId(brandId: number) {
+    return this.busRepo.findByBrandId(brandId);
+  }
+
   async findOne(id: number) {
     return this.busRepo.findById(id);
   }

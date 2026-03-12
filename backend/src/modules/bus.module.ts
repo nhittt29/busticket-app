@@ -7,9 +7,10 @@ import { Bus } from '../entities/Bus.entity';
 import { Seat } from '../entities/Seat.entity';
 import { Brand } from '../entities/Brand.entity'; // Might be needed for cascading or checks if repo extended
 import { Schedule } from '../entities/Schedule.entity';
+import { User } from '../entities/User.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Bus, Seat, Brand, Schedule])],
+  imports: [TypeOrmModule.forFeature([Bus, Seat, Brand, Schedule, User])],
   controllers: [BusController],
   providers: [BusService, BusRepository], // PrismaService removed
   exports: [BusService],

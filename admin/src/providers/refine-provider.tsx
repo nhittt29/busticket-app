@@ -13,6 +13,10 @@ export function RefineProvider({ children }: { children: React.ReactNode }) {
             routerProvider={routerProvider}
             resources={[
                 {
+                    name: "roles",
+                    list: "/roles",
+                },
+                {
                     name: "users",
                     list: "/users",
                     create: "/users/create",
