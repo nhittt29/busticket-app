@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between } from 'typeorm';
+import { Repository, Between, EntityManager } from 'typeorm';
 import { Ticket } from '../entities/Ticket.entity';
 
 @Injectable()
@@ -37,6 +37,25 @@ export class TicketRepository {
     return this.ticketRepo.findOne({
       where: { scheduleId, seatId, status: 'BOOKED' } // Enum string value
     });
+  }
+
+  /**
+   * ✅ Kiểm tra xem ghế đã được đặt hay chưa bằng cách sử dụng Pessimistic Locking (FOR UPDATE)
+   * Giúp ngăn chặn 2 người cùng đặt 1 ghế tại 1 thời điểm.
+   */
+  async checkSeatAvailableWithLock(scheduleId: number, seatId: number, manager?: EntityManager): Promise<boolean> {
+    const repo = manager ? manager.getRepository(Ticket) : this.ticketRepo;
+    
+    // Tìm bất kỳ vé nào đang ở trạng thái BOOKED hoặc PAID cho ghế này
+    // Sử dụng setLock('pessimistic_write') để khóa bản ghi này lại trong transaction
+    const existingTicket = await repo.createQueryBuilder('ticket')
+      .setLock('pessimistic_write')
+      .where('ticket.scheduleId = :scheduleId', { scheduleId })
+      .andWhere('ticket.seatId = :seatId', { seatId })
+      .andWhere('ticket.status IN (:...statuses)', { statuses: ['BOOKED', 'PAID'] })
+      .getOne();
+
+    return !existingTicket;
   }
 
   async findUserBookedToday(userId: number) {

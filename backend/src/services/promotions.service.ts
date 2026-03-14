@@ -33,7 +33,10 @@ export class PromotionsService {
         return this.promotionsRepo.findAllAdmin();
     }
 
-    async findActive() {
+    async findActive(userId?: number) {
+        if (userId) {
+            return this.promotionsRepo.findActiveForUser(userId);
+        }
         return this.promotionsRepo.findActive();
     }
 
@@ -56,7 +59,7 @@ export class PromotionsService {
         return this.promotionsRepo.delete(id);
     }
 
-    async applyPromotion(code: string, orderValue: number) {
+    async applyPromotion(code: string, orderValue: number, userId: number) {
         const promotion = await this.promotionsRepo.findByCode(code);
 
         if (!promotion) {
@@ -70,6 +73,12 @@ export class PromotionsService {
         const now = new Date();
         if (now < promotion.startDate || now > promotion.endDate) {
             throw new BadRequestException('Mã khuyến mãi đã hết hạn hoặc chưa bắt đầu');
+        }
+
+        // Check if user has already used this promotion
+        const usedIds = await this.promotionsRepo.getUsedPromotionIdsByUser(userId);
+        if (usedIds.includes(promotion.id)) {
+            throw new BadRequestException('Mã khuyến mãi này bạn đã sử dụng rồi');
         }
 
         if (promotion.usageLimit > 0 && promotion.usedCount >= promotion.usageLimit) {

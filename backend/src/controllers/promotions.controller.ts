@@ -1,6 +1,7 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, ParseIntPipe } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, ParseIntPipe, Req } from '@nestjs/common';
 import { PromotionsService } from '../services/promotions.service';
 import { DiscountType } from '../models/Promotion';
+import { FirebaseAuthGuard } from '../guards/firebase-auth.guard';
 
 @Controller('promotions')
 export class PromotionsController {
@@ -40,12 +41,16 @@ export class PromotionsController {
 
     // --- USER ENDPOINTS ---
     @Get()
-    findActive() {
-        return this.promotionsService.findActive();
+    @UseGuards(FirebaseAuthGuard)
+    findActive(@Req() req: any) {
+        const userId = req.user?.id;
+        return this.promotionsService.findActive(userId);
     }
 
     @Post('apply')
-    apply(@Body() body: { code: string; orderValue: number }) {
-        return this.promotionsService.applyPromotion(body.code, body.orderValue);
+    @UseGuards(FirebaseAuthGuard)
+    apply(@Req() req: any, @Body() body: { code: string; orderValue: number }) {
+        const userId = req.user?.id;
+        return this.promotionsService.applyPromotion(body.code, body.orderValue, userId);
     }
 }

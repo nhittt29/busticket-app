@@ -6,19 +6,23 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Users, ArrowLeft, Mail, Phone, Calendar, User as UserIcon, Shield } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { Users, ArrowLeft, Mail, Phone, Calendar, User as UserIcon, Shield, BusFront, MapPin, Ticket, ShieldCheck, Activity } from "lucide-react";
+import { useParams, useRouter } from "next/navigation";
 import { IUser } from "@/interfaces/user";
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
-export default function UserShowPage({ params }: { params: { id: string } }) {
+export default function UserShowPage() {
     const router = useRouter();
-    const { data, isLoading } = useOne<IUser>({
+    const { id } = useParams();
+    
+    const { query } = useOne<IUser>({
         resource: "users",
-        id: params.id,
-    }) as any;
+        id: id as string,
+    });
+
+    const { data, isLoading } = query;
 
     const user = data?.data;
 
@@ -125,6 +129,91 @@ export default function UserShowPage({ params }: { params: { id: string } }) {
 
                 {/* Sidebar Info */}
                 <div className="space-y-6">
+                    {user.role?.name === "BRAND_MANAGER" && user.brand && (
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2">
+                                    <BusFront className="w-5 h-5 text-primary" />
+                                    Nhà xe Quản lý
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                <div className="flex items-center gap-4">
+                                    <Avatar className="w-16 h-16 border bg-muted">
+                                        <AvatarImage src={user.brand.image} alt={user.brand.name} className="object-cover" />
+                                        <AvatarFallback><BusFront className="w-6 h-6 text-muted-foreground" /></AvatarFallback>
+                                    </Avatar>
+                                    <div>
+                                        <h4 className="font-bold text-lg">{user.brand.name}</h4>
+                                        <Badge variant="secondary">ID: #{user.brand.id}</Badge>
+                                    </div>
+                                </div>
+                                <Separator />
+                                <div className="space-y-3">
+                                    {user.brand.phoneNumber && (
+                                        <div className="flex items-start text-sm gap-2">
+                                            <Phone className="w-4 h-4 mt-0.5 text-muted-foreground shrink-0" />
+                                            <span>{user.brand.phoneNumber}</span>
+                                        </div>
+                                    )}
+                                    {user.brand.address && (
+                                        <div className="flex items-start text-sm gap-2">
+                                            <MapPin className="w-4 h-4 mt-0.5 text-muted-foreground shrink-0" />
+                                            <span className="line-clamp-2">{user.brand.address}</span>
+                                        </div>
+                                    )}
+                                </div>
+                            </CardContent>
+                        </Card>
+                    )}
+
+                    {user.role?.name === "PASSENGER" && (
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2">
+                                    <Activity className="w-5 h-5 text-primary" />
+                                    Hoạt động Hành khách
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2 text-muted-foreground">
+                                        <Ticket className="w-4 h-4" />
+                                        <span className="text-sm">Tổng vé đã đặt</span>
+                                    </div>
+                                    <Badge variant="secondary" className="text-base font-bold">
+                                        {user.tickets?.length || 0} vé
+                                    </Badge>
+                                </div>
+                                <p className="text-xs text-muted-foreground text-center mt-2">
+                                    Số liệu dựa trên lịch sử giao dịch.
+                                </p>
+                            </CardContent>
+                        </Card>
+                    )}
+
+                    {user.role?.name === "ADMIN" && (
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2">
+                                    <ShieldCheck className="w-5 h-5 text-primary" />
+                                    Quyền Quản trị
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                <div className="p-3 bg-primary/10 rounded-lg flex items-start gap-3">
+                                    <ShieldCheck className="w-5 h-5 text-primary mt-0.5 shrink-0" />
+                                    <div>
+                                        <p className="font-semibold text-sm">Toàn quyền hệ thống</p>
+                                        <p className="text-xs text-muted-foreground mt-1">
+                                            Quản trị viên có quyền truy cập, chỉnh sửa và quản lý mọi module trên hệ thống BusTicket.
+                                        </p>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    )}
+
                     <Card>
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">

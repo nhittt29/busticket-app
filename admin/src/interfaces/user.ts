@@ -13,6 +13,14 @@ export interface IUser {
         id: number;
         name: string;
     };
+    brand?: {
+        id: number;
+        name: string;
+        phoneNumber?: string;
+        image?: string;
+        address?: string;
+    };
+    tickets?: any[];
     createdAt: string;
     updatedAt: string;
 }

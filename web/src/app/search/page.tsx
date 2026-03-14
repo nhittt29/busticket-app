@@ -19,6 +19,7 @@ function SearchResultsContent() {
     const startPoint = searchParams.get("startPoint") || "";
     const endPoint = searchParams.get("endPoint") || "";
     const date = searchParams.get("date") || "";
+    const passengers = searchParams.get("passengers") || "1";
 
     useEffect(() => {
         const fetchData = async () => {
@@ -27,7 +28,7 @@ function SearchResultsContent() {
             try {
                 // If no date is selected, maybe default to today or show error? 
                 // For now allow fetch.
-                const data = await scheduleApi.getSchedules({ startPoint, endPoint, date });
+                const data = await scheduleApi.getSchedules({ startPoint, endPoint, date, passengers: parseInt(passengers) });
                 setSchedules(data);
             } catch (err) {
                 setError("Không thể tải danh sách chuyến xe. Vui lòng thử lại.");
@@ -36,14 +37,14 @@ function SearchResultsContent() {
             }
         };
 
-        if (startPoint || endPoint || date) {
+        if (startPoint || endPoint || date || passengers) {
             fetchData();
         } else {
             // If accessed directly without params, maybe fetch all or show empty?
             // Let's fetch all for demo purpose of "Browsing"
             fetchData();
         }
-    }, [startPoint, endPoint, date]);
+    }, [startPoint, endPoint, date, passengers]);
 
     return (
         <div className="min-h-screen pb-20">

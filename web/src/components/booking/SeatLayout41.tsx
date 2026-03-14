@@ -52,17 +52,25 @@ export function SeatLayout41({ seats, selectedSeats, invalidSeatId, onSelectSeat
     }
 
     return (
-        <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm max-w-4xl mx-auto">
-            <div className="flex items-center gap-2 mb-8 border-b pb-4 border-slate-100 dark:border-slate-800">
-                <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center">
-                    <span className="material-symbols-outlined text-slate-500">sports_scoring</span>
+        <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm max-w-4xl mx-auto relative pt-12 mt-4">
+            {/* Top Fixed Elements */}
+            <div className="absolute top-4 right-6 flex items-center gap-2">
+                <span className="font-bold text-slate-600 dark:text-slate-300 text-sm">Cửa</span>
+                <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center shadow-sm">
+                    <span className="material-symbols-outlined text-slate-500">door_open</span>
                 </div>
-                <span className="font-bold text-slate-600 dark:text-slate-300">Tài xế</span>
             </div>
 
-            <div className="flex flex-col md:flex-row justify-around gap-12 bg-white">
+            <div className="flex flex-col md:flex-row justify-around gap-12 bg-white pt-4">
                 {/* Lower Floor - Adjusted */}
-                <div className="flex flex-col items-center">
+                <div className="flex flex-col items-center relative pt-12 w-fit">
+                    <div className="absolute top-0 left-0 flex items-center gap-2">
+                        <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center shadow-sm">
+                            <span className="material-symbols-outlined text-slate-500">album</span>
+                        </div>
+                        <span className="font-bold text-slate-600 dark:text-slate-300 text-sm">Tài xế</span>
+                    </div>
+
                     <div className="flex items-center gap-2 mb-4 font-bold text-green-600">
                         <span className="material-symbols-outlined">bed</span>
                         Tầng dưới

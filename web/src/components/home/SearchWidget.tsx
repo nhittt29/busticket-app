@@ -1,11 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { format } from "date-fns";
+import { vi } from "date-fns/locale";
 
 export function SearchWidget() {
     const router = useRouter();
+    const dateInputRef = useRef<HTMLInputElement>(null);
     const [from, setFrom] = useState("");
     const [to, setTo] = useState("");
     const [date, setDate] = useState("");
@@ -70,15 +73,31 @@ export function SearchWidget() {
                         {/* Date Field */}
                         <label className="flex flex-col w-full">
                             <span className="text-slate-500 dark:text-slate-400 text-xs font-bold uppercase tracking-wider mb-2.5 ml-1">Ngày đi</span>
-                            <div className="relative group">
-                                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                            <div 
+                                className="relative group cursor-pointer"
+                                onClick={() => {
+                                    if (dateInputRef.current && 'showPicker' in dateInputRef.current) {
+                                        try { dateInputRef.current.showPicker(); } catch (e) {}
+                                    }
+                                }}
+                            >
+                                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none z-10">
                                     <span className="material-symbols-outlined text-blue-500 group-focus-within:text-blue-600 transition-colors">calendar_today</span>
                                 </div>
                                 <input
+                                    type="text"
+                                    readOnly
+                                    placeholder="dd/mm/yyyy"
+                                    value={date ? format(new Date(date), "dd/MM/yyyy", { locale: vi }) : ""}
+                                    className="w-full pl-11 pr-4 py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none font-medium transition-all pointer-events-none"
+                                />
+                                <input
+                                    ref={dateInputRef}
                                     type="date"
+                                    min={new Date().toISOString().split('T')[0]}
                                     value={date}
                                     onChange={(e) => setDate(e.target.value)}
-                                    className="w-full pl-11 pr-4 py-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50 rounded-xl text-slate-900 dark:text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none font-medium transition-all"
+                                    className="absolute bottom-0 left-1/2 w-0 h-0 opacity-0 pointer-events-none"
                                 />
                             </div>
                         </label>
@@ -97,7 +116,7 @@ export function SearchWidget() {
                                     <option value={1}>1 Hành khách</option>
                                     <option value={2}>2 Hành khách</option>
                                     <option value={3}>3 Hành khách</option>
-                                    <option value={4}>4+ Hành khách</option>
+                                    <option value={4}>4 Hành khách</option>
                                 </select>
                                 <div className="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none text-slate-400">
                                     <span className="material-symbols-outlined text-lg">expand_more</span>

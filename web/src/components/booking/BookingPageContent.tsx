@@ -12,6 +12,7 @@ import { seatApi } from "@/lib/api/seat";
 import { SeatLogic } from "@/lib/booking/seatLogic";
 import { Loader2 } from "lucide-react";
 import { BookingConfirmationModal } from "./BookingConfirmationModal";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface BookingPageContentProps {
     scheduleId: number;
@@ -24,7 +25,8 @@ export function BookingPageContent({ scheduleId }: BookingPageContentProps) {
     const [selectedSeats, setSelectedSeats] = useState<Seat[]>([]);
     const [invalidSeatId, setInvalidSeatId] = useState<number | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [maxSeats] = useState(8); // Updated policy to 8 seats
+    const [isPolicyModalOpen, setIsPolicyModalOpen] = useState(false);
+    const [maxSeats] = useState(4); // Updated policy from 8 to 4 seats
 
     useEffect(() => {
         const fetchSeats = async () => {
@@ -170,7 +172,7 @@ export function BookingPageContent({ scheduleId }: BookingPageContentProps) {
                         <span className="material-symbols-outlined">arrow_back_ios_new</span>
                     </button>
                     <h1 className="text-lg font-bold">Chọn ghế: {seatMap.busName}</h1>
-                    <button className="p-2 hover:bg-white/20 rounded-full transition-colors">
+                    <button onClick={() => setIsPolicyModalOpen(true)} className="p-2 hover:bg-white/20 rounded-full transition-colors">
                         <span className="material-symbols-outlined">info</span>
                     </button>
                 </div>
@@ -202,32 +204,6 @@ export function BookingPageContent({ scheduleId }: BookingPageContentProps) {
                     </div>
 
                     {renderLayout()}
-
-                    {/* Cancellation Policy */}
-                    <div className="mt-8 bg-blue-50/50 dark:bg-slate-900 border border-blue-100 dark:border-slate-800 rounded-2xl p-6">
-                        <div className="flex items-center gap-2 mb-4">
-                            <span className="material-symbols-outlined text-blue-600">policy</span>
-                            <h3 className="font-bold text-slate-800 dark:text-slate-200">Quy định hủy vé & chuyển nhượng</h3>
-                        </div>
-
-                        <div className="space-y-4 text-sm text-slate-600 dark:text-slate-400">
-                            <div>
-                                <h4 className="font-semibold text-slate-700 dark:text-slate-300 mb-2">1. Vé đã thanh toán (Paid)</h4>
-                                <ul className="space-y-2 list-disc pl-5">
-                                    <li><span className="font-medium text-slate-700 dark:text-slate-300">Trước &gt; 24 giờ:</span> Phí hủy 10% (Hoàn 90%)</li>
-                                    <li><span className="font-medium text-slate-700 dark:text-slate-300">Trước 4 – 24 giờ:</span> Phí hủy 30% (Hoàn 70%)</li>
-                                    <li><span className="font-medium text-red-500">Trước &lt; 2 giờ:</span> Không hỗ trợ hủy vé</li>
-                                </ul>
-                            </div>
-
-                            <div className="pt-2 border-t border-blue-100 dark:border-slate-800">
-                                <h4 className="font-semibold text-slate-700 dark:text-slate-300 mb-2">2. Vé đặt chỗ (Booked - Chưa thanh toán)</h4>
-                                <ul className="space-y-2 list-disc pl-5">
-                                    <li>Được phép hủy miễn phí nếu còn &gt; 2 tiếng trước giờ khởi hành.</li>
-                                </ul>
-                            </div>
-                        </div>
-                    </div>
                 </div>
             </div>
 
@@ -266,6 +242,36 @@ export function BookingPageContent({ scheduleId }: BookingPageContentProps) {
                 selectedSeats={selectedSeats}
                 baseTotalPrice={totalPrice}
             />
+
+            {/* Policy Modal */}
+            <Dialog open={isPolicyModalOpen} onOpenChange={setIsPolicyModalOpen}>
+                <DialogContent className="sm:max-w-[500px] p-0 rounded-2xl">
+                    <DialogHeader className="p-6 pb-4 bg-brand-gradient text-white rounded-t-2xl">
+                        <DialogTitle className="text-xl font-bold flex items-center gap-2">
+                            <span className="material-symbols-outlined">policy</span>
+                            Quy định hủy vé & chuyển nhượng
+                        </DialogTitle>
+                    </DialogHeader>
+
+                    <div className="p-6 space-y-4 text-sm text-slate-600 dark:text-slate-400">
+                        <div>
+                            <h4 className="font-semibold text-slate-700 dark:text-slate-300 mb-2 text-base">1. Vé đã thanh toán (Paid)</h4>
+                            <ul className="space-y-2 list-disc pl-5">
+                                <li><span className="font-medium text-slate-700 dark:text-slate-300">Trước &gt; 24 giờ:</span> Phí hủy 10% (Hoàn 90%)</li>
+                                <li><span className="font-medium text-slate-700 dark:text-slate-300">Trước 4 – 24 giờ:</span> Phí hủy 30% (Hoàn 70%)</li>
+                                <li><span className="font-medium text-red-500">Trước &lt; 2 giờ:</span> Không hỗ trợ hủy vé</li>
+                            </ul>
+                        </div>
+
+                        <div className="pt-4 border-t border-slate-200 dark:border-slate-800">
+                            <h4 className="font-semibold text-slate-700 dark:text-slate-300 mb-2 text-base">2. Vé đặt chỗ (Booked - Chưa thanh toán)</h4>
+                            <ul className="space-y-2 list-disc pl-5">
+                                <li>Được phép hủy miễn phí nếu còn &gt; 2 tiếng trước giờ khởi hành.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

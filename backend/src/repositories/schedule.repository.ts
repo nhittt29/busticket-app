@@ -124,6 +124,21 @@ export class ScheduleRepository {
             qb.andWhere('brand.id = :brandId', { brandId: query.brandId });
         }
 
+        // 7. Passengers (Available Seats Filter)
+        if (query.passengers && Number(query.passengers) > 0) {
+            const passengers = Number(query.passengers);
+            const subQuery = qb.subQuery()
+                .select('COUNT(t.id)', 'booked')
+                .from('Ticket', 't')
+                .where('t.scheduleId = schedule.id')
+                .andWhere('t.status IN (:...bookedStatuses)')
+                .getQuery();
+                
+            qb.andWhere(`bus.seatCount - (${subQuery}) >= :passengers`);
+            qb.setParameter('passengers', passengers);
+            qb.setParameter('bookedStatuses', ['PAID', 'BOOKED']);
+        }
+
         // Sorting
         const sortMap = {
             'price_asc': 'route.lowestPrice ASC',

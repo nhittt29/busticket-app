@@ -8,6 +8,7 @@ export const scheduleApi = {
             if (params.startPoint) cleanParams.startPoint = params.startPoint;
             if (params.endPoint) cleanParams.endPoint = params.endPoint;
             if (params.date) cleanParams.date = params.date;
+            if (params.passengers) cleanParams.passengers = params.passengers;
 
             const response = await api.get('/schedules', { params: cleanParams });
             return response.data;

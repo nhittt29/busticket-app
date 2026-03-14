@@ -31,4 +31,12 @@ export class CreateTicketDto {
   @IsOptional()
   @IsString()
   dropoffAddress?: string;         // Dùng khi chọn "Tận nơi" (phụ thu mặc định 150k)
+
+  @IsOptional()
+  @IsInt()
+  promotionId?: number;
+
+  @IsOptional()
+  @Min(0)
+  discountAmount?: number;
 }

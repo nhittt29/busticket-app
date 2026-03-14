@@ -26,6 +26,7 @@ import { VnPayModule } from './vnpay.module';
 import { NotificationModule } from './notification.module';
 import { HttpModule } from '@nestjs/axios';
 import { QrController } from '../controllers/qr.controller';
+import { PromotionsModule } from './promotions.module';
 
 // Services
 import { MomoService } from '../services/momo.service';
@@ -43,6 +44,7 @@ import { QrService } from '../services/qr.service';
     VnPayModule,
     NotificationModule,
     HttpModule,
+    PromotionsModule,
   ],
   controllers: [TicketController, QrController],
   providers: [
