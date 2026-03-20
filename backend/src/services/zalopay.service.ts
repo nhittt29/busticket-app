@@ -24,8 +24,8 @@ export class ZaloPayService {
         @Inject(forwardRef(() => TicketService)) private ticketService: TicketService
     ) { }
 
-    async createOrder(bookingId: number, amount: number, userEmail: string) {
-        const backendUrl = process.env.BACKEND_URL || 'http://localhost:4000';
+    async createOrder(bookingId: number, amount: number, userEmail: string, host?: string) {
+        const backendUrl = host ? `http://${host}` : (process.env.BACKEND_URL || 'http://localhost:4000');
         const embed_data = {
             redirecturl: `${backendUrl}/api/tickets/zalopay/redirect`,
         };

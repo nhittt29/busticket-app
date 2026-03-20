@@ -117,10 +117,10 @@ export default function ChatWidget() {
     };
 
     return (
-        <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
+        <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end pointer-events-none">
             {/* Chat Window */}
             <div
-                className={`mb-4 w-[350px] md:w-[380px] bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden transition-all duration-300 origin-bottom-right transform ${isOpen ? "scale-100 opacity-100" : "scale-0 opacity-0 pointer-events-none"
+                className={`mb-4 w-[350px] md:w-[380px] bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden transition-all duration-300 origin-bottom-right transform pointer-events-auto ${isOpen ? "scale-100 opacity-100" : "scale-0 opacity-0"
                     }`}
             >
                 {/* Header */}
@@ -206,7 +206,7 @@ export default function ChatWidget() {
             {/* Floating Toggle Button */}
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                className={`w-14 h-14 rounded-full shadow-xl flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95 ${isOpen
+                className={`w-14 h-14 rounded-full shadow-xl flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95 pointer-events-auto ${isOpen
                     ? "bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-300 rotate-90"
                     : "bg-gradient-to-r from-primary to-sky-500 text-white animate-bounce-slow"
                     }`}

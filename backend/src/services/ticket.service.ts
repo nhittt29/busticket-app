@@ -58,7 +58,7 @@ export class TicketService {
     private readonly dataSource: DataSource,
   ) { }
 
-  async create(dto: CreateTicketDto): Promise<CreateResponse> {
+  async create(dto: CreateTicketDto, host?: string): Promise<CreateResponse> {
     const { userId, scheduleId, seatId, price, paymentMethod, dropoffPointId, dropoffAddress, promotionId, discountAmount } = dto;
 
     return await this.dataSource.transaction(async (manager) => {
@@ -149,16 +149,16 @@ export class TicketService {
       const user = await this.userRepo.findById(userId);
 
       if (paymentMethod === AppPaymentMethod.ZALOPAY) {
-        const res = await this.zaloPayService.createOrder(paymentGroup.id, totalAmount, user?.email || 'unknown@user.com');
+        const res = await this.zaloPayService.createOrder(paymentGroup.id, totalAmount, user?.email || 'unknown@user.com', host);
         if (res.return_code === 1) {
           paymentResponse = { payUrl: res.order_url, zpTransToken: res.zp_trans_token };
         } else {
           throw new BadRequestException(`ZaloPay Error: ${res.return_message}`);
         }
       } else if (paymentMethod === AppPaymentMethod.VNPAY) {
-        paymentResponse = { payUrl: this.vnpayService.createPaymentUrl(paymentGroup.id, totalAmount, '127.0.0.1') };
+        paymentResponse = { payUrl: this.vnpayService.createPaymentUrl(paymentGroup.id, totalAmount, '127.0.0.1', host) };
       } else {
-        paymentResponse = await this.momoService.createPayment(paymentGroup.id, totalAmount, `Thanh toán vé xe #${ticket.id}`);
+        paymentResponse = await this.momoService.createPayment(paymentGroup.id, totalAmount, `Thanh toán vé xe #${ticket.id}`, host);
       }
 
       if (paymentResponse?.payUrl) {
@@ -173,7 +173,7 @@ export class TicketService {
     });
   }
 
-  async createBulk(dtos: CreateTicketDto[], totalAmountFromClient: number, promotionId?: number, discountAmount?: number): Promise<BulkCreateResponse> {
+  async createBulk(dtos: CreateTicketDto[], totalAmountFromClient: number, promotionId?: number, discountAmount?: number, host?: string): Promise<BulkCreateResponse> {
     if (dtos.length === 0) throw new BadRequestException('Empty tickets list');
     const firstDto = dtos[0];
 
@@ -262,14 +262,14 @@ export class TicketService {
       const user = await this.userRepo.findById(firstDto.userId);
 
       if (firstDto.paymentMethod === AppPaymentMethod.ZALOPAY) {
-        const res = await this.zaloPayService.createOrder(paymentGroup.id, calculatedTotal, user?.email || 'unknown@user.com');
+        const res = await this.zaloPayService.createOrder(paymentGroup.id, calculatedTotal, user?.email || 'unknown@user.com', host);
         if (res.return_code === 1) {
           paymentResponse = { payUrl: res.order_url, zpTransToken: res.zp_trans_token };
         }
       } else if (firstDto.paymentMethod === AppPaymentMethod.VNPAY) {
-        paymentResponse = { payUrl: this.vnpayService.createPaymentUrl(paymentGroup.id, calculatedTotal, '127.0.0.1') };
+        paymentResponse = { payUrl: this.vnpayService.createPaymentUrl(paymentGroup.id, calculatedTotal, '127.0.0.1', host) };
       } else {
-        paymentResponse = await this.momoService.createPayment(paymentGroup.id, calculatedTotal, 'Thanh toan ve tap the');
+        paymentResponse = await this.momoService.createPayment(paymentGroup.id, calculatedTotal, 'Thanh toan ve tap the', host);
       }
 
       if (paymentResponse?.payUrl) {

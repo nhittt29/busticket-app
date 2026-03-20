@@ -21,13 +21,13 @@ export function Header() {
                     <h2 className="text-xl font-bold tracking-tight hidden sm:block">BusTicket</h2>
                 </Link>
                 <nav className="hidden lg:flex items-center gap-8">
-                    <Link href="/" className="text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-primary font-medium text-sm transition-colors">
+                    <Link prefetch={false} href="/" className="text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-primary font-medium text-sm transition-colors">
                         Trang chủ
                     </Link>
-                    <Link href="#" className="text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-primary font-medium text-sm transition-colors">
+                    <Link prefetch={false} href="#" className="text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-primary font-medium text-sm transition-colors">
                         Vé của tôi
                     </Link>
-                    <Link href="#" className="text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-primary font-medium text-sm transition-colors">
+                    <Link prefetch={false} href="#" className="text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-primary font-medium text-sm transition-colors">
                         Khuyến mãi
                     </Link>
                 </nav>
@@ -83,10 +83,11 @@ export function Header() {
                             </div>
                         </div>
                     ) : (
-                        <Link href="/auth/login">
-                            <button className="hidden sm:flex h-10 px-6 items-center justify-center rounded-lg bg-primary hover:bg-sky-600 text-white text-sm font-bold transition-colors shadow-sm shadow-primary/30">
-                                Đăng nhập / Đăng ký
-                            </button>
+                        <Link 
+                            href="/auth/login"
+                            className="hidden sm:flex h-10 px-6 items-center justify-center rounded-lg bg-primary hover:bg-sky-600 text-white text-sm font-bold transition-colors shadow-sm shadow-primary/30 cursor-pointer"
+                        >
+                            Đăng nhập / Đăng ký
                         </Link>
                     )}
 

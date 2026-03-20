@@ -25,13 +25,16 @@ export class TicketController {
 
   @Redirect()
   @Get('zalopay/redirect')
-  async zalopayRedirect(@Query() query: any) {
+  async zalopayRedirect(@Query() query: any, @Req() req: any) {
+    const host = req.headers.host;
+    const frontendBase = host?.replace(':4000', ':3000') || 'localhost:3000';
+    
     const result = await this.ticketService.handleZaloPayRedirect(query);
     if (result.success) {
       // Redirect to Web Frontend
-      return { url: `http://localhost:3000/payment/success?paymentId=${result.paymentHistoryId}` };
+      return { url: `http://${frontendBase}/payment/success?paymentId=${result.paymentHistoryId}` };
     }
-    return { url: `http://localhost:3000/payment/failed?message=${encodeURIComponent(result.message || 'Unknown Error')}` };
+    return { url: `http://${frontendBase}/payment/failed?message=${encodeURIComponent(result.message || 'Unknown Error')}` };
   }
 
   // CHỦ ĐỘNG KIỂM TRA TRẠNG THÁI THANH TOÁN ZALOPAY (POLLING)
@@ -66,8 +69,9 @@ export class TicketController {
   }
 
   @Post()
-  create(@Body() dto: CreateTicketDto) {
-    return this.ticketService.create(dto);
+  create(@Body() dto: CreateTicketDto, @Req() req: any) {
+    const host = req.headers.host;
+    return this.ticketService.create(dto, host);
   }
 
   @Post('bulk')
@@ -76,8 +80,9 @@ export class TicketController {
     totalAmount: number;
     promotionId?: number;
     discountAmount?: number;
-  }): Promise<BulkCreateResponse> {
-    return this.ticketService.createBulk(dto.tickets, dto.totalAmount, dto.promotionId, dto.discountAmount);
+  }, @Req() req: any): Promise<BulkCreateResponse> {
+    const host = req.headers.host;
+    return this.ticketService.createBulk(dto.tickets, dto.totalAmount, dto.promotionId, dto.discountAmount, host);
   }
 
   @Get(':id')
@@ -87,12 +92,17 @@ export class TicketController {
 
   @Redirect()
   @Get('momo/redirect')
-  async momoRedirect(@Query() query: any) {
+  async momoRedirect(@Query() query: any, @Req() req: any) {
+    const host = req.headers.host;
+    // Host will be IP:PORT. We need the frontend port which is usually 3000.
+    // If backend is on 4000, we replace it with 3000 for frontend redirect.
+    const frontendBase = host?.replace(':4000', ':3000') || 'localhost:3000';
+    
     const result = await this.ticketService.handleMomoRedirect(query);
     if (!result.success) {
-      return { url: `http://localhost:3000/payment/failed` };
+      return { url: `http://${frontendBase}/payment/failed` };
     }
-    return { url: `http://localhost:3000/payment/success?paymentId=${result.paymentHistoryId}` };
+    return { url: `http://${frontendBase}/payment/success?paymentId=${result.paymentHistoryId}` };
   }
 
   @Post('momo/callback')
@@ -102,12 +112,15 @@ export class TicketController {
 
   @Redirect()
   @Get('vnpay/return')
-  async vnpayReturn(@Query() query: any) {
+  async vnpayReturn(@Query() query: any, @Req() req: any) {
+    const host = req.headers.host;
+    const frontendBase = host?.replace(':4000', ':3000') || 'localhost:3000';
+
     const result = await this.ticketService.handleVnPayReturn(query);
     if (result.success) {
-      return { url: `http://localhost:3000/payment/success?paymentId=${result.paymentHistoryId}` };
+      return { url: `http://${frontendBase}/payment/success?paymentId=${result.paymentHistoryId}` };
     }
-    return { url: `http://localhost:3000/payment/failed?message=${encodeURIComponent(result.message || 'Unknown Error')}` };
+    return { url: `http://${frontendBase}/payment/failed?message=${encodeURIComponent(result.message || 'Unknown Error')}` };
   }
 
   @Get(':id/cancellation-info')

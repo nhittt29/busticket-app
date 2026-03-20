@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "env-cmd -f .env.local.web next dev",
+    "dev": "env-cmd -f .env.local.web next dev --hostname 26.16.96.96",
     "build": "env-cmd -f .env.local.web next build",
     "start": "env-cmd -f .env.local.web next start",
     "lint": "eslint"

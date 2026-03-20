@@ -214,7 +214,7 @@ export default function RegisterPage() {
             <div className="flex items-start gap-3 py-2">
               <input className="mt-1 h-4 w-4 rounded border-gray-300 dark:border-gray-700 text-primary focus:ring-primary" id="terms" type="checkbox" required />
               <label className="text-sm text-[#507a95] dark:text-gray-400 leading-normal" htmlFor="terms">
-                Tôi đồng ý với <Link href="#" className="text-primary font-medium hover:underline">Điều khoản dịch vụ</Link> và <Link href="#" className="text-primary font-medium hover:underline">Chính sách bảo mật</Link>.
+                Tôi đồng ý với <Link prefetch={false} href="#" className="text-primary font-medium hover:underline">Điều khoản dịch vụ</Link> và <Link prefetch={false} href="#" className="text-primary font-medium hover:underline">Chính sách bảo mật</Link>.
               </label>
             </div>
 
@@ -232,7 +232,7 @@ export default function RegisterPage() {
           <div className="mt-8 text-center">
             <p className="text-sm text-[#507a95] dark:text-gray-400">
               Đã có tài khoản?
-              <Link href="/auth/login" className="text-primary font-bold hover:underline ml-1">Đăng nhập</Link>
+              <Link prefetch={false} href="/auth/login" className="text-primary font-bold hover:underline ml-1">Đăng nhập</Link>
             </p>
           </div>
         </div>

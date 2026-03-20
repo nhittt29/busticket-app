@@ -141,7 +141,7 @@ export default function LoginPage() {
                         <button
                             type="submit"
                             disabled={isLoading}
-                            className="w-full bg-primary hover:bg-primary/90 text-white h-14 rounded-lg text-lg font-bold shadow-lg shadow-primary/20 transition-all transform hover:-translate-y-0.5 active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed"
+                            className="w-full bg-primary hover:bg-primary/90 text-white h-14 rounded-lg text-lg font-bold shadow-lg shadow-primary/20 transition-all transform hover:-translate-y-0.5 active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer"
                         >
                             {isLoading ? 'Đang đăng nhập...' : 'Đăng Nhập'}
                         </button>
@@ -159,11 +159,11 @@ export default function LoginPage() {
 
                     {/* Social Login Buttons */}
                     <div className="grid grid-cols-2 gap-4">
-                        <button className="flex items-center justify-center gap-3 border border-[#d1dde6] dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 h-12 rounded-lg transition-colors font-semibold text-sm">
+                        <button className="flex items-center justify-center gap-3 border border-[#d1dde6] dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 h-12 rounded-lg transition-colors font-semibold text-sm cursor-pointer">
                             <Image src={googleLogo} alt="Google logo" width={20} height={20} />
                             Google
                         </button>
-                        <button className="flex items-center justify-center gap-3 border border-[#d1dde6] dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 h-12 rounded-lg transition-colors font-semibold text-sm">
+                        <button className="flex items-center justify-center gap-3 border border-[#d1dde6] dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 h-12 rounded-lg transition-colors font-semibold text-sm cursor-pointer">
                             <Image src={facebookLogo} alt="Facebook logo" width={20} height={20} />
                             Facebook
                         </button>
@@ -172,7 +172,7 @@ export default function LoginPage() {
                     {/* Register Footer */}
                     <p className="mt-10 text-center text-[#507a95] dark:text-gray-400">
                         Chưa có tài khoản?
-                        <Link href="/auth/register" className="text-primary hover:text-primary/80 font-bold ml-1 transition-colors underline-offset-4 hover:underline">Đăng ký ngay</Link>
+                        <Link prefetch={false} href="/auth/register" className="text-primary hover:text-primary/80 font-bold ml-1 transition-colors underline-offset-4 hover:underline">Đăng ký ngay</Link>
                     </p>
                 </div>
 

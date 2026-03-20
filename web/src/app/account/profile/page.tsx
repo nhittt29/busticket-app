@@ -401,7 +401,7 @@ export default function ProfilePage() {
                         >
                             {facePreviewUrl || user?.faceUrl ? (
                                 <img
-                                    src={facePreviewUrl || (user?.faceUrl?.startsWith('http') ? user?.faceUrl : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api'}/${user?.faceUrl}`)}
+                                    src={facePreviewUrl || (user?.faceUrl?.startsWith('http') ? user?.faceUrl : `http://${typeof window !== 'undefined' ? window.location.hostname : 'localhost'}:4000/api/${user?.faceUrl}`)}
                                     alt="Face ID Preview"
                                     className="w-full h-full object-cover"
                                 />

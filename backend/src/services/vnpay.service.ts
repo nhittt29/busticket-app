@@ -26,7 +26,10 @@ export class VnPayService {
     }
   }
 
-  createPaymentUrl(paymentHistoryId: number, amount: number, ipAddress: string): string {
+  createPaymentUrl(paymentHistoryId: number, amount: number, ipAddress: string, host?: string): string {
+    const returnUrl = host 
+      ? `http://${host}/api/tickets/vnpay/return` 
+      : this.returnUrl;
     const createDate = format(new Date(), 'yyyyMMddHHmmss');
     const orderId = `TICKET_${paymentHistoryId}_${Date.now()}`;
     const amountVal = Math.floor(amount * 100);
@@ -45,7 +48,7 @@ export class VnPayService {
     vnp_Params['vnp_OrderInfo'] = `Thanh toan ve ${paymentHistoryId}`;
     vnp_Params['vnp_OrderType'] = 'other';
     vnp_Params['vnp_Amount'] = amountVal;
-    vnp_Params['vnp_ReturnUrl'] = this.returnUrl;
+    vnp_Params['vnp_ReturnUrl'] = returnUrl;
     vnp_Params['vnp_IpAddr'] = ipAddress || '127.0.0.1';
     vnp_Params['vnp_CreateDate'] = createDate;
 

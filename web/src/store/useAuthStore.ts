@@ -83,7 +83,8 @@ export const useAuthStore = create<AuthState>()(
                     // SSO Redirect for Admin
                     if (user.role?.name === 'ADMIN' && customToken) {
                         // Use window.location for full page redirect to another port
-                        window.location.href = `http://localhost:3001/login?sso_token=${customToken}`;
+                        const adminUrl = `http://${window.location.hostname}:3001/login?sso_token=${customToken}`;
+                        window.location.href = adminUrl;
                     }
                 } catch (error: any) {
                     const msg = error.response?.data?.message || 'Đăng nhập thất bại';

@@ -20,8 +20,10 @@ export class MomoService {
   private readonly secretKey = process.env.MOMO_SECRET_KEY!;
 
   // ĐÃ SỬA: Dùng paymentHistoryId thay vì ticketId
-  async createPayment(paymentHistoryId: number, realPrice: number, orderInfo?: string): Promise<MomoResponse> {
-    const redirectUrl = process.env.MOMO_REDIRECT_URL!;
+  async createPayment(paymentHistoryId: number, realPrice: number, orderInfo?: string, host?: string): Promise<MomoResponse> {
+    const redirectUrl = host 
+      ? `http://${host}/api/tickets/momo/redirect` 
+      : process.env.MOMO_REDIRECT_URL!;
     const ipnUrl = process.env.MOMO_IPN_URL!;
 
     const requestId = `${this.partnerCode}${Date.now()}`;

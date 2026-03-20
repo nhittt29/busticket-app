@@ -1,7 +1,14 @@
 import axios from 'axios';
 
+// Tự động nhận diện IP của trình duyệt (Localhost hoặc Radmin)
+let baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+if (typeof window !== 'undefined') {
+    // Luôn gọi về cổng 4000 của cùng một server đang chạy Frontend
+    baseURL = `http://${window.location.hostname}:4000/api`;
+}
+
 const api = axios.create({
-    baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api', // NestJS Backend URL
+    baseURL,
     headers: {
         'Content-Type': 'application/json',
     },

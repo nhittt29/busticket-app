@@ -4,8 +4,11 @@ import { useState, useEffect } from "react";
 // import Image from "next/image"; // Not used currently
 // import defaultAvatar from "@/assets/uploads/default.png"; // Removed import
 
-// Hardcoded for now based on api.ts default. In real app, use env var.
-const BACKEND_URL = "http://localhost:4000";
+// Tự động nhận diện IP của trình duyệt (Localhost hoặc Radmin) cho file tĩnh
+let BACKEND_URL = "http://localhost:4000";
+if (typeof window !== 'undefined') {
+    BACKEND_URL = `http://${window.location.hostname}:4000`;
+}
 const DEFAULT_AVATAR_PATH = "/default-avatar.png";
 
 interface UserAvatarProps {
