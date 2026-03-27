@@ -6,12 +6,13 @@ import { cn } from "@/lib/utils";
 interface SeatItemProps {
     seat: Seat;
     isSelected: boolean;
-    isInvalid?: boolean; // New prop
+    isInvalid?: boolean;
     onSelect: (seat: Seat) => void;
+    isOthersSelecting?: boolean;
     type?: "SEAT" | "BED";
 }
 
-export function SeatItem({ seat, isSelected, isInvalid, onSelect, type = "BED" }: SeatItemProps) {
+export function SeatItem({ seat, isSelected, isInvalid, isOthersSelecting, onSelect, type = "BED" }: SeatItemProps) {
     // Logic matching Flutter: isAvailable check
     const isAvailable = seat.isAvailable;
     const isSold = !isAvailable;
@@ -33,6 +34,11 @@ export function SeatItem({ seat, isSelected, isInvalid, onSelect, type = "BED" }
         stateStyles = "bg-red-50 border-red-500 ring-2 ring-red-200 z-20 animate-pulse";
         iconColor = "text-red-500";
         textColor = "text-red-600 font-extrabold";
+    } else if (isOthersSelecting) {
+        // NEW: Being selected by someone else - Polling Based
+        stateStyles = "bg-[#FFB74D] border-[#FFB74D] opacity-70 animate-pulse cursor-wait";
+        iconColor = "text-white";
+        textColor = "text-white";
     } else if (isSelected) {
         // MATCH FLUTTER: Orange #FFB74D (approx tailwind orange-300/400)
         stateStyles = "bg-[#FFB74D] border-[#FFB74D] shadow-lg shadow-orange-500/30 scale-105 z-10";
@@ -52,7 +58,7 @@ export function SeatItem({ seat, isSelected, isInvalid, onSelect, type = "BED" }
     }
 
     const handleClick = () => {
-        if (isAvailable) {
+        if (isAvailable && !isOthersSelecting) {
             onSelect(seat);
         }
     };

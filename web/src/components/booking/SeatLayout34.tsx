@@ -8,9 +8,11 @@ interface SeatLayout34Props {
     selectedSeats: Seat[];
     invalidSeatId?: number | null;
     onSelectSeat: (seat: Seat) => void;
+    othersSelecting: Record<number, { userId: string }>;
+    currentUserId: string;
 }
 
-export function SeatLayout34({ seats, selectedSeats, invalidSeatId, onSelectSeat }: SeatLayout34Props) {
+export function SeatLayout34({ seats, selectedSeats, invalidSeatId, onSelectSeat, othersSelecting, currentUserId }: SeatLayout34Props) {
     // 1. Separate Floors (Preserve API order which is sorted by Floor -> SeatNumber)
     const lowerSeats = seats.filter(s => s.floor === 1 || s.floor === null);
     const upperSeats = seats.filter(s => s.floor === 2);
@@ -22,36 +24,35 @@ export function SeatLayout34({ seats, selectedSeats, invalidSeatId, onSelectSeat
     }
 
     const renderFloor = (floorName: string, floorSeats: Seat[], colorClass: string) => {
-        // Config from Flutter: [6, 5, 6, 5, 6, 6]
-        // This supports standard 34 seats (first 3 cols) and potential extensions
         const config = [6, 5, 6, 5, 6, 6];
         let seatIndex = 0;
         const columns: Seat[][] = [];
 
         config.forEach(count => {
-            // Safe slice: if index out of bounds, returns empty array, which is handled gracefully
             columns.push(floorSeats.slice(seatIndex, seatIndex + count));
             seatIndex += count;
         });
 
         return (
-            <div className="flex flex-col items-center relative pt-12 w-fit">
-                {floorName === "Tầng dưới" && (
-                    <div className="absolute top-0 left-0 flex items-center gap-2">
+            <div className="flex flex-col items-center relative w-fit">
+                {/* Header Section (Driver or Spacer) */}
+                {floorName === "Tầng dưới" ? (
+                    <div className="flex items-center gap-2 mb-8 self-start">
                         <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center shadow-sm">
                             <span className="material-symbols-outlined text-slate-500">album</span>
                         </div>
                         <span className="font-bold text-slate-600 dark:text-slate-300 text-sm">Tài xế</span>
                     </div>
+                ) : (
+                    <div className="h-[72px] mb-0"></div> // Spacer to match driver icon height + margin
                 )}
-                
-                <div className={`flex items-center gap-2 mb-4 font-bold ${colorClass}`}>
+
+                <div className={`flex items-center gap-2 mb-6 font-bold ${colorClass} text-lg`}>
                     <span className="material-symbols-outlined">bed</span>
                     {floorName}
                 </div>
 
                 <div className="flex gap-4">
-                    {/* Render split columns */}
                     {columns.map((colSeats, colIdx) => (
                         <div key={colIdx} className="flex flex-col gap-4">
                             {colSeats.map(seat => (
@@ -59,7 +60,8 @@ export function SeatLayout34({ seats, selectedSeats, invalidSeatId, onSelectSeat
                                     key={seat.id}
                                     seat={seat}
                                     isSelected={selectedSeats.some(s => s.id === seat.id)}
-                                    isInvalid={invalidSeatId === seat.id}
+                                    // isInvalid={invalidSeatId === seat.id} // Added back context
+                                    isOthersSelecting={!!othersSelecting[seat.id] && othersSelecting[seat.id].userId !== currentUserId}
                                     onSelect={onSelectSeat}
                                 />
                             ))}
@@ -72,7 +74,7 @@ export function SeatLayout34({ seats, selectedSeats, invalidSeatId, onSelectSeat
 
     return (
         <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm max-w-4xl mx-auto relative pt-12 mt-4">
-            {/* Top Fixed Elements */}
+            {/* Top Fixed Elements (Only Door stays absolute) */}
             <div className="absolute top-4 right-6 flex items-center gap-2">
                 <span className="font-bold text-slate-600 dark:text-slate-300 text-sm">Cửa</span>
                 <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center shadow-sm">
@@ -80,9 +82,8 @@ export function SeatLayout34({ seats, selectedSeats, invalidSeatId, onSelectSeat
                 </div>
             </div>
 
-            <div className="flex flex-col md:flex-row justify-around gap-12 pt-4">
+            <div className="flex flex-col md:flex-row justify-around items-start gap-12 pt-4">
                 {renderFloor("Tầng dưới", lowerSeats, "text-green-600")}
-                {/* Only render upper floor if it has seats */}
                 {upperSeats.length > 0 && renderFloor("Tầng trên", upperSeats, "text-blue-600")}
             </div>
         </div>

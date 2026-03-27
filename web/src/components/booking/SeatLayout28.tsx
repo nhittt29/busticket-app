@@ -8,9 +8,11 @@ interface SeatLayout28Props {
     selectedSeats: Seat[];
     invalidSeatId?: number | null;
     onSelectSeat: (seat: Seat) => void;
+    othersSelecting: Record<number, { userId: string }>;
+    currentUserId: string;
 }
 
-export function SeatLayout28({ seats, selectedSeats, invalidSeatId, onSelectSeat }: SeatLayout28Props) {
+export function SeatLayout28({ seats, selectedSeats, invalidSeatId, onSelectSeat, othersSelecting, currentUserId }: SeatLayout28Props) {
     // 1. Sort by ID as per Flutter logic
     const sortedSeats = [...seats].sort((a, b) => a.id - b.id);
 
@@ -36,6 +38,7 @@ export function SeatLayout28({ seats, selectedSeats, invalidSeatId, onSelectSeat
                             seat={seat}
                             isSelected={selectedSeats.some(s => s.id === seat.id)}
                             isInvalid={invalidSeatId === seat.id}
+                            isOthersSelecting={!!othersSelecting[seat.id] && othersSelecting[seat.id].userId !== currentUserId}
                             onSelect={onSelectSeat}
                             type="SEAT"
                         />
@@ -60,8 +63,15 @@ export function SeatLayout28({ seats, selectedSeats, invalidSeatId, onSelectSeat
     };
 
     return (
-        <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm max-w-2xl mx-auto relative pt-12 mt-4">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm max-w-2xl mx-auto relative pt-20 mt-4">
             {/* Top Fixed Elements */}
+            <div className="absolute top-4 left-6 flex items-center gap-2">
+                <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center shadow-sm">
+                    <span className="material-symbols-outlined text-slate-500">album</span>
+                </div>
+                <span className="font-bold text-slate-600 dark:text-slate-300 text-sm">Tài xế</span>
+            </div>
+
             <div className="absolute top-4 right-6 flex items-center gap-2">
                 <span className="font-bold text-slate-600 dark:text-slate-300 text-sm">Cửa</span>
                 <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center shadow-sm">
@@ -69,8 +79,8 @@ export function SeatLayout28({ seats, selectedSeats, invalidSeatId, onSelectSeat
                 </div>
             </div>
 
-            <div className="flex flex-col items-center relative pt-4 w-fit mx-auto">
-                <div className="absolute top-0 left-0 flex items-center gap-2">
+            <div className="flex flex-col items-center relative w-fit mx-auto">
+                <div className="flex items-center gap-2 mb-8 self-start">
                     <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center shadow-sm">
                         <span className="material-symbols-outlined text-slate-500">album</span>
                     </div>
@@ -88,6 +98,7 @@ export function SeatLayout28({ seats, selectedSeats, invalidSeatId, onSelectSeat
                             seat={seat}
                             isSelected={selectedSeats.some(s => s.id === seat.id)}
                             isInvalid={invalidSeatId === seat.id}
+                            isOthersSelecting={!!othersSelecting[seat.id] && othersSelecting[seat.id].userId !== currentUserId}
                             onSelect={onSelectSeat}
                             type="SEAT"
                         />

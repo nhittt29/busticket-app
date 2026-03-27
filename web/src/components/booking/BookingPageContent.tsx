@@ -13,6 +13,7 @@ import { SeatLogic } from "@/lib/booking/seatLogic";
 import { Loader2 } from "lucide-react";
 import { BookingConfirmationModal } from "./BookingConfirmationModal";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useAuthStore } from "@/store/useAuthStore";
 
 interface BookingPageContentProps {
     scheduleId: number;
@@ -27,6 +28,21 @@ export function BookingPageContent({ scheduleId }: BookingPageContentProps) {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isPolicyModalOpen, setIsPolicyModalOpen] = useState(false);
     const [maxSeats] = useState(4); // Updated policy from 8 to 4 seats
+    const [othersSelecting, setOthersSelecting] = useState<Record<number, { userId: string }>>({});
+    const { isAuthenticated } = useAuthStore();
+    
+    const [deviceId, setDeviceId] = useState<string>("");
+    const [connectionStatus, setConnectionStatus] = useState<"connecting" | "connected" | "error">("connecting");
+
+    useEffect(() => {
+        let id = localStorage.getItem("booking_device_id");
+        if (!id) {
+            // More robust ID generation
+            id = `device_${Math.random().toString(36).substring(2, 15)}_${Date.now()}`;
+            localStorage.setItem("booking_device_id", id);
+        }
+        setDeviceId(id);
+    }, []);
 
     useEffect(() => {
         const fetchSeats = async () => {
@@ -34,74 +50,120 @@ export function BookingPageContent({ scheduleId }: BookingPageContentProps) {
                 const data = await seatApi.getSeatsBySchedule(scheduleId);
                 setSeatMap(data);
             } catch (error) {
-                console.error("Failed to fetch seats:", error);
-                toast.error("Không thể tải sơ đồ ghế. Vui lòng thử lại.");
-            } finally {
-                setLoading(false);
+                console.error("Failed to fetch seat map:", error);
+                toast.error("Không thể tải sơ đồ ghế");
+            }
+        };
+
+        const fetchLocks = async () => {
+            try {
+                const locks = await seatApi.getLockedSeats(scheduleId);
+                setOthersSelecting(locks);
+            } catch (error) {
+                console.error("Failed to fetch seat locks:", error);
             }
         };
 
         if (scheduleId) {
             fetchSeats();
+            fetchLocks();
+            setLoading(false);
+
+            const sseUrl = `http://${window.location.hostname}:4000/api/seats/sse/${scheduleId}`;
+            console.log(`[SSE] [${new Date().toLocaleTimeString()}] Attempting connection to:`, sseUrl);
+            
+            setConnectionStatus("connecting");
+            const eventSource = new EventSource(sseUrl);
+
+            eventSource.onopen = () => {
+                console.log(`[SSE] [${new Date().toLocaleTimeString()}] ✅ Connection established`);
+                setConnectionStatus("connected");
+            };
+
+            eventSource.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    if (data.type === 'UPDATE_LOCKS') {
+                        console.log(`[SSE] [${new Date().toLocaleTimeString()}] 📥 State update:`, data.locks);
+                        setOthersSelecting(data.locks);
+                    } else if (data.type === 'CONNECTED') {
+                        console.log("[SSE] Server handshake complete");
+                        fetchLocks(); 
+                    }
+                } catch (err) {
+                    console.error("[SSE] Data parse error:", err);
+                }
+            };
+
+            eventSource.onerror = (err) => {
+                console.error(`[SSE] [${new Date().toLocaleTimeString()}] ❌ Connection error. Browser will auto-reconnect.`);
+                setConnectionStatus("error");
+            };
+
+            return () => {
+                console.log("[SSE] Cleaning up connection...");
+                eventSource.close();
+            };
         }
     }, [scheduleId]);
 
-    const handleSelectSeat = (seat: Seat) => {
-        if (!seatMap) return;
+    const handleSelectSeat = async (seat: Seat) => {
+        if (!seatMap || !deviceId) return;
 
         const { totalSeats } = seatMap;
-        // We use totalSeats as primary heuristic as per Flutter logic port
         const isCoach45 = totalSeats === 45 || seatMap.seats.length === 45;
         const isCoach28 = totalSeats === 28 || seatMap.seats.length === 28;
 
         const isSelected = selectedSeats.some(s => s.id === seat.id);
 
         if (isSelected) {
-            // Deselection Logic: Check for orphans created by removal
+            // Deselection Logic
             const simulatedList = selectedSeats.filter(s => s.id !== seat.id);
-
-            // Find if any REMAINING seats become invalid
-            const invalidSeats = SeatLogic.findInvalidSeats(
-                seatMap.seats,
-                simulatedList,
-                isCoach45,
-                isCoach28
-            );
+            const invalidSeats = SeatLogic.findInvalidSeats(seatMap.seats, simulatedList, isCoach45, isCoach28);
 
             if (invalidSeats.length > 0) {
-                // Auto-remove invalid seats + the target seat
+                const seatsToRemove = [seat, ...invalidSeats];
                 const newSelection = simulatedList.filter(s => !invalidSeats.some(inv => inv.id === s.id));
                 setSelectedSeats(newSelection);
-                toast.info("Đã tự động bỏ chọn ghế liên quan để tránh bị lẻ chỗ.");
+                
+                seatsToRemove.forEach(s => {
+                    seatApi.unlockSeat(Number(scheduleId), s.id, deviceId)
+                        .catch(err => console.error("Unlock failed:", err));
+                });
+                toast.info("Đã tự động bỏ chọn ghế lẻ.");
             } else {
                 setSelectedSeats(simulatedList);
+                seatApi.unlockSeat(Number(scheduleId), seat.id, deviceId)
+                    .catch(err => console.error("Unlock failed:", err));
             }
         } else {
-            // Selection Logic (unchanged)
-            // 1. Max Seats Check
+            // Selection Logic
             if (selectedSeats.length >= maxSeats) {
-                toast.warning(`Bạn chỉ được chọn tối đa ${maxSeats} ghế.`);
+                toast.warning(`Tối đa ${maxSeats} ghế`);
                 return;
             }
 
-            // 2. Orphan Seat Check
-            const isViolation = SeatLogic.wouldCreateOrphan(
-                seat,
-                seatMap.seats,
-                selectedSeats,
-                isCoach45,
-                isCoach28
-            );
-
-            if (isViolation) {
-                // Show visual feedback only
+            if (SeatLogic.wouldCreateOrphan(seat, seatMap.seats, selectedSeats, isCoach45, isCoach28)) {
                 setInvalidSeatId(seat.id);
                 setTimeout(() => setInvalidSeatId(null), 1000);
-                // toast.error("Không được để trống ghế lẻ ở giữa hoặc quá nhiều ghế lẻ."); // Optional toast
                 return;
             }
 
-            setSelectedSeats(prev => [...prev, seat]);
+            if (othersSelecting[seat.id] && othersSelecting[seat.id].userId !== deviceId) {
+                toast.error("Ghế này đang có người chọn!");
+                return;
+            }
+
+            try {
+                const result = await seatApi.lockSeat(Number(scheduleId), seat.id, deviceId);
+                if (result.success) {
+                    setSelectedSeats(prev => [...prev, seat]);
+                } else {
+                    toast.error(result.message);
+                }
+            } catch (err) {
+                toast.error("Lỗi khóa ghế");
+            }
         }
     };
 
@@ -133,9 +195,11 @@ export function BookingPageContent({ scheduleId }: BookingPageContentProps) {
         // Shared props for all layouts
         const layoutProps = {
             seats: seatMap.seats,
-            selectedSeats: selectedSeats,
+            selectedSeats,
+            invalidSeatId: null, // Reset or handle
             onSelectSeat: handleSelectSeat,
-            invalidSeatId: invalidSeatId
+            othersSelecting,
+            currentUserId: deviceId,
         };
 
         // Logic refined to match Flutter's heuristics
@@ -190,7 +254,7 @@ export function BookingPageContent({ scheduleId }: BookingPageContentProps) {
                             <span className="text-sm font-medium">Còn trống</span>
                         </div>
                         <div className="flex items-center gap-2">
-                            <div className="w-6 h-6 rounded bg-orange-300 border border-orange-400 flex items-center justify-center">
+                            <div className="w-6 h-6 rounded bg-[#FFB74D] border border-orange-400 flex items-center justify-center animate-pulse">
                                 <span className="material-symbols-outlined text-white text-xs">bed</span>
                             </div>
                             <span className="text-sm font-medium">Đang chọn</span>

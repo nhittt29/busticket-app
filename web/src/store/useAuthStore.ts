@@ -73,10 +73,11 @@ export const useAuthStore = create<AuthState>()(
                                 remember ? browserLocalPersistence : browserSessionPersistence
                             );
                             await signInWithCustomToken(auth, customToken);
-                        } catch (firebaseError) {
+                            console.log("[Firebase] Sign-in successful");
+                            // toast.success("Firebase Connected"); // Too noisy
+                        } catch (firebaseError: any) {
                             console.error("Firebase Client Sign-in failed", firebaseError);
-                            // We don't throw here to allow app to continue with backend token 
-                            // but warning is logged. AuthProvider might logout later if strict.
+                            toast.error(`Lỗi kết nối Firebase (Auth): ${firebaseError.message}`);
                         }
                     }
 

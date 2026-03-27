@@ -8,9 +8,11 @@ interface SeatLayout41Props {
     selectedSeats: Seat[];
     invalidSeatId?: number | null;
     onSelectSeat: (seat: Seat) => void;
+    othersSelecting: Record<number, { userId: string }>;
+    currentUserId: string;
 }
 
-export function SeatLayout41({ seats, selectedSeats, invalidSeatId, onSelectSeat }: SeatLayout41Props) {
+export function SeatLayout41({ seats, selectedSeats, invalidSeatId, onSelectSeat, othersSelecting, currentUserId }: SeatLayout41Props) {
     // 1. Separate Floors
     const lowerSeats = seats.filter(s => s.floor === 1).sort((a, b) => a.id - b.id);
     const upperSeats = seats.filter(s => s.floor === 2).sort((a, b) => a.id - b.id);
@@ -40,11 +42,41 @@ export function SeatLayout41({ seats, selectedSeats, invalidSeatId, onSelectSeat
                 {groups.map((group, idx) => (
                     <div key={idx} className="flex gap-8 justify-between">
                         {/* Column 1 */}
-                        <div className="flex-1 flex justify-center">{group[0] && <SeatItem seat={group[0]} isSelected={selectedSeats.some(s => s.id === group[0].id)} isInvalid={invalidSeatId === group[0].id} onSelect={onSelectSeat} />}</div>
+                        <div className="flex-1 flex justify-center">
+                            {group[0] && (
+                                <SeatItem 
+                                    seat={group[0]} 
+                                    isSelected={selectedSeats.some(s => s.id === group[0].id)} 
+                                    isInvalid={invalidSeatId === group[0].id} 
+                                    isOthersSelecting={!!othersSelecting[group[0].id] && othersSelecting[group[0].id].userId !== currentUserId}
+                                    onSelect={onSelectSeat} 
+                                />
+                            )}
+                        </div>
                         {/* Column 2 */}
-                        <div className="flex-1 flex justify-center">{group[1] && <SeatItem seat={group[1]} isSelected={selectedSeats.some(s => s.id === group[1].id)} isInvalid={invalidSeatId === group[1].id} onSelect={onSelectSeat} />}</div>
+                        <div className="flex-1 flex justify-center">
+                            {group[1] && (
+                                <SeatItem 
+                                    seat={group[1]} 
+                                    isSelected={selectedSeats.some(s => s.id === group[1].id)} 
+                                    isInvalid={invalidSeatId === group[1].id} 
+                                    isOthersSelecting={!!othersSelecting[group[1].id] && othersSelecting[group[1].id].userId !== currentUserId}
+                                    onSelect={onSelectSeat} 
+                                />
+                            )}
+                        </div>
                         {/* Column 3 */}
-                        <div className="flex-1 flex justify-center">{group[2] && <SeatItem seat={group[2]} isSelected={selectedSeats.some(s => s.id === group[2].id)} isInvalid={invalidSeatId === group[2].id} onSelect={onSelectSeat} />}</div>
+                        <div className="flex-1 flex justify-center">
+                            {group[2] && (
+                                <SeatItem 
+                                    seat={group[2]} 
+                                    isSelected={selectedSeats.some(s => s.id === group[2].id)} 
+                                    isInvalid={invalidSeatId === group[2].id} 
+                                    isOthersSelecting={!!othersSelecting[group[2].id] && othersSelecting[group[2].id].userId !== currentUserId}
+                                    onSelect={onSelectSeat} 
+                                />
+                            )}
+                        </div>
                     </div>
                 ))}
             </div>
@@ -53,7 +85,7 @@ export function SeatLayout41({ seats, selectedSeats, invalidSeatId, onSelectSeat
 
     return (
         <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm max-w-4xl mx-auto relative pt-12 mt-4">
-            {/* Top Fixed Elements */}
+            {/* Top Fixed Elements (Only Door stays absolute) */}
             <div className="absolute top-4 right-6 flex items-center gap-2">
                 <span className="font-bold text-slate-600 dark:text-slate-300 text-sm">Cửa</span>
                 <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center shadow-sm">
@@ -61,34 +93,34 @@ export function SeatLayout41({ seats, selectedSeats, invalidSeatId, onSelectSeat
                 </div>
             </div>
 
-            <div className="flex flex-col md:flex-row justify-around gap-12 bg-white pt-4">
+            <div className="flex flex-col md:flex-row justify-around items-start gap-12 bg-white pt-4">
                 {/* Lower Floor - Adjusted */}
-                <div className="flex flex-col items-center relative pt-12 w-fit">
-                    <div className="absolute top-0 left-0 flex items-center gap-2">
+                <div className="flex flex-col items-center relative w-fit">
+                    <div className="flex items-center gap-2 mb-8 self-start">
                         <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center shadow-sm">
                             <span className="material-symbols-outlined text-slate-500">album</span>
                         </div>
                         <span className="font-bold text-slate-600 dark:text-slate-300 text-sm">Tài xế</span>
                     </div>
 
-                    <div className="flex items-center gap-2 mb-4 font-bold text-green-600">
+                    <div className="flex items-center gap-2 mb-6 font-bold text-green-600 text-lg">
                         <span className="material-symbols-outlined">bed</span>
                         Tầng dưới
                     </div>
                     {renderGrid(lowerDeckMain)}
-                    {/* Lower deck usually loses its back row in this visual logic */}
                     <div className="h-12"></div>
                 </div>
 
-                {/* Upper Floor - Enhanced with Back Row */}
+                {/* Upper Floor */}
                 <div className="flex flex-col items-center">
-                    <div className="flex items-center gap-2 mb-4 font-bold text-blue-600">
+                    <div className="h-[72px] mb-0"></div> {/* Spacer to match driver icon */}
+
+                    <div className="flex items-center gap-2 mb-6 font-bold text-blue-600 text-lg">
                         <span className="material-symbols-outlined">bed</span>
                         Tầng trên
                     </div>
                     {renderGrid(upperDeckMain)}
 
-                    {/* The Complex Back Row (5 seats) */}
                     <div className="mt-4 flex gap-2 justify-center">
                         {complexBackRow.map(seat => (
                             <SeatItem
@@ -96,13 +128,13 @@ export function SeatLayout41({ seats, selectedSeats, invalidSeatId, onSelectSeat
                                 seat={seat}
                                 isSelected={selectedSeats.some(s => s.id === seat.id)}
                                 isInvalid={invalidSeatId === seat.id}
+                                isOthersSelecting={!!othersSelecting[seat.id] && othersSelecting[seat.id].userId !== currentUserId}
                                 onSelect={onSelectSeat}
                             />
                         ))}
                     </div>
                 </div>
             </div>
-
         </div>
     );
 }

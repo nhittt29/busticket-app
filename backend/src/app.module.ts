@@ -47,6 +47,7 @@ import { TicketPayment } from './entities/TicketPayment.entity';
 import { Review } from './entities/Review.entity';
 import { Promotion } from './entities/Promotion.entity';
 import { Notification } from './entities/Notification.entity';
+import { SeatLock } from './entities/SeatLock.entity';
 
 @Module({
   imports: [
@@ -66,7 +67,7 @@ import { Notification } from './entities/Notification.entity';
         entities: [
           User, Role, Brand, Bus, Seat, Route, Schedule,
           DropoffPoint, Ticket, PaymentHistory, TicketPayment,
-          Review, Promotion, Notification
+          Review, Promotion, Notification, SeatLock
         ],
         synchronize: true,
         logging: false, // Disabled query logging as requested
