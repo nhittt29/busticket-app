@@ -107,6 +107,26 @@ export function BookingPageContent({ scheduleId }: BookingPageContentProps) {
         }
     }, [scheduleId]);
 
+    // Auto-unlock seats when leaving the page
+    useEffect(() => {
+        const handleAutoUnlock = () => {
+            if (scheduleId && deviceId) {
+                console.log(`[Cleanup] Unlocking all seats for device: ${deviceId}`);
+                // Use a non-async fire-and-forget for cleanup/beforeunload
+                seatApi.unlockAllSeats(scheduleId, deviceId).catch(err => {
+                    console.error("Failed to auto-unlock seats:", err);
+                });
+            }
+        };
+
+        window.addEventListener('beforeunload', handleAutoUnlock);
+
+        return () => {
+            handleAutoUnlock();
+            window.removeEventListener('beforeunload', handleAutoUnlock);
+        };
+    }, [scheduleId, deviceId]);
+
     const handleSelectSeat = async (seat: Seat) => {
         if (!seatMap || !deviceId) return;
 
@@ -155,14 +175,22 @@ export function BookingPageContent({ scheduleId }: BookingPageContentProps) {
             }
 
             try {
+                // Optimistic UI select
+                setSelectedSeats(prev => [...prev, seat]);
                 const result = await seatApi.lockSeat(Number(scheduleId), seat.id, deviceId);
-                if (result.success) {
-                    setSelectedSeats(prev => [...prev, seat]);
-                } else {
+                if (!result.success) {
                     toast.error(result.message);
+                    setSelectedSeats(prev => prev.filter(s => s.id !== seat.id));
                 }
-            } catch (err) {
-                toast.error("Lỗi khóa ghế");
+            } catch (error: any) {
+                // Handle 409 Conflict (Race condition)
+                if (error.response?.status === 409) {
+                    toast.error("Rất tiếc, ghế này vừa có người nhanh tay hơn chọn trước!");
+                } else {
+                    toast.error("Lỗi khóa ghế. Vui lòng thử lại.");
+                }
+                // Rollback UI
+                setSelectedSeats(prev => prev.filter(s => s.id !== seat.id));
             }
         }
     };
@@ -196,7 +224,7 @@ export function BookingPageContent({ scheduleId }: BookingPageContentProps) {
         const layoutProps = {
             seats: seatMap.seats,
             selectedSeats,
-            invalidSeatId: null, // Reset or handle
+            invalidSeatId,
             onSelectSeat: handleSelectSeat,
             othersSelecting,
             currentUserId: deviceId,

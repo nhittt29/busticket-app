@@ -60,7 +60,7 @@ export function SeatLayout34({ seats, selectedSeats, invalidSeatId, onSelectSeat
                                     key={seat.id}
                                     seat={seat}
                                     isSelected={selectedSeats.some(s => s.id === seat.id)}
-                                    // isInvalid={invalidSeatId === seat.id} // Added back context
+                                    isInvalid={invalidSeatId === seat.id}
                                     isOthersSelecting={!!othersSelecting[seat.id] && othersSelecting[seat.id].userId !== currentUserId}
                                     onSelect={onSelectSeat}
                                 />

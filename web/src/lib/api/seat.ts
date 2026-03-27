@@ -17,6 +17,11 @@ export const seatApi = {
         return response.data;
     },
 
+    unlockAllSeats: async (scheduleId: number, deviceId: string) => {
+        const response = await api.post('/seats/unlock-all', { scheduleId, deviceId });
+        return response.data;
+    },
+
     getLockedSeats: async (scheduleId: number | string) => {
         const response = await api.get(`/seats/locks/${scheduleId}`);
         return response.data;

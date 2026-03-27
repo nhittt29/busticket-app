@@ -1,6 +1,6 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Injectable, OnModuleInit, ConflictException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, LessThan } from 'typeorm';
+import { Repository, LessThan, QueryFailedError } from 'typeorm';
 import { SeatRepository } from '../repositories/seat.repository';
 import { SeatLock } from '../entities/SeatLock.entity';
 import { Subject } from 'rxjs';
@@ -75,13 +75,34 @@ export class SeatService implements OnModuleInit {
         if (existingLock) {
             existingLock.deviceId = deviceId;
             existingLock.expiresAt = expiresAt;
-            await this.seatLockRepo.save(existingLock);
+            try {
+                await this.seatLockRepo.save(existingLock);
+            } catch (error) {
+                if (error instanceof QueryFailedError) {
+                    throw new ConflictException('Ghế này đã có người khác chọn rùi');
+                }
+                throw error;
+            }
         } else {
-            await this.seatLockRepo.save({ scheduleId, seatId, deviceId, expiresAt });
+            try {
+                await this.seatLockRepo.save({ scheduleId, seatId, deviceId, expiresAt });
+            } catch (error) {
+                // Handle race condition: another user created the lock between our findOne and save
+                if (error instanceof QueryFailedError) {
+                    throw new ConflictException('Ghế này đã có người khác chọn rùi');
+                }
+                throw error;
+            }
         }
 
         await this.broadcastUpdate(scheduleId);
         return { success: true };
+    }
+
+    // Unlock all seats for a specific device (e.g., when leaving the page)
+    async unlockAllForDevice(scheduleId: number, deviceId: string) {
+        await this.seatLockRepo.delete({ scheduleId, deviceId });
+        this.broadcastUpdate(scheduleId);
     }
 
     async unlockSeat(scheduleId: number, seatId: number, deviceId: string) {

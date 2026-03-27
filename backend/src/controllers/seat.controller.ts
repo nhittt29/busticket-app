@@ -42,6 +42,11 @@ export class SeatController {
     return this.seatService.lockSeat(body.scheduleId, body.seatId, body.deviceId);
   }
 
+  @Post('unlock-all')
+  async unlockAll(@Body() body: { scheduleId: number; deviceId: string }) {
+    return this.seatService.unlockAllForDevice(body.scheduleId, body.deviceId);
+  }
+
   @Post('unlock')
   async unlockSeat(
     @Body() body: { scheduleId: number; seatId: number; deviceId: string }
