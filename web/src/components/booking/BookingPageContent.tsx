@@ -130,16 +130,12 @@ export function BookingPageContent({ scheduleId }: BookingPageContentProps) {
     const handleSelectSeat = async (seat: Seat) => {
         if (!seatMap || !deviceId) return;
 
-        const { totalSeats } = seatMap;
-        const isCoach45 = totalSeats === 45 || seatMap.seats.length === 45;
-        const isCoach28 = totalSeats === 28 || seatMap.seats.length === 28;
-
         const isSelected = selectedSeats.some(s => s.id === seat.id);
 
         if (isSelected) {
             // Deselection Logic
             const simulatedList = selectedSeats.filter(s => s.id !== seat.id);
-            const invalidSeats = SeatLogic.findInvalidSeats(seatMap.seats, simulatedList, isCoach45, isCoach28);
+            const invalidSeats = SeatLogic.findInvalidSeats(seatMap.seats, simulatedList, seatMap.totalSeats, seatMap.seatType, othersSelecting, deviceId);
 
             if (invalidSeats.length > 0) {
                 const seatsToRemove = [seat, ...invalidSeats];
@@ -163,7 +159,7 @@ export function BookingPageContent({ scheduleId }: BookingPageContentProps) {
                 return;
             }
 
-            if (SeatLogic.wouldCreateOrphan(seat, seatMap.seats, selectedSeats, isCoach45, isCoach28)) {
+            if (SeatLogic.wouldCreateOrphan(seat, seatMap.seats, selectedSeats, seatMap.totalSeats, seatMap.seatType, othersSelecting, deviceId)) {
                 setInvalidSeatId(seat.id);
                 setTimeout(() => setInvalidSeatId(null), 1000);
                 return;

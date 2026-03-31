@@ -32,153 +32,133 @@ export class SeatLogic {
         candidate: Seat,
         allSeats: Seat[],
         currentSelectedSeats: Seat[],
-        isCoach45 = false,
-        isCoach28 = false
+        totalSeats = 0,
+        seatType = '',
+        othersSelecting: Record<number, { userId: string }> = {},
+        currentUserId = ''
     ): boolean {
-        // Sort seats by ID first (as per Flutter logic used in specific layouts)
-        const sortedById = [...allSeats].sort((a, b) => a.id - b.id);
-
-        let group: Seat[] = [];
-
-        if (isCoach45) {
-            // Logic for 45 seats:
-            // - First 40 seats (10 rows of 4): No orphan check required (as per Dart logic)
-            // - Last 5 seats: Orphan check applied
-            const index = sortedById.findIndex(s => s.id === candidate.id);
-
-            if (index < 40) return false; // Allowed freely
-
-            group = sortedById.slice(40, 45); // Last 5 seats
-        } else if (isCoach28) {
-            // Logic for 28 seats:
-            // - First 24 seats: No orphan check
-            // - Last 4 seats: Orphan check applied
-            const index = sortedById.findIndex(s => s.id === candidate.id);
-
-            if (index < 24) return false; // Allowed freely
-
-            group = sortedById.slice(24, 28); // Last 4 seats
-        } else {
-            // General Logic (34/41/44/etc)
-            group = this.getSeatGroup(candidate, allSeats);
-        }
+        // Find group
+        const group = this.getSeatGroup(candidate, allSeats, totalSeats, seatType);
 
         // Single seat or empty group -> No violation possible
         if (group.length <= 1) return false;
 
-        // Simulate selection
+        // Base states (0 = Available, 1 = Taken by others (DB or SSE Lock))
+        const baseStates = group.map(seat => {
+            if (!seat.isAvailable) return 1;
+            if (othersSelecting[seat.id] && othersSelecting[seat.id].userId !== currentUserId) return 1;
+            return 0;
+        });
+
+        // Simulated states (0 = Available, 1 = Taken by others OR Selected by ME)
         const simulatedSelection = [...currentSelectedSeats];
         if (!simulatedSelection.some(s => s.id === candidate.id)) {
             simulatedSelection.push(candidate);
         }
 
-        // Map states: 0 = Empty/Available, 1 = Occupied (Selected/Sold)
-        const states = group.map(seat => {
-            if (!seat.isAvailable) return 1; // Sold/Blocked
-            if (simulatedSelection.some(s => s.id === seat.id)) return 1; // Selected
-            return 0; // Available
+        const simStates = group.map(seat => {
+            if (!seat.isAvailable) return 1;
+            if (othersSelecting[seat.id] && othersSelecting[seat.id].userId !== currentUserId) return 1;
+            if (simulatedSelection.some(s => s.id === seat.id)) return 1;
+            return 0;
         });
 
-        /*
-            Orphan Rules:
-            - Inner Hole (gap size 1 between 1s): BLOCKED absolute.
-            - Outer Hole (gap size 1 at edge): Max 1 allow.
-        */
-        /*
-            Orphan Rules:
-            - Inner Hole (gap size 1 between 1s): BLOCKED absolute.
-            - Outer Hole (gap size 1 at edge): Max 1 allow.
-        */
-        let outerOrphans = 0;
-        let currentGapSize = 0;
-        let gapStarted = false;
-        let hasSeenOccupied = false;
+        // Find all '0' blocks (contiguous available seats)
+        const simBlocks = this.getZeroBlocks(simStates);
+        const baseBlocks = this.getZeroBlocks(baseStates);
 
-        for (let i = 0; i < states.length; i++) {
-            if (states[i] === 0) {
-                currentGapSize++;
-                gapStarted = true;
-            } else {
-                // Determine if this is the first occupied seat we've seen
-                if (!hasSeenOccupied) {
-                    // This means all previous 0s were at the START (Outer Gap)
-                    if (gapStarted) {
-                        if (currentGapSize === 1) outerOrphans++;
-                        // If gap > 1 at start, it's fine (2+ empty seats is not an orphan hole)
-                        currentGapSize = 0;
-                        gapStarted = false;
-                    }
-                    hasSeenOccupied = true;
-                } else {
-                    // We have seen occupied before, so this is an INNER GAP or just a gap
-                    if (gapStarted) {
-                        if (currentGapSize === 1) {
-                            return true; // INNER ORPHAN (gap 1 sandwiched) -> BLOCK
-                        }
-                        currentGapSize = 0;
-                        gapStarted = false;
+        /*
+            Orphan Rules:
+            - Rule 1 (Edge-Packing): You cannot pick a seat that fragments an existing empty block into smaller parts.
+              (i.e. number of empty blocks cannot increase). This forces picking from the edges of a row/mattress.
+            - Rule 2 (No Single Orphan): Any gap of exactly 1 empty seat is BLOCKED.
+              EXCEPTION: If the original available block had size <= 2, leaving 1 is allowed. 
+              (Because it's impossible to book 1 seat from a pair without leaving 1).
+        */
+        if (simBlocks.length > baseBlocks.length) {
+            return true; // Rule 1 Violation
+        }
+
+        // Rule 2: No single Inner Orphan (sandwiched gap).
+        // Outer orphans (size 1 gap touching the physical boundary) are ALLOWED.
+        for (const simBlock of simBlocks) {
+            if (simBlock.length === 1) {
+                const idx = simBlock[0];
+                // Check if it's strictly an INNER gap (not touching 0 or length - 1)
+                if (idx > 0 && idx < group.length - 1) {
+                    const baseBlock = baseBlocks.find(b => b.includes(idx));
+                    // If it was already an inner orphan in base state, we are immune
+                    if (baseBlock && baseBlock.length > 1) {
+                        return true; // Invalid inner orphan created
                     }
                 }
             }
         }
 
-        // Check trailing gap (Outer Gap at End)
-        if (gapStarted) {
-            // If we never saw any occupied seat, scanning whole group of 0s -> Valid
-            if (!hasSeenOccupied) return false;
+        return false;
+    }
 
-            if (currentGapSize === 1) {
-                outerOrphans++;
+    private static getZeroBlocks(states: number[]): number[][] {
+        const blocks: number[][] = [];
+        let currentBlock: number[] = [];
+        for (let i = 0; i < states.length; i++) {
+            if (states[i] === 0) {
+                currentBlock.push(i);
+            } else {
+                if (currentBlock.length > 0) {
+                    blocks.push(currentBlock);
+                    currentBlock = [];
+                }
             }
         }
-
-        // Max 1 outer orphan allowed
-        if (outerOrphans > 1) return true;
-
-        return false;
+        if (currentBlock.length > 0) blocks.push(currentBlock);
+        return blocks;
     }
 
     /**
      * Identifies the row/group of neighbors for a target seat.
      */
-    private static getSeatGroup(target: Seat, allSeats: Seat[]): Seat[] {
+    private static getSeatGroup(target: Seat, allSeats: Seat[], totalSeats = 0, seatType = ''): Seat[] {
+        const allLen = totalSeats > 0 ? totalSeats : allSeats.length;
+
+        // Layout 45 (Coach)
+        if (allLen === 45) {
+            const sortedAll = [...allSeats].sort((a, b) => a.id - b.id);
+            const index = sortedAll.findIndex(s => s.id === target.id);
+            // First 40 seats (10 rows of 4). Group them into pairs of 2.
+            if (index < 40) {
+                const pairStart = Math.floor(index / 2) * 2;
+                return sortedAll.slice(pairStart, pairStart + 2);
+            }
+            // Last 5 seats -> Orphan Check Group
+            return sortedAll.slice(40);
+        }
+
+        // Layout 28/29 (Limousine)
+        if (allLen === 28 || allLen === 29) {
+            const sortedAll = [...allSeats].sort((a, b) => a.id - b.id);
+            const index = sortedAll.findIndex(s => s.id === target.id);
+            // First 24 seats (6 rows of 4). Group them into pairs of 2.
+            if (index < 24) {
+                const pairStart = Math.floor(index / 2) * 2;
+                return sortedAll.slice(pairStart, pairStart + 2);
+            }
+            // Last 4 or 5 seats -> Orphan Check Group
+            return sortedAll.slice(24);
+        }
+
         // 1. Group by floor
         const floorSeats = allSeats.filter(s => s.floor === target.floor);
         // Sort by Column logic A1, A2...
         const sortedFloorSeats = this.sortSeats(floorSeats);
 
         // Layout 34 (3 cols: 6-5-6 heuristic from Dart)
-        // Layout 34 (3 cols: 6-5-6 heuristic from Dart)
-        if (allSeats.length === 34) {
+        if (allLen === 34) {
             return this.findRowNeighborsByColumns(target, sortedFloorSeats, [6, 5, 6]);
         }
 
-        // Layout 45 (Coach) - Fallback if isCoach45 was false but length matches
-        if (allSeats.length === 45) {
-            const sortedAll = [...allSeats].sort((a, b) => a.id - b.id);
-            const index = sortedAll.findIndex(s => s.id === target.id);
-
-            // First 40 seats (10 rows of 4) -> Free
-            if (index < 40) return [target];
-
-            // Last 5 seats -> Orphan Check Group
-            return sortedAll.slice(40, 45);
-        }
-
-        // Layout 28 (Limousine) - Fallback
-        if (allSeats.length === 28) {
-            const sortedAll = [...allSeats].sort((a, b) => a.id - b.id);
-            const index = sortedAll.findIndex(s => s.id === target.id);
-
-            // First 24 seats (6 rows of 4) -> Free
-            if (index < 24) return [target];
-
-            // Last 4 seats -> Orphan Check Group
-            return sortedAll.slice(24, 28);
-        }
-
         // Layout 41 (Special logic)
-        if (allSeats.length === 41) {
+        if ((allLen >= 35 && allLen <= 44 && (seatType === 'SLEEPER' || seatType === 'LIMOUSINE')) || allLen === 41) {
             // Logic port from Dart:
             // Back Row (5 seats) = 2 last upper + 3 last lower
             const sortedAll = [...allSeats].sort((a, b) => a.id - b.id);
@@ -259,13 +239,15 @@ export class SeatLogic {
     static findInvalidSeats(
         allSeats: Seat[],
         currentSelected: Seat[],
-        isCoach45 = false,
-        isCoach28 = false
+        totalSeats = 0,
+        seatType = '',
+        othersSelecting: Record<number, { userId: string }> = {},
+        currentUserId = ''
     ): Seat[] {
         const invalid: Seat[] = [];
         for (const seat of currentSelected) {
             // Check if THIS seat causes a violation in the CURRENT set
-            if (this.wouldCreateOrphan(seat, allSeats, currentSelected, isCoach45, isCoach28)) {
+            if (this.wouldCreateOrphan(seat, allSeats, currentSelected, totalSeats, seatType, othersSelecting, currentUserId)) {
                 invalid.push(seat);
             }
         }
