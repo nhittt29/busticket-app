@@ -36,7 +36,7 @@ export function SeatItem({ seat, isSelected, isInvalid, isOthersSelecting, onSel
         textColor = "text-red-600 font-extrabold";
     } else if (isOthersSelecting) {
         // NEW: Being selected by someone else - Polling Based
-        stateStyles = "bg-[#FFB74D] border-[#FFB74D] opacity-70 animate-pulse cursor-wait";
+        stateStyles = "bg-[#FFB74D] border-[#FFB74D] opacity-70 animate-pulse cursor-not-allowed group";
         iconColor = "text-white";
         textColor = "text-white";
     } else if (isSelected) {
@@ -52,7 +52,7 @@ export function SeatItem({ seat, isSelected, isInvalid, isOthersSelecting, onSel
         textColor = "text-[#4CAF50]";
     } else {
         // MATCH FLUTTER: Red Sold #EF5350
-        stateStyles = "bg-red-50 border-[#EF5350] cursor-not-allowed opacity-60";
+        stateStyles = "bg-red-50 border-[#EF5350] cursor-not-allowed opacity-60 group";
         iconColor = "text-[#EF5350]";
         textColor = "text-[#EF5350]";
     }
@@ -73,6 +73,13 @@ export function SeatItem({ seat, isSelected, isInvalid, isOthersSelecting, onSel
             {isInvalid && (
                 <div className="absolute inset-0 flex items-center justify-center bg-black/30 rounded-lg z-30 animate-in fade-in zoom-in duration-200">
                     <span className="material-symbols-outlined text-red-500 text-3xl font-bold drop-shadow-md">close</span>
+                </div>
+            )}
+
+            {/* Block Icon Overlay on Hover for Others Selecting or Sold */}
+            {(isOthersSelecting || isSold) && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg z-30">
+                    <span className="material-symbols-outlined text-white text-3xl font-bold drop-shadow-md">block</span>
                 </div>
             )}
 

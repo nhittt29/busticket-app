@@ -47,6 +47,7 @@ export function SeatLayout45({ seats, selectedSeats, invalidSeatId, onSelectSeat
                             seat={seat}
                             isSelected={selectedSeats.some(s => s.id === seat.id)}
                             isInvalid={invalidSeatId === seat.id}
+                            isOthersSelecting={!!othersSelecting[seat.id] && othersSelecting[seat.id].userId !== currentUserId}
                             onSelect={onSelectSeat}
                             type="SEAT"
                         />
@@ -97,6 +98,7 @@ export function SeatLayout45({ seats, selectedSeats, invalidSeatId, onSelectSeat
                             seat={seat}
                             isSelected={selectedSeats.some(s => s.id === seat.id)}
                             isInvalid={invalidSeatId === seat.id}
+                            isOthersSelecting={!!othersSelecting[seat.id] && othersSelecting[seat.id].userId !== currentUserId}
                             onSelect={onSelectSeat}
                             type="SEAT"
                         />
