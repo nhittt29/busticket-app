@@ -17,7 +17,12 @@ function PaymentSuccessContent() {
     const idParam = searchParams.get('id');
 
     // Priority: paymentId (from controller redirect) > paymentHistoryId > id
-    const id = paymentIdParam || historyIdParam || idParam;
+    const rawId = paymentIdParam || historyIdParam || idParam;
+    
+    // Sanitize ID: avoid strings "undefined", "null" or NaN
+    const id = (rawId && rawId !== "undefined" && rawId !== "null" && !isNaN(Number(rawId))) 
+        ? rawId 
+        : null;
 
     const [loading, setLoading] = useState(true);
     const [ticketInfo, setTicketInfo] = useState<any>(null);
@@ -25,6 +30,7 @@ function PaymentSuccessContent() {
     useEffect(() => {
         const fetchInfo = async () => {
             if (!id) {
+                console.error("Invalid or missing Payment ID in URL");
                 setLoading(false);
                 return;
             }

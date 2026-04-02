@@ -81,11 +81,7 @@ export class ZaloPayService {
             });
 
             if (result.data.return_code === 1) {
-                await this.paymentHistoryRepo.update(bookingId, {
-                    method: 'ZALOPAY',
-                    transactionId: order.app_trans_id,
-                    payUrl: result.data.order_url,
-                });
+                result.data.app_trans_id = order.app_trans_id;
             }
             return result.data;
         } catch (error) {

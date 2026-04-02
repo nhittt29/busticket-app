@@ -151,7 +151,7 @@ export class TicketService {
       if (paymentMethod === AppPaymentMethod.ZALOPAY) {
         const res = await this.zaloPayService.createOrder(paymentGroup.id, totalAmount, user?.email || 'unknown@user.com', host);
         if (res.return_code === 1) {
-          paymentResponse = { payUrl: res.order_url, zpTransToken: res.zp_trans_token };
+          paymentResponse = { payUrl: res.order_url, zpTransToken: res.zp_trans_token, transactionId: res.app_trans_id };
         } else {
           throw new BadRequestException(`ZaloPay Error: ${res.return_message}`);
         }
@@ -162,7 +162,9 @@ export class TicketService {
       }
 
       if (paymentResponse?.payUrl) {
-        await manager.getRepository(PaymentHistory).update(paymentGroup.id, { payUrl: paymentResponse.payUrl });
+        const updateData: any = { payUrl: paymentResponse.payUrl };
+        if (paymentResponse.transactionId) updateData.transactionId = paymentResponse.transactionId;
+        await manager.getRepository(PaymentHistory).update(paymentGroup.id, updateData);
       }
 
       return {
@@ -264,7 +266,7 @@ export class TicketService {
       if (firstDto.paymentMethod === AppPaymentMethod.ZALOPAY) {
         const res = await this.zaloPayService.createOrder(paymentGroup.id, calculatedTotal, user?.email || 'unknown@user.com', host);
         if (res.return_code === 1) {
-          paymentResponse = { payUrl: res.order_url, zpTransToken: res.zp_trans_token };
+          paymentResponse = { payUrl: res.order_url, zpTransToken: res.zp_trans_token, transactionId: res.app_trans_id };
         }
       } else if (firstDto.paymentMethod === AppPaymentMethod.VNPAY) {
         paymentResponse = { payUrl: this.vnpayService.createPaymentUrl(paymentGroup.id, calculatedTotal, '127.0.0.1', host) };
@@ -273,7 +275,9 @@ export class TicketService {
       }
 
       if (paymentResponse?.payUrl) {
-        await manager.getRepository(PaymentHistory).update(paymentGroup.id, { payUrl: paymentResponse.payUrl });
+        const updateData: any = { payUrl: paymentResponse.payUrl };
+        if (paymentResponse.transactionId) updateData.transactionId = paymentResponse.transactionId;
+        await manager.getRepository(PaymentHistory).update(paymentGroup.id, updateData);
       }
 
       return {
@@ -475,39 +479,39 @@ export class TicketService {
   }
 
   async handleZaloPayRedirect(query: any) {
-    // ZaloPay redirect contains: app_trans_id, status (1=success), checksum (sometimes)
-    // But official doc says query string parameters are NOT signed reliably for standard redirect.
-    // However, it usually includes app_trans_id.
     this.logger.log(`ZaloPay Redirect Query: ${JSON.stringify(query)}`);
 
-    // Check checksum if available, otherwise force Query Status
-    const appTransId = query.apptransid;
-    // ZaloPay sends lowercase 'apptransid' in some versions, or 'app_trans_id'
+    // ZaloPay can send apptransid or app_trans_id depending on the version/environment
+    const appTransId = query.apptransid || query.app_trans_id;
 
     if (!appTransId) {
-      return { success: false, message: 'Missing AppTransId' };
+      this.logger.error('❌ ZaloPay Redirect missing apptransid/app_trans_id');
+      return { success: false, message: 'Missing Transaction ID' };
     }
 
     try {
-      // Query status from ZaloPay Server to be sure
+      // Query status from ZaloPay Server to be absolutely sure
       const status = await this.zaloPayService.queryStatus(appTransId) as any;
+      
+      // return_code 1 means SUCCESS
       if (status.return_code === 1) {
-        const match = appTransId.match(/^\d+_(\d+)_/); // Format: yymmdd_TRANSID
-        // wait, createOrder used `${yymmdd}_${transID}`. It doesn't embed paymentId in app_trans_id directly?
-        // createOrder logs: transactionId: order.app_trans_id. 
-        // And puts id in paymentHistory.transactionId.
-
-        // So we find payment by transactionId
         const payment = await this.paymentHistoryRepo.findByTransactionId(appTransId);
-        if (payment) {
+        
+        if (payment && payment.id) {
+          // Update status in DB if not already done by IPN/Callback
           await this.payTicket(payment.id, AppPaymentMethod.ZALOPAY, appTransId);
           return { success: true, paymentHistoryId: payment.id };
+        } else {
+          this.logger.error(`❌ ZaloPay success but PaymentHistory record not found for: ${appTransId}`);
+          return { success: false, message: 'Giao dịch thành công nhưng không tìm thấy thông tin đơn hàng.' };
         }
       }
-      return { success: false, message: status.return_message || 'Payment Pending/Failed' };
+      
+      this.logger.warn(`⚠️ ZaloPay status check failed: ${status.return_message}`);
+      return { success: false, message: status.return_message || 'Thanh toán không thành công.' };
     } catch (e) {
-      this.logger.error(`ZaloPay Verification Failed: ${e.message}`);
-      return { success: false, message: 'Verification Error' };
+      this.logger.error(`❌ ZaloPay Verification Failed: ${e.message}`);
+      return { success: false, message: 'Lỗi xác thực thanh toán.' };
     }
   }
 

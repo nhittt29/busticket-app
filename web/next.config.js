@@ -1,5 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  logging: {
+    browserToTerminal: false,
+  },
   // @ts-ignore
   allowedDevOrigins: ["localhost:3000", "26.16.96.96:3000", "26.16.96.96", "0.0.0.0:3000", "0.0.0.0"],
   reactCompiler: false,
