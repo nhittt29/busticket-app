@@ -34,7 +34,7 @@ export function SeatItem({ seat, isSelected, isInvalid, isOthersSelecting, onSel
         stateStyles = "bg-red-50 border-red-500 ring-2 ring-red-200 z-20 animate-pulse";
         iconColor = "text-red-500";
         textColor = "text-red-600 font-extrabold";
-    } else if (isOthersSelecting) {
+    } else if (isOthersSelecting && isAvailable) {
         // NEW: Being selected by someone else - Polling Based
         stateStyles = "bg-[#FFB74D] border-[#FFB74D] opacity-70 animate-pulse cursor-not-allowed group";
         iconColor = "text-white";

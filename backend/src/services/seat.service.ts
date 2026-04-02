@@ -7,7 +7,7 @@ import { Subject } from 'rxjs';
 
 @Injectable()
 export class SeatService implements OnModuleInit {
-    private readonly LOCK_TIMEOUT = 5 * 60 * 1000; // 5 minutes
+    private readonly LOCK_TIMEOUT = 15 * 60 * 1000; // 15 minutes
     
     // SSE Stream for real-time updates
     private readonly updates$ = new Subject<{ scheduleId: number; locks: Record<number, { userId: string }> }>();

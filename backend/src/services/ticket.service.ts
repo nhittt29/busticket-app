@@ -199,8 +199,11 @@ export class TicketService {
       const schedule = await this.scheduleRepo.getScheduleById(firstDto.scheduleId);
       if (!schedule) throw new NotFoundException('Lịch trình không tồn tại');
 
+      // ✅ Sắp xếp dtos theo seatId để tránh Deadlock khi 2 giao dịch mua trùng 2 ghế nhưng nghịch thứ tự
+      const sortedDtos = [...dtos].sort((a, b) => a.seatId - b.seatId);
+
       // ✅ Kiểm tra tất cả các ghế với khóa Pessimistic
-      for (const d of dtos) {
+      for (const d of sortedDtos) {
         const isAvailable = await this.ticketRepo.checkSeatAvailableWithLock(d.scheduleId, d.seatId, manager);
         if (!isAvailable) {
           throw new BadRequestException(`Một trong các ghế (ID: ${d.seatId}) đã được đặt. Vui lòng chọn ghế khác.`);

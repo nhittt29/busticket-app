@@ -41,15 +41,24 @@ export class TicketRepository {
 
   /**
    * ✅ Kiểm tra xem ghế đã được đặt hay chưa bằng cách sử dụng Pessimistic Locking (FOR UPDATE)
-   * Giúp ngăn chặn 2 người cùng đặt 1 ghế tại 1 thời điểm.
+   * Sử dụng khóa trên hàng (row-lock) của bảng Seat trước thay vì bảng Ticket để vá lỗ hổng Phantom Read.
+   * Giúp ngăn chặn 2 người cùng mua/đặt 1 ghế tại chính xác cùng 1 thời điểm.
    */
   async checkSeatAvailableWithLock(scheduleId: number, seatId: number, manager?: EntityManager): Promise<boolean> {
-    const repo = manager ? manager.getRepository(Ticket) : this.ticketRepo;
+    if (!manager) {
+      throw new Error("Pessimistic locking mandates an active Transaction EntityManager.");
+    }
+
+    // 1. Khoá cứng (Pessimistic Write) bản ghi Của chiếc Ghế (Seat) đó trong Database.
+    // Việc này bắt các luồng song song phải xếp hàng chờ nhau đi qua từng cái một, loại bỏ tình trạng Phantom Read hoàn toàn.
+    await manager.getRepository('Seat').findOne({
+      where: { id: seatId },
+      lock: { mode: 'pessimistic_write' },
+    });
     
-    // Tìm bất kỳ vé nào đang ở trạng thái BOOKED hoặc PAID cho ghế này
-    // Sử dụng setLock('pessimistic_write') để khóa bản ghi này lại trong transaction
+    // 2. Sau khi đã 100% chiếm quyền sở hữu kiểm tra Ghế, ta tìm xem có vé nào đã chốt mua hay chưa.
+    const repo = manager.getRepository(Ticket);
     const existingTicket = await repo.createQueryBuilder('ticket')
-      .setLock('pessimistic_write')
       .where('ticket.scheduleId = :scheduleId', { scheduleId })
       .andWhere('ticket.seatId = :seatId', { seatId })
       .andWhere('ticket.status IN (:...statuses)', { statuses: ['BOOKED', 'PAID'] })
