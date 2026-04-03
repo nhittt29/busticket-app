@@ -2,6 +2,7 @@ import {
   Injectable,
   BadRequestException,
   NotFoundException,
+  ConflictException,
   Logger,
   Inject,
   forwardRef,
@@ -61,7 +62,8 @@ export class TicketService {
   async create(dto: CreateTicketDto, host?: string): Promise<CreateResponse> {
     const { userId, scheduleId, seatId, price, paymentMethod, dropoffPointId, dropoffAddress, promotionId, discountAmount } = dto;
 
-    return await this.dataSource.transaction(async (manager) => {
+    try {
+      return await this.dataSource.transaction(async (manager) => {
       const schedule = await this.scheduleRepo.getScheduleById(scheduleId);
       if (!schedule) throw new NotFoundException('Lịch trình không tồn tại');
 
@@ -71,10 +73,6 @@ export class TicketService {
       const seat = await this.seatRepo.findById(seatId);
       if (!seat || seat.busId !== schedule.busId)
         throw new BadRequestException('Ghế không thuộc xe của lịch trình này');
-
-      // ✅ Kiểm tra ghế với khóa Pessimistic (Sử dụng manager của transaction)
-      const isAvailable = await this.ticketRepo.checkSeatAvailableWithLock(scheduleId, seatId, manager);
-      if (!isAvailable) throw new BadRequestException('Ghế đã được đặt bởi người khác. Vui lòng chọn ghế khác.');
 
       const userTickets = await this.ticketRepo.findUserBookedToday(userId);
       if (userTickets >= 8) throw new BadRequestException('Chỉ được đặt tối đa 8 vé/ngày');
@@ -173,13 +171,20 @@ export class TicketService {
         payment: paymentResponse,
       };
     });
+    } catch (error) {
+      if (error.message && error.message.includes('ORA-20001')) {
+        throw new ConflictException('Lỗi mạng: Tranh chấp vé. Ghế này vừa được một người khác đặt chớp nhoáng trước bạn!');
+      }
+      throw error;
+    }
   }
 
   async createBulk(dtos: CreateTicketDto[], totalAmountFromClient: number, promotionId?: number, discountAmount?: number, host?: string): Promise<BulkCreateResponse> {
     if (dtos.length === 0) throw new BadRequestException('Empty tickets list');
     const firstDto = dtos[0];
 
-    return await this.dataSource.transaction(async (manager) => {
+    try {
+      return await this.dataSource.transaction(async (manager) => {
       // Validate Promotion if provided
       let validatedPromotionId: number | null = null;
       let validatedDiscountAmount = 0;
@@ -202,13 +207,7 @@ export class TicketService {
       // ✅ Sắp xếp dtos theo seatId để tránh Deadlock khi 2 giao dịch mua trùng 2 ghế nhưng nghịch thứ tự
       const sortedDtos = [...dtos].sort((a, b) => a.seatId - b.seatId);
 
-      // ✅ Kiểm tra tất cả các ghế với khóa Pessimistic
-      for (const d of sortedDtos) {
-        const isAvailable = await this.ticketRepo.checkSeatAvailableWithLock(d.scheduleId, d.seatId, manager);
-        if (!isAvailable) {
-          throw new BadRequestException(`Một trong các ghế (ID: ${d.seatId}) đã được đặt. Vui lòng chọn ghế khác.`);
-        }
-      }
+
 
       // Calculate Surcharge based on First Ticket (Unified Dropoff)
       let surcharge = 0;
@@ -288,6 +287,12 @@ export class TicketService {
         payment: paymentResponse
       };
     });
+    } catch (error) {
+      if (error.message && error.message.includes('ORA-20001')) {
+        throw new ConflictException('Lỗi mạng: Tranh chấp vé. Một ghế bạn chọn vừa được người khác đặt trước vài giây!');
+      }
+      throw error;
+    }
   }
 
   async payTicket(paymentHistoryId: number, method: any, transId?: string) {
@@ -596,5 +601,11 @@ export class TicketService {
       this.logger.error(`Check ZaloPay Status Failed`, error);
       return { success: false, message: error.message || 'Lỗi kiểm tra trạng thái' };
     }
+  }
+
+  async getAdminTicketReports() {
+    this.logger.log('Fetching ticket reports via Oracle View V_TICKET_DETAILS');
+    const reports = await this.dataSource.query('SELECT * FROM V_TICKET_DETAILS');
+    return reports;
   }
 }

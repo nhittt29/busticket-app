@@ -17,6 +17,12 @@ export class UserController {
         return this.userService.findOne(+id);
     }
 
+    // LẤY DOANH THU CỦA NGƯỜI DÙNG TỪ FUNCTION
+    @Get(':id/revenue')
+    getRevenue(@Param('id') id: string) {
+        return this.userService.getUserTotalRevenue(+id);
+    }
+
     // CẬP NHẬT THÔNG TIN NGƯỜI DÙNG (HỌ TÊN, SỐ ĐIỆN THOẠI, ĐỊA CHỈ, VAI TRÒ, BRAND...)
     @Put(':id')
     update(@Param('id') id: string, @Body() body: any) {

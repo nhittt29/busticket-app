@@ -48,6 +48,11 @@ export class TicketController {
     return this.ticketService.getAllTickets();
   }
 
+  @Get('admin/reports')
+  async getAdminReports() {
+    return this.ticketService.getAdminTicketReports();
+  }
+
   @Get('my-brand')
   @UseGuards(FirebaseAuthGuard)
   async getMyBrandTickets(@Req() req: any) {
