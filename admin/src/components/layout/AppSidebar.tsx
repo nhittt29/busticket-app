@@ -27,6 +27,7 @@ import {
   ChevronsUpDown,
   User,
   Star,
+  FileText,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";

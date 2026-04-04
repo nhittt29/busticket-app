@@ -1,3 +1,4 @@
+import * as oracledb from 'oracledb';
 import {
   Injectable,
   BadRequestException,
@@ -607,5 +608,45 @@ export class TicketService {
     this.logger.log('Fetching ticket reports via Oracle View V_TICKET_DETAILS');
     const reports = await this.dataSource.query('SELECT * FROM V_TICKET_DETAILS');
     return reports;
+  }
+
+  async findTicketsByDate(date: string) {
+    this.logger.log(`Executing Ultra-Stable JSON Procedure: ${date}`);
+    const queryRunner = this.dataSource.createQueryRunner();
+    
+    try {
+      await queryRunner.connect();
+      const connection = (queryRunner as any).databaseConnection;
+
+      if (!connection) {
+        throw new Error('Native Oracle connection not available');
+      }
+
+      // Passing date as string directly to the procedue (Ultimate Fix)
+      const result: any = await connection.execute(
+        `BEGIN P_TICKETS_BY_DATE(:p_json, :p_date); END;`,
+        {
+          p_json: { type: oracledb.DB_TYPE_CLOB, dir: oracledb.BIND_OUT },
+          p_date: { val: date, type: oracledb.STRING, dir: oracledb.BIND_IN }
+        }
+      );
+      
+      const lob = result.outBinds.p_json;
+      let jsonStr = '[]';
+      
+      if (lob) {
+          // Read CLOB content
+          jsonStr = await lob.getData();
+      }
+      
+      const data = JSON.parse(jsonStr);
+      this.logger.log(`[ORACLE JSON SUCCESS] Received ${data.length} records`);
+      return data;
+    } catch (error) {
+      this.logger.error(`[ORACLE JSON ERROR] ${error.message}`, error.stack);
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
   }
 }

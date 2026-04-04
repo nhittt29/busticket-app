@@ -1,7 +1,8 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Ticket, BusFront, Users, DollarSign, TrendingUp, Clock } from "lucide-react";
+import { Ticket, BusFront, Users, DollarSign, TrendingUp, Clock, FileText, LayoutDashboard } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, Legend, BarChart, Bar, Cell, PieChart, Pie } from 'recharts';
 import { useList, Authenticated } from "@refinedev/core";
 import { ITicket, TicketStatus } from "@/interfaces/ticket";
@@ -112,10 +113,21 @@ export default function Dashboard() {
                         <h2 className="text-3xl font-bold tracking-tight text-[#2c3e50]">Tổng quan</h2>
                         <p className="text-muted-foreground">Chào mừng quay lại, đây là tình hình kinh doanh hôm nay.</p>
                     </div>
-                    <div className="flex items-center gap-2 bg-white p-2 rounded-lg border shadow-sm">
-                        <span className="text-sm font-medium text-muted-foreground px-2">
-                            {format(new Date(), "MMMM, yyyy", { locale: vi })}
-                        </span>
+                    <div className="flex items-center gap-3">
+                        <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="gap-2 border-[#023E8A] text-[#023E8A] hover:bg-[#023E8A] hover:text-white transition-all shadow-sm font-semibold"
+                            onClick={() => router.push('/tickets/reports')}
+                        >
+                            <FileText className="h-4 w-4" />
+                            Báo cáo chi tiết (View)
+                        </Button>
+                        <div className="flex items-center gap-2 bg-white p-2 rounded-lg border shadow-sm">
+                            <span className="text-sm font-medium text-muted-foreground px-2">
+                                {format(new Date(), "MMMM, yyyy", { locale: vi })}
+                            </span>
+                        </div>
                     </div>
                 </div>
 
@@ -192,6 +204,8 @@ export default function Dashboard() {
                             </p>
                         </CardContent>
                     </Card>
+
+
                 </div>
 
                 {/* Charts & Activity */}

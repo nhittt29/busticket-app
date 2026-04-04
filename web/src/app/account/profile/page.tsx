@@ -13,6 +13,7 @@ export default function ProfilePage() {
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [isDobFocused, setIsDobFocused] = useState(false);
+    const [totalRevenue, setTotalRevenue] = useState<number | null>(null);
 
     // Face ID States
     const faceInputRef = useRef<HTMLInputElement>(null);
@@ -37,19 +38,29 @@ export default function ProfilePage() {
 
     useEffect(() => {
         // Fetch fresh profile on mount to prevent stale data after F5
-        const fetchFreshProfile = async () => {
+        const fetchData = async () => {
             if (user?.id) {
                 try {
-                    const response = await api.get('/auth/me');
-                    if (response.data) {
-                        useAuthStore.getState().updateUser(response.data);
+                    // 1. Fetch Fresh Profile
+                    const profileRes = await api.get('/auth/me');
+                    if (profileRes.data) {
+                        useAuthStore.getState().updateUser(profileRes.data);
+                    }
+
+                    // 2. Fetch Total Revenue (F_REVENUE_BY_USER)
+                    const revenueRes = await api.get(`/users/${user.id}/revenue`);
+                    if (revenueRes.data && typeof revenueRes.data.TOTAL_REVENUE !== 'undefined') {
+                        setTotalRevenue(revenueRes.data.TOTAL_REVENUE);
+                    } else if (revenueRes.data && typeof revenueRes.data.total_revenue !== 'undefined') {
+                        // Depending on ORACLE column casing (uppercase or lowercase)
+                        setTotalRevenue(revenueRes.data.total_revenue);
                     }
                 } catch (error) {
-                    console.error("Failed to fetch fresh profile:", error);
+                    console.error("Failed to fetch fresh profile or revenue:", error);
                 }
             }
         };
-        fetchFreshProfile();
+        fetchData();
     }, []); // Run only once on mount
 
     useEffect(() => {
@@ -291,6 +302,19 @@ export default function ProfilePage() {
                             />
                         </div>
                         <p className="text-xs text-slate-500">Nhấn vào ảnh để thay đổi</p>
+
+                        {/* Revenue Card (F_REVENUE_BY_USER Integration) */}
+                        <div className="mt-4 w-full p-4 bg-primary/5 dark:bg-primary/10 rounded-2xl border border-primary/10 flex flex-col items-center text-center">
+                            <span className="material-symbols-outlined text-primary mb-1">payments</span>
+                            <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Tổng chi tiêu</span>
+                            <span className="text-lg font-black text-primary">
+                                {totalRevenue !== null ? totalRevenue.toLocaleString('vi-VN') : '0'}
+                                <span className="text-xs ml-0.5">đ</span>
+                            </span>
+                            <div className="mt-2 text-[10px] px-2 py-0.5 bg-primary/10 text-primary rounded-full font-bold">
+                                {totalRevenue && totalRevenue > 2000000 ? 'KHÁCH HÀNG VIP' : 'HÀNH KHÁCH'}
+                            </div>
+                        </div>
                     </div>
 
                     {/* Form Section */}

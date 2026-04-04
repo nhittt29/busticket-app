@@ -2,6 +2,7 @@
 
 import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
+import Image from "next/image";
 import { FilterSidebar } from "@/components/search/FilterSidebar";
 import { TripCard } from "@/components/search/TripCard";
 import { scheduleApi } from "@/lib/api/schedule";
@@ -28,7 +29,7 @@ function SearchResultsContent() {
             try {
                 // If no date is selected, maybe default to today or show error? 
                 // For now allow fetch.
-                const data = await scheduleApi.getSchedules({ startPoint, endPoint, date, passengers: parseInt(passengers) });
+                const data = await scheduleApi.getSchedules({ startPoint, endPoint, date });
                 setSchedules(data);
             } catch (err) {
                 setError("Không thể tải danh sách chuyến xe. Vui lòng thử lại.");
@@ -48,22 +49,60 @@ function SearchResultsContent() {
 
     return (
         <div className="min-h-screen pb-20">
-            {/* Header / Search Modification Area */}
-            {/* Header / Search Modification Area */}
-            <div className="bg-gradient-to-r from-[#6AB7F5] to-[#4A9EFF] pt-24 pb-32 px-4 border-b border-blue-400/30">
-                <div className="max-w-7xl mx-auto text-center lg:text-left">
-                    <h1 className="text-3xl font-black mb-2 text-white">
-                        Kết quả tìm kiếm
-                    </h1>
-                    <p className="text-blue-50 font-medium">
-                        {startPoint && endPoint ? (
-                            <span className="flex items-center justify-center lg:justify-start gap-2">
-                                {startPoint} <span className="opacity-70">➜</span> {endPoint}
-                            </span>
-                        ) : "Khám phá các chuyến xe"}
-                        {date && <span className="block lg:inline lg:ml-2 opacity-90">• {date.split('-').reverse().join('/')}</span>}
-                    </p>
+            {/* Ultra Premium Modern Header Area */}
+            <div className="bg-gradient-to-r from-[#6AB7F5] to-[#4A9EFF] pt-14 pb-28 px-4 border-b border-blue-400/30 relative overflow-hidden">
+                <div className="max-w-7xl mx-auto flex flex-col lg:flex-row items-center justify-between relative z-10">
+                    <div className="text-center lg:text-left flex-1 mb-6 lg:mb-0">
+                        <h1 className="text-3xl lg:text-4xl font-extrabold mb-2 text-white drop-shadow-md tracking-tight">
+                            Kết quả tìm kiếm
+                        </h1>
+                        <div className="flex flex-col lg:flex-row items-center lg:items-baseline gap-2 lg:gap-3 text-blue-50 font-medium text-base lg:text-lg">
+                            {startPoint && endPoint ? (
+                                <span className="flex items-center gap-2">
+                                    <span>{startPoint}</span> 
+                                    <span className="opacity-60 text-sm">➜</span> 
+                                    <span>{endPoint}</span>
+                                </span>
+                            ) : (
+                                <span>Khám phá các chuyến xe</span>
+                            )}
+                            {date && (
+                                <span className="flex items-center gap-1.5 opacity-90">
+                                    <span className="hidden lg:inline">•</span>
+                                    {date.split('-').reverse().join('/')}
+                                </span>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Decorative Elements & Generated Illustration */}
+                    <div className="hidden lg:flex flex-[0.8] justify-end relative z-10">
+                        <style dangerouslySetInnerHTML={{__html: `
+                            @keyframes float-bus {
+                                0% { transform: translateY(0px); }
+                                50% { transform: translateY(-12px); }
+                                100% { transform: translateY(0px); }
+                            }
+                            .animate-float-bus {
+                                animation: float-bus 4s ease-in-out infinite;
+                            }
+                        `}} />
+                        <div className="relative drop-shadow-[0_20px_30px_rgba(0,0,0,0.15)] animate-float-bus">
+                            <Image 
+                                src="/images/header-bus.png"
+                                alt="Coach Bus Illustration"
+                                width={360}
+                                height={240}
+                                className="object-contain"
+                                priority
+                            />
+                        </div>
+                    </div>
                 </div>
+
+                {/* Aesthetic Background Shapes */}
+                <div className="absolute top-[-40%] right-[-10%] w-[600px] h-[600px] bg-white/10 rounded-full blur-[80px] z-0 pointer-events-none"></div>
+                <div className="absolute bottom-[-30%] left-[5%] w-[400px] h-[400px] bg-blue-900/10 rounded-full blur-[60px] z-0 pointer-events-none"></div>
             </div>
 
             {/* Overlapping Widget (Re-using existing widget but maybe formatted simpler? For now standard) */}

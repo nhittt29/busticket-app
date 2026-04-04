@@ -1,18 +1,32 @@
 "use client";
 
-import { useState, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useRef, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
 
 export function SearchWidget() {
     const router = useRouter();
+    const searchParams = useSearchParams();
     const dateInputRef = useRef<HTMLInputElement>(null);
-    const [from, setFrom] = useState("");
-    const [to, setTo] = useState("");
-    const [date, setDate] = useState("");
-    const [passengers, setPassengers] = useState(1);
+    const [from, setFrom] = useState(searchParams.get("startPoint") || "");
+    const [to, setTo] = useState(searchParams.get("endPoint") || "");
+    const [date, setDate] = useState(searchParams.get("date") || "");
+    const [passengers, setPassengers] = useState(parseInt(searchParams.get("passengers") || "1"));
+
+    // Sync state with URL params when they change (e.g. user navigates)
+    useEffect(() => {
+        const start = searchParams.get("startPoint");
+        const end = searchParams.get("endPoint");
+        const d = searchParams.get("date");
+        const p = searchParams.get("passengers");
+
+        if (start) setFrom(start);
+        if (end) setTo(end);
+        if (d) setDate(d);
+        if (p) setPassengers(parseInt(p));
+    }, [searchParams]);
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();

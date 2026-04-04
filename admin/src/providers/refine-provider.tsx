@@ -77,6 +77,11 @@ export function RefineProvider({ children }: { children: React.ReactNode }) {
                     list: "/stats",
                     meta: { label: "Thống kê" },
                 },
+                {
+                    name: "ticket_reports",
+                    list: "/tickets/reports",
+                    meta: { label: "Báo cáo chi tiết (View)" },
+                },
             ]}
             options={{
                 syncWithLocation: true,
