@@ -49,8 +49,13 @@ export class TicketController {
   }
 
   @Get('admin/reports')
-  async getAdminReports() {
-    return this.ticketService.getAdminTicketReports();
+  async getAdminReports(
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 10,
+    @Query('sortBy') sortBy: string = 'MAVE',
+    @Query('sortOrder') sortOrder: 'ASC' | 'DESC' = 'DESC',
+  ) {
+    return this.ticketService.getAdminTicketReports(Number(page), Number(limit), sortBy, sortOrder);
   }
 
   @Get('my-brand')

@@ -604,10 +604,33 @@ export class TicketService {
     }
   }
 
-  async getAdminTicketReports() {
-    this.logger.log('Fetching ticket reports via Oracle View V_TICKET_DETAILS');
-    const reports = await this.dataSource.query('SELECT * FROM V_TICKET_DETAILS');
-    return reports;
+  async getAdminTicketReports(page: number = 1, limit: number = 10, sortBy: string = 'MAVE', sortOrder: 'ASC' | 'DESC' = 'DESC') {
+    this.logger.log(`Fetching ticket reports via Oracle View V_TICKET_DETAILS. Page: ${page}, Limit: ${limit}, Sort: ${sortBy} ${sortOrder}`);
+    
+    // Validate sortBy column name to prevent SQL injection
+    const validColumns = ['MAVE', 'TENKH', 'DIENTHOAI', 'DIEMDI', 'DIEMDEN', 'SOGHE', 'THOIGIANKHOIHANH', 'TONGTIEN', 'TRANGTHAI'];
+    const safeSortBy = validColumns.includes(sortBy) ? sortBy : 'MAVE';
+    const safeSortOrder = ['ASC', 'DESC'].includes(String(sortOrder).toUpperCase()) ? sortOrder : 'DESC';
+
+    // 1. Lấy tổng số dòng để phân trang
+    const countResult = await this.dataSource.query('SELECT COUNT(*) as TOTAL FROM V_TICKET_DETAILS');
+    const total = parseInt(countResult[0]?.TOTAL || '0');
+
+    // 2. Lấy dữ liệu phân trang và sắp xếp (Oracle 12c+ syntax)
+    const offset = (page - 1) * limit;
+    const data = await this.dataSource.query(`
+      SELECT * FROM V_TICKET_DETAILS 
+      ORDER BY "${safeSortBy}" ${safeSortOrder}
+      OFFSET ${offset} ROWS FETCH NEXT ${limit} ROWS ONLY
+    `);
+
+    return {
+      data,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit)
+    };
   }
 
   async findTicketsByDate(date: string) {
