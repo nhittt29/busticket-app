@@ -1,4 +1,4 @@
-import * as oracledb from 'oracledb';
+
 import {
   Injectable,
   BadRequestException,
@@ -611,6 +611,7 @@ export class TicketService {
   }
 
   async findTicketsByDate(date: string) {
+    const oracledb = require('oracledb');
     this.logger.log(`[ORACLE PROCEDURE INTEGRATION] Searching for: ${date}`);
     const queryRunner = this.dataSource.createQueryRunner();
     
