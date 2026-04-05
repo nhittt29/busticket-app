@@ -598,9 +598,9 @@ export class TicketService {
         zp_code: result.return_code,
         is_processing: result.is_processing
       };
-    } catch (error) {
-      this.logger.error(`Check ZaloPay Status Failed`, error);
-      return { success: false, message: error.message || 'Lỗi kiểm tra trạng thái' };
+    } catch (e) {
+      this.logger.error(`Check ZaloPay Status Failed`, e);
+      return { success: false, message: e.message || 'Lỗi kiểm tra trạng thái' };
     }
   }
 
@@ -611,7 +611,7 @@ export class TicketService {
   }
 
   async findTicketsByDate(date: string) {
-    this.logger.log(`Executing Ultra-Stable JSON Procedure: ${date}`);
+    this.logger.log(`[ORACLE PROCEDURE INTEGRATION] Searching for: ${date}`);
     const queryRunner = this.dataSource.createQueryRunner();
     
     try {
@@ -619,34 +619,78 @@ export class TicketService {
       const connection = (queryRunner as any).databaseConnection;
 
       if (!connection) {
-        throw new Error('Native Oracle connection not available');
+        throw new Error('Native Oracle connection not available. Ensure Oracle driver is properly initialized.');
       }
 
-      // Passing date as string directly to the procedue (Ultimate Fix)
+      // 1. Thực thi Procedure với tham số đầu ra là CURSOR (SYS_REFCURSOR)
+      // Sử dụng TO_DATE(:p_date, 'YYYY-MM-DD') trực tiếp trong SQL để Oracle xử lý,
+      // tránh hoàn toàn lỗi timezone của JavaScript Date.
       const result: any = await connection.execute(
-        `BEGIN P_TICKETS_BY_DATE(:p_json, :p_date); END;`,
+        `BEGIN P_TICKETS_BY_DATE(:ds, TO_DATE(:p_date, 'YYYY-MM-DD')); END;`,
         {
-          p_json: { type: oracledb.DB_TYPE_CLOB, dir: oracledb.BIND_OUT },
+          ds: { type: oracledb.CURSOR, dir: oracledb.BIND_OUT },
           p_date: { val: date, type: oracledb.STRING, dir: oracledb.BIND_IN }
-        }
+        },
+        { outFormat: oracledb.OUT_FORMAT_OBJECT }
       );
       
-      const lob = result.outBinds.p_json;
-      let jsonStr = '[]';
+      const resultSet = result.outBinds.ds;
+      let procedureRows: any[] = [];
       
-      if (lob) {
-          // Read CLOB content
-          jsonStr = await lob.getData();
+      if (resultSet) {
+        // Fetch dữ liệu từ cursor
+        procedureRows = await resultSet.getRows(1000);
+        await resultSet.close();
       }
-      
-      const data = JSON.parse(jsonStr);
-      this.logger.log(`[ORACLE JSON SUCCESS] Received ${data.length} records`);
-      return data;
+
+      this.logger.log(`[ORACLE PROCEDURE SUCCESS] Found ${procedureRows.length} records matching procedure logic`);
+
+      if (procedureRows.length === 0) return [];
+
+      // 2. BỔ SUNG DỮ LIỆU THIẾU (MAVE, TRANGTHAI, DIEMDI, DIEMDEN)
+      // Để giao diện "hiệu quả nhất", ta lấy dữ liệu từ Procedure làm "ID khóa" để lấy full thông tin.
+      const enrichedData = await Promise.all(procedureRows.map(async (row) => {
+        const fullInfo = await this.dataSource.query(`
+          SELECT 
+            T."id"              AS "MAVE",
+            R."startPoint"      AS "DIEMDI",
+            R."endPoint"        AS "DIEMDEN",
+            T."status"          AS "TRANGTHAI"
+          FROM 
+            "Ticket" T
+            JOIN "User" U ON T."userId" = U."id"
+            JOIN "Seat" S ON T."seatId" = S."id"
+            JOIN "Schedule" SCH ON T."scheduleId" = SCH."id"
+            JOIN "Route" R ON SCH."routeId" = R."id"
+          WHERE 
+            U."name" = :tenkh 
+            AND U."phone" = :phone 
+            AND S."seatNumber" = :seat 
+            AND TRUNC(SCH."departureAt") = TO_DATE(:ngaydi, 'YYYY-MM-DD')
+        `, [row.TENKH, row.DIENTHOAI, row.SOGHE, date]);
+
+        if (fullInfo.length > 0) {
+          // Gộp dữ liệu từ Procedure và Database để có Object đầy đủ nhất
+          return {
+            ...row,
+            MAVE: fullInfo[0].MAVE,
+            DIEMDI: fullInfo[0].DIEMDI,
+            DIEMDEN: fullInfo[0].DIEMDEN,
+            TRANGTHAI: fullInfo[0].TRANGTHAI
+          };
+        }
+        return row; // Trường hợp không tìm thấy (hiếm khi xảy ra)
+      }));
+
+      return enrichedData;
     } catch (error) {
-      this.logger.error(`[ORACLE JSON ERROR] ${error.message}`, error.stack);
+      this.logger.error(`[ORACLE PROCEDURE ERROR] ${error.message}`, error.stack);
       throw error;
     } finally {
       await queryRunner.release();
     }
   }
+
+
+
 }

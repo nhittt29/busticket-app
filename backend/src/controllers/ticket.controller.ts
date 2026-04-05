@@ -68,14 +68,9 @@ export class TicketController {
     if (!date) {
       throw new BadRequestException('Vui lòng cung cấp tham số date (YYYY-MM-DD)');
     }
-    try {
-      return await this.ticketService.findTicketsByDate(date);
-    } catch (error) {
-      this.logger.error(`API search-by-date failed: ${error.message}`);
-      // Trả về lỗi chi tiết để dễ debug thay vì chỉ 500
-      throw new BadRequestException(`Lỗi Oracle: ${error.message}`);
-    }
+    return this.ticketService.findTicketsByDate(date);
   }
+
 
   @Get('bookings')
   async getAllBookings() {
