@@ -3,6 +3,14 @@
 import { DataProvider } from "@refinedev/core";
 import api from "../lib/api";
 
+const RESOURCE_MAP: Record<string, string> = {
+    "buses": "buses", // Backend uses /buses
+    "brands": "brand", // Backend uses /brand
+    "admin-schedules": "schedules/admin",
+    "bookings": "tickets/bookings",
+    "promotions": "promotions/admin",
+};
+
 export const dataProvider: DataProvider = {
     getList: async ({ resource, pagination, filters, sorters }) => {
         const { current = 1, pageSize = 10 } = (pagination as any) ?? {};
@@ -25,15 +33,7 @@ export const dataProvider: DataProvider = {
             query.order = sorters[0].order;
         }
 
-        // Map resource names to API endpoints if they differ
-        const resourceMap: Record<string, string> = {
-            "buses": "bus",
-            "brands": "brand",
-            "admin-schedules": "schedules/admin",
-            "bookings": "tickets/bookings",
-            "promotions": "promotions/admin",
-        };
-        const endpoint = resourceMap[resource] || resource;
+        const endpoint = RESOURCE_MAP[resource] || resource;
 
         const { data } = await api.get(`/${endpoint}`, { params: query });
 
@@ -44,10 +44,7 @@ export const dataProvider: DataProvider = {
     },
 
     getOne: async ({ resource, id }) => {
-        const resourceMap: Record<string, string> = {
-            "buses": "bus",
-        };
-        const endpoint = resourceMap[resource] || resource;
+        const endpoint = RESOURCE_MAP[resource] || resource;
         const { data } = await api.get(`/${endpoint}/${id}`);
         return {
             data,
@@ -55,10 +52,7 @@ export const dataProvider: DataProvider = {
     },
 
     create: async ({ resource, variables }) => {
-        const resourceMap: Record<string, string> = {
-            "buses": "bus",
-        };
-        const endpoint = resourceMap[resource] || resource;
+        const endpoint = RESOURCE_MAP[resource] || resource;
         const { data } = await api.post(`/${endpoint}`, variables);
         return {
             data,
@@ -66,10 +60,7 @@ export const dataProvider: DataProvider = {
     },
 
     update: async ({ resource, id, variables }) => {
-        const resourceMap: Record<string, string> = {
-            "buses": "bus",
-        };
-        const endpoint = resourceMap[resource] || resource;
+        const endpoint = RESOURCE_MAP[resource] || resource;
         const { data } = await api.put(`/${endpoint}/${id}`, variables);
         return {
             data,
@@ -77,10 +68,7 @@ export const dataProvider: DataProvider = {
     },
 
     deleteOne: async ({ resource, id }) => {
-        const resourceMap: Record<string, string> = {
-            "buses": "bus",
-        };
-        const endpoint = resourceMap[resource] || resource;
+        const endpoint = RESOURCE_MAP[resource] || resource;
         const { data } = await api.delete(`/${endpoint}/${id}`);
         return {
             data,
