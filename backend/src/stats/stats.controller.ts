@@ -1,4 +1,4 @@
-import { Controller, Get, UseGuards, Req, UnauthorizedException } from '@nestjs/common';
+import { Controller, Get, UseGuards, Req, UnauthorizedException, Query } from '@nestjs/common';
 import { StatsService } from './stats.service';
 import { FirebaseAuthGuard } from '../guards/firebase-auth.guard';
 
@@ -64,5 +64,10 @@ export class StatsController {
     @Get('hourly-booking-stats')
     async getHourlyBookingStats() {
         return this.statsService.getHourlyBookingStats();
+    }
+
+    @Get('recent-bookings-bonus')
+    async getRecentBookingsBonus(@Query('limit') limit: number = 20) {
+        return this.statsService.getRecentBookingsBonus(Number(limit));
     }
 }

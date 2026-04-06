@@ -1,11 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between, In, MoreThanOrEqual, LessThanOrEqual, Not } from 'typeorm';
+import { Repository, Between, In, MoreThanOrEqual, LessThanOrEqual, Not, DataSource } from 'typeorm';
 import { Ticket } from '../entities/Ticket.entity';
 import { Schedule } from '../entities/Schedule.entity';
 import { User } from '../entities/User.entity';
 import { TicketStatus, ScheduleStatus } from '../models/Ticket';
-// Removed Prisma imports entirely
 
 @Injectable()
 export class StatsService {
@@ -13,6 +12,7 @@ export class StatsService {
         @InjectRepository(Ticket) private ticketRepo: Repository<Ticket>,
         @InjectRepository(Schedule) private scheduleRepo: Repository<Schedule>,
         @InjectRepository(User) private userRepo: Repository<User>,
+        private dataSource: DataSource,
     ) { }
 
     async getSummary() {
@@ -447,5 +447,53 @@ export class StatsService {
                 busPlate: s.bus?.licensePlate
             }))
         };
+    }
+
+    /**
+     * BONUS LOGIC: Calling Oracle Package Procedure
+     * Using SYS_REFCURSOR to get recent bookings
+     */
+    async getRecentBookingsBonus(limit: number = 20) {
+        const oracledb = require('oracledb');
+        const queryRunner = this.dataSource.createQueryRunner();
+        
+        try {
+            await queryRunner.connect();
+            const connection = (queryRunner as any).databaseConnection;
+
+            if (!connection) {
+                throw new Error('Native Oracle connection not available.');
+            }
+
+            // Execute Package Procedure
+            const result: any = await connection.execute(
+                `BEGIN PKG_BUSTICKET_UTILS.GET_RECENT_BOOKINGS(:p_limit, :ds); END;`,
+                {
+                    p_limit: { val: limit, type: oracledb.NUMBER, dir: oracledb.BIND_IN },
+                    ds: { type: oracledb.CURSOR, dir: oracledb.BIND_OUT }
+                },
+                { outFormat: oracledb.OUT_FORMAT_OBJECT }
+            );
+
+            const resultSet = result.outBinds.ds;
+            let rows: any[] = [];
+            
+            if (resultSet) {
+                rows = await resultSet.getRows(limit);
+                await resultSet.close();
+            }
+
+            return rows.map(row => ({
+                id: row.MAVE,
+                customerName: row.TENKH,
+                totalPrice: row.TONGTIEN,
+                createdAt: row.NGAYDAT
+            }));
+        } catch (error) {
+            console.error('[ORACLE BONUS LOGIC ERROR]', error);
+            throw error;
+        } finally {
+            await queryRunner.release();
+        }
     }
 }

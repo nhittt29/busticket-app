@@ -12,6 +12,7 @@ import { useRouter } from "next/navigation";
 
 import { useEffect, useState } from "react";
 import api from "@/lib/api";
+import { RecentBookingsBonus } from "@/components/dashboard/RecentBookingsBonus";
 
 interface IDashboardStats {
     revenue: number;
@@ -229,63 +230,12 @@ export default function Dashboard() {
                                     </LineChart>
                                 </ResponsiveContainer>
                             </div>
-                        </CardContent>
-                    </Card>
+                </CardContent>
+            </Card>
 
-                    {/* Recent Activity */}
-                    <Card className="col-span-3 border-0 shadow-md">
-                        <CardHeader>
-                            <CardTitle className="text-[#2c3e50]">Giao dịch gần đây</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="space-y-8">
-                                {recentDisplayList.length === 0 ? (
-                                    <div className="text-center text-muted-foreground py-8">
-                                        Chưa có giao dịch nào.
-                                    </div>
-                                ) : (
-                                    recentDisplayList.map((booking: ITicket) => (
-                                        <div
-                                            key={booking.id}
-                                            className="flex items-center cursor-pointer hover:bg-muted/50 p-2 rounded-md transition-colors"
-                                            onClick={() => router.push(`/tickets/show/${booking.id}`)}
-                                        >
-                                            <div className="space-y-1 flex-1">
-                                                <p className="text-sm font-medium leading-none text-[#2c3e50]">
-                                                    {booking.schedule?.route?.startPoint || 'N/A'} - {booking.schedule?.route?.endPoint || 'N/A'}
-                                                </p>
-                                                <div className="flex flex-col gap-1">
-                                                    <p className="text-xs text-muted-foreground flex items-center">
-                                                        <Clock className="mr-1 h-3 w-3" /> {formatTimeAgo(booking.createdAt.toString())}
-                                                    </p>
-                                                    <p className="text-xs text-muted-foreground">
-                                                        {booking.seatCount || 1} vé: {booking.seatList || booking.seatNumber}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                            <div className="text-right">
-                                                {(booking.discountAmount || 0) > 0 && (
-                                                    <div className="text-[10px] text-muted-foreground line-through">
-                                                        {formatCurrency(booking.totalPrice + (booking.discountAmount || 0))}
-                                                    </div>
-                                                )}
-                                                <div className={`text-sm font-bold ${(booking.discountAmount || 0) > 0 ? 'text-red-600' : 'text-[#2c3e50]'}`}>
-                                                    {formatCurrency(booking.totalPrice)}
-                                                </div>
-                                                <div className={`text-xs font-medium ${booking.status === TicketStatus.PAID ? 'text-green-500' :
-                                                    booking.status === TicketStatus.BOOKED ? 'text-orange-500' : 'text-red-500'
-                                                    }`}>
-                                                    {booking.status === TicketStatus.PAID ? 'Thành công' :
-                                                        booking.status === TicketStatus.BOOKED ? 'Chờ thanh toán' : 'Đã hủy'}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))
-                                )}
-                            </div>
-                        </CardContent>
-                    </Card>
-                </div>
+            {/* Recent Bookings (Bonus Logic) */}
+            <RecentBookingsBonus />
+        </div>
 
                 <div className="grid gap-6 md:grid-cols-7">
                     {/* TOP REVENUE ROUTES - Horizontal Bar Chart */}
