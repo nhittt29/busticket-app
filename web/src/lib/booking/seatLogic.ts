@@ -71,26 +71,23 @@ export class SeatLogic {
             Orphan Rules:
             - Rule 1 (Edge-Packing): You cannot pick a seat that fragments an existing empty block into smaller parts.
               (i.e. number of empty blocks cannot increase). This forces picking from the edges of a row/mattress.
-            - Rule 2 (No Single Orphan): Any gap of exactly 1 empty seat is BLOCKED.
-              EXCEPTION: If the original available block had size <= 2, leaving 1 is allowed. 
-              (Because it's impossible to book 1 seat from a pair without leaving 1).
+            - Rule 2 (No Trapped Single Orphan): Any gap of exactly 1 empty seat is BLOCKED 
+              ONLY IF it is trapped between TAKEN seats on both its left and right sides.
+              A single seat left at the very edge of the row is ALLOWED.
         */
         if (simBlocks.length > baseBlocks.length) {
             return true; // Rule 1 Violation
         }
 
-        // Rule 2: No single Inner Orphan (sandwiched gap).
-        // Outer orphans (size 1 gap touching the physical boundary) are ALLOWED.
+        // Rule 2: No Trapped Single Hole
         for (const simBlock of simBlocks) {
             if (simBlock.length === 1) {
                 const idx = simBlock[0];
-                // Check if it's strictly an INNER gap (not touching 0 or length - 1)
-                if (idx > 0 && idx < group.length - 1) {
-                    const baseBlock = baseBlocks.find(b => b.includes(idx));
-                    // If it was already an inner orphan in base state, we are immune
-                    if (baseBlock && baseBlock.length > 1) {
-                        return true; // Invalid inner orphan created
-                    }
+                const leftTaken = idx === 0 ? false : simStates[idx - 1] === 1;
+                const rightTaken = idx === simStates.length - 1 ? false : simStates[idx + 1] === 1;
+                
+                if (leftTaken && rightTaken) {
+                    return true; // Violation: Single hole trapped between taken seats
                 }
             }
         }
@@ -131,7 +128,7 @@ export class SeatLogic {
                 return sortedAll.slice(pairStart, pairStart + 2);
             }
             // Last 5 seats -> Orphan Check Group
-            return sortedAll.slice(40);
+            return sortedAll.slice(40, 45);
         }
 
         // Layout 28/29 (Limousine)
@@ -143,8 +140,8 @@ export class SeatLogic {
                 const pairStart = Math.floor(index / 2) * 2;
                 return sortedAll.slice(pairStart, pairStart + 2);
             }
-            // Last 4 or 5 seats -> Orphan Check Group
-            return sortedAll.slice(24);
+            // Last 4 seats -> Orphan Check Group (force 4 seats exactly)
+            return sortedAll.slice(24, 28);
         }
 
         // 1. Group by floor

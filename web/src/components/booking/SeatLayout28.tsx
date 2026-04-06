@@ -2,6 +2,7 @@
 
 import { Seat } from "@/types/seat";
 import { SeatItem } from "./SeatItem";
+import { SeatLogic } from "@/lib/booking/seatLogic";
 
 interface SeatLayout28Props {
     seats: Seat[];
@@ -19,7 +20,7 @@ export function SeatLayout28({ seats, selectedSeats, invalidSeatId, onSelectSeat
     // 2. Logic: 6 rows of 4 seats + 1 row of 5 seats
     const mainRows = 6;
     const seatsPerRow = 4;
-    const lastRowSeats = sortedSeats.slice(mainRows * seatsPerRow, (mainRows * seatsPerRow) + 5);
+    const lastRowSeats = sortedSeats.slice(mainRows * seatsPerRow, (mainRows * seatsPerRow) + 4);
 
     const renderRow = (rowIndex: number) => {
         const startIndex = rowIndex * seatsPerRow;
@@ -32,7 +33,7 @@ export function SeatLayout28({ seats, selectedSeats, invalidSeatId, onSelectSeat
             <div key={rowIndex} className="flex items-center justify-center gap-16 mb-6">
                 {/* Left Block */}
                 <div className="flex gap-4">
-                    {leftSeats.map(seat => (
+                    {leftSeats.map((seat: Seat) => (
                         <SeatItem
                             key={seat.id}
                             seat={seat}
@@ -47,7 +48,7 @@ export function SeatLayout28({ seats, selectedSeats, invalidSeatId, onSelectSeat
 
                 {/* Right Block */}
                 <div className="flex gap-4">
-                    {rightSeats.map(seat => (
+                    {rightSeats.map((seat: Seat) => (
                         <SeatItem
                             key={seat.id}
                             seat={seat}
@@ -91,9 +92,9 @@ export function SeatLayout28({ seats, selectedSeats, invalidSeatId, onSelectSeat
                 {/* Main 6 Rows */}
                 {Array.from({ length: mainRows }).map((_, i) => renderRow(i))}
 
-                {/* Last 5-seat Row */}
+                {/* Last 4-seat Row (Corrected from 5 as per user request) */}
                 <div className="flex items-center justify-center gap-4 mt-2">
-                    {lastRowSeats.map(seat => (
+                    {lastRowSeats.map((seat: Seat) => (
                         <SeatItem
                             key={seat.id}
                             seat={seat}

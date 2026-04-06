@@ -2,6 +2,7 @@
 
 import { Seat } from "@/types/seat";
 import { SeatItem } from "./SeatItem";
+import { SeatLogic } from "@/lib/booking/seatLogic";
 
 interface SeatLayout45Props {
     seats: Seat[];
@@ -28,7 +29,7 @@ export function SeatLayout45({ seats, selectedSeats, invalidSeatId, onSelectSeat
         return (
             <div className="flex items-center justify-center gap-16 mb-4">
                 <div className="flex gap-4">
-                    {left.map(seat => (
+                    {left.map((seat: Seat) => (
                         <SeatItem
                             key={seat.id}
                             seat={seat}
@@ -41,7 +42,7 @@ export function SeatLayout45({ seats, selectedSeats, invalidSeatId, onSelectSeat
                     ))}
                 </div>
                 <div className="flex gap-4">
-                    {right.map(seat => (
+                    {right.map((seat: Seat) => (
                         <SeatItem
                             key={seat.id}
                             seat={seat}
@@ -92,7 +93,7 @@ export function SeatLayout45({ seats, selectedSeats, invalidSeatId, onSelectSeat
 
                 {/* Last 5 Seats */}
                 <div className="flex items-center justify-center gap-4 mt-2">
-                    {last5Seats.map(seat => (
+                    {last5Seats.map((seat: Seat) => (
                         <SeatItem
                             key={seat.id}
                             seat={seat}
