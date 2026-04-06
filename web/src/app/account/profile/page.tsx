@@ -37,7 +37,7 @@ export default function ProfilePage() {
     });
 
     useEffect(() => {
-        // Fetch fresh profile on mount to prevent stale data after F5
+        // Fetch fresh profile and revenue when user.id is available
         const fetchData = async () => {
             if (user?.id) {
                 try {
@@ -60,8 +60,9 @@ export default function ProfilePage() {
                 }
             }
         };
+
         fetchData();
-    }, []); // Run only once on mount
+    }, [user?.id]); // Run when user.id becomes available
 
     useEffect(() => {
         if (user) {
@@ -311,9 +312,6 @@ export default function ProfilePage() {
                                 {totalRevenue !== null ? totalRevenue.toLocaleString('vi-VN') : '0'}
                                 <span className="text-xs ml-0.5">đ</span>
                             </span>
-                            <div className="mt-2 text-[10px] px-2 py-0.5 bg-primary/10 text-primary rounded-full font-bold">
-                                {totalRevenue && totalRevenue > 2000000 ? 'KHÁCH HÀNG VIP' : 'HÀNH KHÁCH'}
-                            </div>
                         </div>
                     </div>
 
