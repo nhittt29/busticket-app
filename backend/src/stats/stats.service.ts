@@ -487,13 +487,38 @@ export class StatsService {
                 id: row.MAVE,
                 customerName: row.TENKH,
                 totalPrice: row.TONGTIEN,
-                createdAt: row.NGAYDAT
+                createdAt: row.NGAYDAT,
+                status: row.TRANGTHAI
             }));
         } catch (error) {
             console.error('[ORACLE BONUS LOGIC ERROR]', error);
             throw error;
         } finally {
             await queryRunner.release();
+        }
+    }
+
+    /**
+     * Lấy nhật ký hệ thống sinh ra bởi Sequence
+     */
+    async getActionLogs(limit: number = 10) {
+        try {
+            // Oracle FETCH FIRST syntax
+            const result = await this.dataSource.query(`
+                SELECT "id", "action_name", "log_time"
+                FROM "ActionLog"
+                ORDER BY "log_time" DESC
+                FETCH FIRST :limit ROWS ONLY
+            `, [limit]);
+
+            return result.map((row: any) => ({
+                id: row.id || row.ID,
+                actionName: row.action_name || row.ACTION_NAME,
+                logTime: row.log_time || row.LOG_TIME
+            }));
+        } catch (error) {
+            console.error('[ORACLE ACTION LOG ERROR]', error);
+            throw error;
         }
     }
 }

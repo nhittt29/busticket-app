@@ -13,6 +13,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import api from "@/lib/api";
 import { RecentBookingsBonus } from "@/components/dashboard/RecentBookingsBonus";
+import { SystemActivityLog } from "@/components/dashboard/SystemActivityLog";
 
 interface IDashboardStats {
     revenue: number;
@@ -210,8 +211,8 @@ export default function Dashboard() {
                 </div>
 
                 {/* Charts & Activity */}
-                <div className="grid gap-6 md:grid-cols-7">
-                    {/* TICKET TREND (Replacing Revenue Chart because it provides Success vs Cancelled breakdown) */}
+                <div className="grid gap-6 md:grid-cols-8">
+                    {/* TICKET TREND */}
                     <Card className="col-span-4 border-0 shadow-md">
                         <CardHeader>
                             <CardTitle className="text-[#2c3e50]">Xu hướng Đặt vé (7 ngày)</CardTitle>
@@ -235,6 +236,9 @@ export default function Dashboard() {
 
             {/* Recent Bookings (Bonus Logic) */}
             <RecentBookingsBonus />
+            
+            {/* System Activity Log (Bonus Logic Sequence) */}
+            <SystemActivityLog />
         </div>
 
                 <div className="grid gap-6 md:grid-cols-7">

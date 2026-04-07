@@ -74,7 +74,8 @@ CREATE OR REPLACE PACKAGE BODY PKG_BUSTICKET_UTILS AS
                     T."id" AS MAVE, 
                     U."name" AS TENKH, 
                     T."totalPrice" AS TONGTIEN,
-                    T."createdAt" AS NGAYDAT
+                    T."createdAt" AS NGAYDAT,
+                    T."status" AS TRANGTHAI
                 FROM "Ticket" T, "User" U
                 WHERE T."userId" = U."id"
                 ORDER BY T."createdAt" DESC -- Sắp xếp vé mới nhất lên đầu

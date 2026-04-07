@@ -4,17 +4,26 @@ import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Clock, TrendingUp, User } from "lucide-react";
 import api from "@/lib/api";
+import { useNavigation } from "@refinedev/core";
 
 interface IBonusBooking {
     id: number;
     customerName: string;
     totalPrice: number;
     createdAt: string;
+    status: string;
 }
+
+const STATUS_CONFIG: Record<string, { label: string; twClass: string }> = {
+    'PAID': { label: 'Thành công', twClass: 'text-[#22c55e] bg-[#22c55e]/10 border-[#22c55e]/20' },
+    'BOOKED': { label: 'Chờ TT', twClass: 'text-[#eab308] bg-[#eab308]/10 border-[#eab308]/20' },
+    'CANCELLED': { label: 'Đã hủy', twClass: 'text-[#ef4444] bg-[#ef4444]/10 border-[#ef4444]/20' }
+};
 
 export const RecentBookingsBonus = () => {
     const [bookings, setBookings] = useState<IBonusBooking[]>([]);
     const [loading, setLoading] = useState(true);
+    const { show } = useNavigation();
 
     useEffect(() => {
         const fetchBookings = async () => {
@@ -37,7 +46,7 @@ export const RecentBookingsBonus = () => {
     };
 
     return (
-        <Card className="col-span-3 border-0 shadow-lg bg-white/80 backdrop-blur-sm overflow-hidden flex flex-col h-[500px]">
+        <Card className="col-span-2 border-0 shadow-lg bg-white/80 backdrop-blur-sm overflow-hidden flex flex-col h-[500px]">
             <CardHeader className="bg-gradient-to-r from-[#023E8A] to-[#0077B6] text-white py-4 shrink-0">
                 <div className="flex justify-between items-center">
                     <CardTitle className="text-lg font-bold flex items-center gap-2">
@@ -64,7 +73,8 @@ export const RecentBookingsBonus = () => {
                         bookings.map((booking) => (
                             <div
                                 key={booking.id}
-                                className="group relative flex items-center gap-4 p-3 rounded-xl border border-transparent hover:border-[#96DFD8] hover:bg-[#96DFD8]/5 transition-all duration-300"
+                                onClick={() => show("tickets", booking.id)}
+                                className="group relative flex items-center gap-4 p-3 rounded-xl border border-transparent hover:border-[#96DFD8] hover:bg-[#96DFD8]/5 transition-all duration-300 cursor-pointer"
                             >
                                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#0077B6]/10 text-[#0077B6] group-hover:bg-[#0077B6] group-hover:text-white transition-colors duration-300 shadow-sm">
                                     <User className="h-5 w-5" />
@@ -89,8 +99,8 @@ export const RecentBookingsBonus = () => {
                                     <p className="text-sm font-black text-[#023E8A]">
                                         {formatCurrency(booking.totalPrice)}
                                     </p>
-                                    <div className="text-[10px] font-semibold text-[#22c55e] bg-[#22c55e]/10 px-2 py-0.5 rounded-full mt-1 inline-block border border-[#22c55e]/20">
-                                        Success
+                                    <div className={`text-[10px] font-semibold px-2 py-0.5 rounded-full mt-1 inline-block border ${STATUS_CONFIG[booking.status]?.twClass || 'text-gray-500 bg-gray-100 border-gray-200'}`}>
+                                        {STATUS_CONFIG[booking.status]?.label || booking.status}
                                     </div>
                                 </div>
                                 

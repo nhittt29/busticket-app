@@ -70,4 +70,9 @@ export class StatsController {
     async getRecentBookingsBonus(@Query('limit') limit: number = 20) {
         return this.statsService.getRecentBookingsBonus(Number(limit));
     }
+
+    @Get('action-logs')
+    async getActionLogs(@Query('limit') limit: number = 10) {
+        return this.statsService.getActionLogs(Number(limit));
+    }
 }
