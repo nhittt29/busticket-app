@@ -76,7 +76,7 @@ export const dataProvider: DataProvider = {
     },
 
     getApiUrl: () => {
-        return process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
+        return process.env.NEXT_PUBLIC_API_URL || "http://26.16.96.96:4000/api";
     },
 
     // Optional methods (can be implemented later)

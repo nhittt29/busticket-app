@@ -28,6 +28,7 @@ import {
   User,
   Star,
   FileText,
+  Database,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -69,6 +70,12 @@ const menuGroups = [
       { title: "Đánh giá", icon: Star, href: "/reviews" },
       { title: "Thông báo", icon: BellRing, href: "/notifications" },
       { title: "Cài đặt", icon: Settings, href: "/settings" },
+    ],
+  },
+  {
+    label: "Oracle Database",
+    items: [
+      { title: "Mô hình Nâng cao", icon: Database, href: "/oracle-advanced" },
     ],
   },
 ];

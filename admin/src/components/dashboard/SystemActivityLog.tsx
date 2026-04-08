@@ -8,6 +8,7 @@ import api from "@/lib/api";
 interface IActionLog {
     id: number;
     actionName: string;
+    userId?: number | null;
     logTime: string;
 }
 
@@ -65,9 +66,16 @@ export const SystemActivityLog = () => {
                                         <span className="text-sm text-slate-700 font-medium leading-tight">
                                             {log.actionName}
                                         </span>
-                                        <span className="text-[9px] font-mono bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded w-max border">
-                                            Log ID: #{log.id}
-                                        </span>
+                                        <div className="flex gap-2 items-center">
+                                            <span className="text-[9px] font-mono bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded w-max border">
+                                                Log ID: #{log.id}
+                                            </span>
+                                            {log.userId && (
+                                                <span className="text-[9px] font-mono bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded w-max border border-blue-200">
+                                                    User: #{log.userId}
+                                                </span>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             ))}

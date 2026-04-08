@@ -67,8 +67,10 @@ export class StatsController {
     }
 
     @Get('recent-bookings-bonus')
-    async getRecentBookingsBonus(@Query('limit') limit: number = 20) {
-        return this.statsService.getRecentBookingsBonus(Number(limit));
+    @UseGuards(FirebaseAuthGuard)
+    async getRecentBookingsBonus(@Query('limit') limit: number = 20, @Req() req: any) {
+        const userId = req.user?.dbUser?.id || null;
+        return this.statsService.getRecentBookingsBonus(Number(limit), userId);
     }
 
     @Get('action-logs')

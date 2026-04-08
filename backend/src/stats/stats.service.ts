@@ -453,23 +453,24 @@ export class StatsService {
      * BONUS LOGIC: Calling Oracle Package Procedure
      * Using SYS_REFCURSOR to get recent bookings
      */
-    async getRecentBookingsBonus(limit: number = 20) {
+    async getRecentBookingsBonus(limit: number = 20, userId: number | null = null) {
         const oracledb = require('oracledb');
-        const queryRunner = this.dataSource.createQueryRunner();
-        
+        const options = this.dataSource.options as any;
+        let connection;
         try {
-            await queryRunner.connect();
-            const connection = (queryRunner as any).databaseConnection;
-
-            if (!connection) {
-                throw new Error('Native Oracle connection not available.');
-            }
+            const connectString = `${options.host}:${options.port}/${options.serviceName || options.sid}`;
+            connection = await oracledb.getConnection({
+                user: options.username,
+                password: options.password,
+                connectString: connectString
+            });
 
             // Execute Package Procedure
             const result: any = await connection.execute(
-                `BEGIN PKG_BUSTICKET_UTILS.GET_RECENT_BOOKINGS(:p_limit, :ds); END;`,
+                `BEGIN PKG_BUSTICKET_UTILS.GET_RECENT_BOOKINGS(:p_limit, :p_userId, :ds); END;`,
                 {
                     p_limit: { val: limit, type: oracledb.NUMBER, dir: oracledb.BIND_IN },
+                    p_userId: { val: userId, type: oracledb.NUMBER, dir: oracledb.BIND_IN },
                     ds: { type: oracledb.CURSOR, dir: oracledb.BIND_OUT }
                 },
                 { outFormat: oracledb.OUT_FORMAT_OBJECT }
@@ -494,7 +495,13 @@ export class StatsService {
             console.error('[ORACLE BONUS LOGIC ERROR]', error);
             throw error;
         } finally {
-            await queryRunner.release();
+            if (connection) {
+                try {
+                    await connection.close();
+                } catch (e) {
+                    console.error('Error closing native connection:', e);
+                }
+            }
         }
     }
 
@@ -505,7 +512,7 @@ export class StatsService {
         try {
             // Oracle FETCH FIRST syntax
             const result = await this.dataSource.query(`
-                SELECT "id", "action_name", "log_time"
+                SELECT "id", "action_name", "user_id", "log_time"
                 FROM "ActionLog"
                 ORDER BY "log_time" DESC
                 FETCH FIRST :limit ROWS ONLY
@@ -514,6 +521,7 @@ export class StatsService {
             return result.map((row: any) => ({
                 id: row.id || row.ID,
                 actionName: row.action_name || row.ACTION_NAME,
+                userId: row.user_id || row.USER_ID,
                 logTime: row.log_time || row.LOG_TIME
             }));
         } catch (error) {

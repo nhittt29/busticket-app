@@ -73,9 +73,29 @@ export const authProvider: AuthProvider = {
     check: async () => {
         try {
             const user = await new Promise<User | null>((resolve) => {
+                let resolved = false;
+                
+                // Timeout chống treo trên mạng LAN (Insecure Context)
+                const timer = setTimeout(() => {
+                    if (!resolved) {
+                        resolved = true;
+                        resolve(null);
+                    }
+                }, 1000);
+
                 const unsubscribe = auth.onAuthStateChanged((user) => {
-                    unsubscribe();
-                    resolve(user);
+                    if (!resolved) {
+                        clearTimeout(timer);
+                        resolved = true;
+                        unsubscribe();
+                        resolve(user);
+                    }
+                }, (err) => {
+                    if (!resolved) {
+                        clearTimeout(timer);
+                        resolved = true;
+                        resolve(null);
+                    }
                 });
             });
 

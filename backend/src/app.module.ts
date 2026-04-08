@@ -31,6 +31,7 @@ import { NotificationModule } from './modules/notification.module';
 import { VnPayModule } from './modules/vnpay.module';
 import { AiModule } from './modules/ai.module';
 import { UploadModule } from './modules/upload.module';
+import { OracleAdvancedModule } from './modules/oracle-advanced.module';
 
 // Entities
 import { User } from './entities/User.entity';
@@ -105,6 +106,7 @@ import { SeatLock } from './entities/SeatLock.entity';
     ZaloPayModule,
     VnPayModule,
     UploadModule,
+    OracleAdvancedModule,
   ],
   controllers: [AuthController],
   providers: [
