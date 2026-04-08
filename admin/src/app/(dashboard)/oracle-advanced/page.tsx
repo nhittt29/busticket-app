@@ -15,7 +15,9 @@ export default function OracleAdvancedPage() {
   const [funcResult, setFuncResult] = useState<any>(null);
   const [procDate, setProcDate] = useState("");
   const [procData, setProcData] = useState<any[]>([]);
+  const [procSearched, setProcSearched] = useState(false);
   const [triggerRes, setTriggerRes] = useState<any>(null);
+
   const [pkgLimit, setPkgLimit] = useState("5");
   const [pkgData, setPkgData] = useState<any[]>([]);
   const [logData, setLogData] = useState<any[]>([]);
@@ -53,8 +55,10 @@ export default function OracleAdvancedPage() {
     if (!procDate) return;
     try {
       setLoading(true);
+      setProcSearched(true);
       const res = await api.get(`/oracle-advanced/tickets-by-date?date=${procDate}`);
       setProcData(res.data || []);
+
     } catch (e) {
       console.error(e);
       alert("Lỗi khi gọi Procedure");
@@ -203,9 +207,18 @@ export default function OracleAdvancedPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex gap-4 items-center max-w-md">
-                <Input placeholder="YYYY-MM-DD" value={procDate} onChange={e => setProcDate(e.target.value)} type="date" />
+                <Input 
+                  placeholder="YYYY-MM-DD" 
+                  value={procDate} 
+                  onChange={e => {
+                    setProcDate(e.target.value);
+                    setProcSearched(false);
+                  }} 
+                  type="date" 
+                />
                 <Button onClick={fetchProc} disabled={loading}>Truy vấn</Button>
               </div>
+
               {procData.length > 0 && (
                 <div className="rounded-md border p-1 overflow-x-auto">
                   <Table>
@@ -232,9 +245,10 @@ export default function OracleAdvancedPage() {
                   </Table>
                 </div>
               )}
-              {procData.length === 0 && procDate !== "" && !loading && (
-                 <p className="text-sm text-gray-500">Chưa có dữ liệu hoặc chọn sai định dạng, thử bấm truy vấn với ngày phù hợp.</p>
+              {procData.length === 0 && procSearched && !loading && (
+                 <p className="text-sm text-gray-500 italic">Chưa có dữ liệu hoặc chọn sai định dạng, thử bấm truy vấn với ngày phù hợp.</p>
               )}
+
             </CardContent>
           </Card>
         </TabsContent>
