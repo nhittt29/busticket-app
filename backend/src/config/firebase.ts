@@ -15,5 +15,5 @@ if (!admin.apps.length) {
   });
 }
 
-export const auth = admin.auth();
-export const firestore = admin.firestore();
+export const auth: admin.auth.Auth = admin.auth();
+export const firestore: admin.firestore.Firestore = admin.firestore();
