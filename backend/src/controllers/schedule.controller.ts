@@ -59,10 +59,10 @@ export class ScheduleController {
   }
 
 
-  // LẤY TOÀN BỘ CHUYẾN XE (KHÔNG LỌC) - DÀNH RIÊNG CHO ADMIN QUẢN LÝ
+  // LẤY TOÀN BỘ CHUYẾN XE (CÓ LỌC) - DÀNH RIÊNG CHO ADMIN QUẢN LÝ
   @Get('admin')
-  findAllForAdmin() {
-    return this.scheduleService.getAllSchedulesForAdmin();
+  findAllForAdmin(@Query('q') q?: string) {
+    return this.scheduleService.getAllSchedulesForAdmin(q);
   }
 
   // LẤY DANH SÁCH CHUYẾN XE CỦA NHÀ XE ĐANG ĐĂNG NHẬP

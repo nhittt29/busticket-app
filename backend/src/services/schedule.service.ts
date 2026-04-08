@@ -22,8 +22,8 @@ export class ScheduleService {
 
 
   // LẤY TOÀN BỘ CHUYẾN XE (KHÔNG LỌC)
-  async getAllSchedulesForAdmin() {
-    return this.scheduleRepo.getAllSchedulesForAdmin();
+  async getAllSchedulesForAdmin(q?: string) {
+    return this.scheduleRepo.getAllSchedulesForAdmin(q);
   }
 
   // LẤY DANH SÁCH CHUYẾN XE CỦA NHÀ XE

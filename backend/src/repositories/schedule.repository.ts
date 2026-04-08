@@ -161,11 +161,24 @@ export class ScheduleRepository {
         }
     }
 
-    async getAllSchedulesForAdmin() {
-        return this.scheduleRepo.find({
-            relations: ['bus', 'bus.brand', 'route'],
-            order: { departureAt: 'DESC' }
-        });
+    async getAllSchedulesForAdmin(q?: string) {
+        const query = this.scheduleRepo.createQueryBuilder('schedule')
+            .leftJoinAndSelect('schedule.bus', 'bus')
+            .leftJoinAndSelect('bus.brand', 'brand')
+            .leftJoinAndSelect('schedule.route', 'route')
+            .orderBy('schedule.departureAt', 'DESC');
+
+        if (q && q.trim() !== '') {
+            const searchTerm = `%${q.trim().toLowerCase()}%`;
+            query.andWhere(new Brackets(qb => {
+                qb.where('LOWER(route.startPoint) LIKE :q', { q: searchTerm })
+                    .orWhere('LOWER(route.endPoint) LIKE :q', { q: searchTerm })
+                    .orWhere('LOWER(bus.name) LIKE :q', { q: searchTerm })
+                    .orWhere('LOWER(bus.licensePlate) LIKE :q', { q: searchTerm });
+            }));
+        }
+
+        return query.getMany();
     }
 
     async getSchedulesByBrandId(brandId: number) {

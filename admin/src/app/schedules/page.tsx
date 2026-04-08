@@ -27,12 +27,28 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
+import { useState, useEffect } from "react";
+
 
 export default function ScheduleListPage() {
     const router = useRouter();
+    const [searchTerm, setSearchTerm] = useState("");
+    const [debouncedSearch, setDebouncedSearch] = useState("");
+
+    // Debounce search term
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedSearch(searchTerm);
+        }, 500);
+        return () => clearTimeout(timer);
+    }, [searchTerm]);
+
     // useList returns { query, result } in this version
     const hookResult = useList<ISchedule>({
         resource: "admin-schedules",
+        filters: [
+            ...(debouncedSearch ? [{ field: "q", operator: "eq" as const, value: debouncedSearch }] : [])
+        ],
         sorters: [
             {
                 field: "id",
@@ -121,8 +137,10 @@ export default function ScheduleListPage() {
                     <div className="relative flex-1">
                         <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                         <Input
-                            placeholder="Tìm theo tuyến đường..."
+                            placeholder="Tìm kiếm tuyến đường, biển số, tên xe..."
                             className="pl-9 bg-background"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
                         />
                     </div>
                     <Button variant="outline" className="gap-2">

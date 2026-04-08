@@ -285,7 +285,7 @@ export default function OracleAdvancedPage() {
             <CardContent className="space-y-4">
               <div className="flex gap-4 items-center max-w-md">
                 <Input placeholder="Giới hạn số vé (VD: 5)" value={pkgLimit} onChange={e => setPkgLimit(e.target.value)} type="number" />
-                <Button onClick={fetchPackage} disabled={loading}>Lấy Vé Sát Sườn (ROWNUM)</Button>
+                <Button onClick={fetchPackage} disabled={loading}>Truy vấn Vé Mới Nhất (ROWNUM)</Button>
               </div>
               
               {pkgData.length > 0 && (
