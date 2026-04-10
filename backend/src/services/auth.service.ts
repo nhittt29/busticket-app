@@ -80,7 +80,7 @@ export class AuthService {
       });
 
       return newUser as User;
-    } catch (error) {
+    } catch (error: any) {
       if (error instanceof ConflictException) throw error;
       throw new Error(`Registration failed: ${error.message}`);
     }
@@ -141,7 +141,7 @@ export class AuthService {
       }
 
       return newUser;
-    } catch (error) {
+    } catch (error: any) {
       if (error instanceof ConflictException) throw error;
       throw new Error(`Admin user creation failed: ${error.message}`);
     }
@@ -210,7 +210,7 @@ export class AuthService {
         uid,
         user: userWithRole as any,
       };
-    } catch (error) {
+    } catch (error: any) {
       if (this.isAxiosError(error) && error.response?.status === 400) {
         throw new UnauthorizedException('Email hoặc mật khẩu không chính xác');
       }
@@ -234,7 +234,7 @@ export class AuthService {
         message: 'Link đặt lại mật khẩu đã được gửi',
         resetLink,
       };
-    } catch (error) {
+    } catch (error: any) {
       throw new Error(`Forgot password failed: ${error.message}`);
     }
   }
@@ -249,7 +249,7 @@ export class AuthService {
     try {
       await auth.updateUser(uid, { password: newPassword });
       return { message: 'Đổi mật khẩu thành công' };
-    } catch (error) {
+    } catch (error: any) {
       throw new Error(`Change password failed: ${error.message}`);
     }
   }
@@ -267,7 +267,7 @@ export class AuthService {
 
       await auth.updateUser(userRecord.uid, { password: newPassword });
       return { message: 'Đặt lại mật khẩu thành công' };
-    } catch (error) {
+    } catch (error: any) {
       throw new Error(`Reset password failed: ${error.message}`);
     }
   }

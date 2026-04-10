@@ -65,114 +65,114 @@ export class TicketService {
 
     try {
       return await this.dataSource.transaction(async (manager) => {
-      const schedule = await this.scheduleRepo.getScheduleById(scheduleId);
-      if (!schedule) throw new NotFoundException('Lịch trình không tồn tại');
+        const schedule = await this.scheduleRepo.getScheduleById(scheduleId);
+        if (!schedule) throw new NotFoundException('Lịch trình không tồn tại');
 
-      const diffHours = (new Date(schedule.departureAt).getTime() - Date.now()) / 3600000;
-      if (diffHours < 1) throw new BadRequestException('Chỉ được đặt vé trước 1 giờ khởi hành');
+        const diffHours = (new Date(schedule.departureAt).getTime() - Date.now()) / 3600000;
+        if (diffHours < 1) throw new BadRequestException('Chỉ được đặt vé trước 1 giờ khởi hành');
 
-      const seat = await this.seatRepo.findById(seatId);
-      if (!seat || seat.busId !== schedule.busId)
-        throw new BadRequestException('Ghế không thuộc xe của lịch trình này');
+        const seat = await this.seatRepo.findById(seatId);
+        if (!seat || seat.busId !== schedule.busId)
+          throw new BadRequestException('Ghế không thuộc xe của lịch trình này');
 
-      const userTickets = await this.ticketRepo.findUserBookedToday(userId);
-      if (userTickets >= 8) throw new BadRequestException('Chỉ được đặt tối đa 8 vé/ngày');
+        const userTickets = await this.ticketRepo.findUserBookedToday(userId);
+        if (userTickets >= 8) throw new BadRequestException('Chỉ được đặt tối đa 8 vé/ngày');
 
-      // Validate Promotion if provided
-      let validatedPromotionId: number | null = null;
-      let validatedDiscountAmount = 0;
+        // Validate Promotion if provided
+        let validatedPromotionId: number | null = null;
+        let validatedDiscountAmount = 0;
 
-      if (promotionId) {
-        const promotion = await this.promotionsRepo.findById(promotionId);
-        if (!promotion) throw new BadRequestException('Mã khuyến mãi không tồn tại');
+        if (promotionId) {
+          const promotion = await this.promotionsRepo.findById(promotionId);
+          if (!promotion) throw new BadRequestException('Mã khuyến mãi không tồn tại');
 
-        const validation = await this.promotionsService.applyPromotion(promotion.code, price + (dropoffPointId != null ? 0 : 150000), userId);
-        validatedPromotionId = promotion.id;
-        validatedDiscountAmount = validation.discountAmount;
-      }
-
-      let surcharge = 0;
-      let finalDropoffPointId: number | undefined = undefined;
-      let finalDropoffAddress: string | undefined = undefined;
-
-      if (dropoffPointId != null) {
-        finalDropoffPointId = dropoffPointId;
-        surcharge = 0;
-      } else if (dropoffAddress && dropoffAddress.trim() !== '') {
-        surcharge = 150000;
-        finalDropoffAddress = dropoffAddress.trim();
-      }
-
-      const totalAmount = Math.max(0, price + surcharge - validatedDiscountAmount);
-
-      // 1. Tạo PaymentHistory bên trong transaction
-      const paymentGroup = await manager.getRepository(PaymentHistory).save(
-        manager.getRepository(PaymentHistory).create({
-          method: paymentMethod || AppPaymentMethod.MOMO,
-          amount: totalAmount,
-          status: 'PENDING',
-          promotionId: validatedPromotionId || undefined,
-          discountAmount: validatedDiscountAmount,
-        })
-      ) as PaymentHistory;
-
-      // 2. Tạo Ticket bên trong transaction
-      const ticket = await manager.getRepository(Ticket).save(
-        manager.getRepository(Ticket).create({
-          userId,
-          scheduleId,
-          seatId,
-          price,
-          surcharge,
-          totalPrice: totalAmount,
-          status: TicketStatus.BOOKED,
-          paymentMethod: paymentMethod || AppPaymentMethod.MOMO,
-          dropoffPointId: finalDropoffPointId,
-          dropoffAddress: finalDropoffAddress,
-          paymentHistoryId: paymentGroup.id,
-        })
-      ) as Ticket;
-
-      await manager.getRepository(TicketPayment).save(
-        manager.getRepository(TicketPayment).create({
-          ticketId: ticket.id,
-          paymentId: paymentGroup.id
-        })
-      );
-
-      // Bull Queue Jobs (Không cần transaction vì là side-effect an toàn)
-      await this.ticketQueue.add('hold-expire', { ticketId: ticket.id }, { delay: 15 * 60 * 1000 });
-      await this.ticketQueue.add('payment-reminder', { ticketId: ticket.id }, { delay: 10 * 60 * 1000 });
-
-      let paymentResponse: any = null;
-      const user = await this.userRepo.findById(userId);
-
-      if (paymentMethod === AppPaymentMethod.ZALOPAY) {
-        const res = await this.zaloPayService.createOrder(paymentGroup.id, totalAmount, user?.email || 'unknown@user.com', host);
-        if (res.return_code === 1) {
-          paymentResponse = { payUrl: res.order_url, zpTransToken: res.zp_trans_token, transactionId: res.app_trans_id };
-        } else {
-          throw new BadRequestException(`ZaloPay Error: ${res.return_message}`);
+          const validation = await this.promotionsService.applyPromotion(promotion.code, price + (dropoffPointId != null ? 0 : 150000), userId);
+          validatedPromotionId = promotion.id;
+          validatedDiscountAmount = validation.discountAmount;
         }
-      } else if (paymentMethod === AppPaymentMethod.VNPAY) {
-        paymentResponse = { payUrl: this.vnpayService.createPaymentUrl(paymentGroup.id, totalAmount, '127.0.0.1', host) };
-      } else {
-        paymentResponse = await this.momoService.createPayment(paymentGroup.id, totalAmount, `Thanh toán vé xe #${ticket.id}`, host);
-      }
 
-      if (paymentResponse?.payUrl) {
-        const updateData: any = { payUrl: paymentResponse.payUrl };
-        if (paymentResponse.transactionId) updateData.transactionId = paymentResponse.transactionId;
-        await manager.getRepository(PaymentHistory).update(paymentGroup.id, updateData);
-      }
+        let surcharge = 0;
+        let finalDropoffPointId: number | undefined = undefined;
+        let finalDropoffAddress: string | undefined = undefined;
 
-      return {
-        message: 'Đặt vé thành công.',
-        ticket: ticket as any,
-        payment: paymentResponse,
-      };
-    });
-    } catch (error) {
+        if (dropoffPointId != null) {
+          finalDropoffPointId = dropoffPointId;
+          surcharge = 0;
+        } else if (dropoffAddress && dropoffAddress.trim() !== '') {
+          surcharge = 150000;
+          finalDropoffAddress = dropoffAddress.trim();
+        }
+
+        const totalAmount = Math.max(0, price + surcharge - validatedDiscountAmount);
+
+        // 1. Tạo PaymentHistory bên trong transaction
+        const paymentGroup = await manager.getRepository(PaymentHistory).save(
+          manager.getRepository(PaymentHistory).create({
+            method: paymentMethod || AppPaymentMethod.MOMO,
+            amount: totalAmount,
+            status: 'PENDING',
+            promotionId: validatedPromotionId || undefined,
+            discountAmount: validatedDiscountAmount,
+          })
+        ) as PaymentHistory;
+
+        // 2. Tạo Ticket bên trong transaction
+        const ticket = await manager.getRepository(Ticket).save(
+          manager.getRepository(Ticket).create({
+            userId,
+            scheduleId,
+            seatId,
+            price,
+            surcharge,
+            totalPrice: totalAmount,
+            status: TicketStatus.BOOKED,
+            paymentMethod: paymentMethod || AppPaymentMethod.MOMO,
+            dropoffPointId: finalDropoffPointId,
+            dropoffAddress: finalDropoffAddress,
+            paymentHistoryId: paymentGroup.id,
+          })
+        ) as Ticket;
+
+        await manager.getRepository(TicketPayment).save(
+          manager.getRepository(TicketPayment).create({
+            ticketId: ticket.id,
+            paymentId: paymentGroup.id
+          })
+        );
+
+        // Bull Queue Jobs (Không cần transaction vì là side-effect an toàn)
+        await this.ticketQueue.add('hold-expire', { ticketId: ticket.id }, { delay: 15 * 60 * 1000 });
+        await this.ticketQueue.add('payment-reminder', { ticketId: ticket.id }, { delay: 10 * 60 * 1000 });
+
+        let paymentResponse: any = null;
+        const user = await this.userRepo.findById(userId);
+
+        if (paymentMethod === AppPaymentMethod.ZALOPAY) {
+          const res = await this.zaloPayService.createOrder(paymentGroup.id, totalAmount, user?.email || 'unknown@user.com', host);
+          if (res.return_code === 1) {
+            paymentResponse = { payUrl: res.order_url, zpTransToken: res.zp_trans_token, transactionId: res.app_trans_id };
+          } else {
+            throw new BadRequestException(`ZaloPay Error: ${res.return_message}`);
+          }
+        } else if (paymentMethod === AppPaymentMethod.VNPAY) {
+          paymentResponse = { payUrl: this.vnpayService.createPaymentUrl(paymentGroup.id, totalAmount, '127.0.0.1', host) };
+        } else {
+          paymentResponse = await this.momoService.createPayment(paymentGroup.id, totalAmount, `Thanh toán vé xe #${ticket.id}`, host);
+        }
+
+        if (paymentResponse?.payUrl) {
+          const updateData: any = { payUrl: paymentResponse.payUrl };
+          if (paymentResponse.transactionId) updateData.transactionId = paymentResponse.transactionId;
+          await manager.getRepository(PaymentHistory).update(paymentGroup.id, updateData);
+        }
+
+        return {
+          message: 'Đặt vé thành công.',
+          ticket: ticket as any,
+          payment: paymentResponse,
+        };
+      });
+    } catch (error: any) {
       if (error.message && error.message.includes('ORA-20001')) {
         throw new ConflictException('Lỗi mạng: Tranh chấp vé. Ghế này vừa được một người khác đặt chớp nhoáng trước bạn!');
       }
@@ -186,109 +186,109 @@ export class TicketService {
 
     try {
       return await this.dataSource.transaction(async (manager) => {
-      // Validate Promotion if provided
-      let validatedPromotionId: number | null = null;
-      let validatedDiscountAmount = 0;
+        // Validate Promotion if provided
+        let validatedPromotionId: number | null = null;
+        let validatedDiscountAmount = 0;
 
-      if (promotionId) {
-        const promotion = await this.promotionsRepo.findById(promotionId);
-        if (!promotion) throw new BadRequestException('Mã khuyến mãi không tồn tại');
+        if (promotionId) {
+          const promotion = await this.promotionsRepo.findById(promotionId);
+          if (!promotion) throw new BadRequestException('Mã khuyến mãi không tồn tại');
 
-        const baseTotal = dtos.reduce((sum, d) => sum + d.price, 0);
-        const estimatedSurcharge = dtos.length * (firstDto.dropoffPointId != null ? 0 : 150000);
+          const baseTotal = dtos.reduce((sum, d) => sum + d.price, 0);
+          const estimatedSurcharge = dtos.length * (firstDto.dropoffPointId != null ? 0 : 150000);
 
-        const validation = await this.promotionsService.applyPromotion(promotion.code, baseTotal + estimatedSurcharge, firstDto.userId);
-        validatedPromotionId = promotion.id;
-        validatedDiscountAmount = validation.discountAmount;
-      }
-
-      const schedule = await this.scheduleRepo.getScheduleById(firstDto.scheduleId);
-      if (!schedule) throw new NotFoundException('Lịch trình không tồn tại');
-
-      // ✅ Sắp xếp dtos theo seatId để tránh Deadlock khi 2 giao dịch mua trùng 2 ghế nhưng nghịch thứ tự
-      const sortedDtos = [...dtos].sort((a, b) => a.seatId - b.seatId);
-
-
-
-      // Calculate Surcharge based on First Ticket (Unified Dropoff)
-      let surcharge = 0;
-      let finalDropoffPointId: number | undefined = undefined;
-      let finalDropoffAddress: string | undefined = undefined;
-
-      if (firstDto.dropoffPointId != null) {
-        finalDropoffPointId = firstDto.dropoffPointId;
-        surcharge = 0;
-      } else if (firstDto.dropoffAddress && firstDto.dropoffAddress.trim() !== '') {
-        surcharge = 150000;
-        finalDropoffAddress = firstDto.dropoffAddress.trim();
-      }
-
-      // Calculate Base Total and final amount
-      let calculatedTotal = dtos.reduce((sum, d) => sum + d.price, 0) + (surcharge * dtos.length);
-      calculatedTotal = Math.max(0, calculatedTotal - validatedDiscountAmount);
-
-      const paymentGroup = await manager.getRepository(PaymentHistory).save(
-        manager.getRepository(PaymentHistory).create({
-          method: firstDto.paymentMethod || AppPaymentMethod.MOMO,
-          amount: calculatedTotal,
-          status: 'PENDING',
-          promotionId: validatedPromotionId || undefined,
-          discountAmount: validatedDiscountAmount,
-        })
-      ) as PaymentHistory;
-
-      const createdTickets: any[] = [];
-      for (const dto of dtos) {
-        const ticket = await manager.getRepository(Ticket).save(
-          manager.getRepository(Ticket).create({
-            userId: dto.userId,
-            scheduleId: dto.scheduleId,
-            seatId: dto.seatId,
-            price: dto.price,
-            surcharge: surcharge,
-            totalPrice: dto.price + surcharge,
-            status: TicketStatus.BOOKED,
-            paymentMethod: dto.paymentMethod,
-            dropoffPointId: finalDropoffPointId,
-            dropoffAddress: finalDropoffAddress,
-            paymentHistoryId: paymentGroup.id
-          })
-        ) as Ticket;
-        await manager.getRepository(TicketPayment).save(
-          manager.getRepository(TicketPayment).create({ ticketId: ticket.id, paymentId: paymentGroup.id })
-        );
-        createdTickets.push(ticket);
-        
-        // Add timeout jobs
-        await this.ticketQueue.add('hold-expire', { ticketId: ticket.id }, { delay: 15 * 60 * 1000 });
-      }
-
-      let paymentResponse: any = null;
-      const user = await this.userRepo.findById(firstDto.userId);
-
-      if (firstDto.paymentMethod === AppPaymentMethod.ZALOPAY) {
-        const res = await this.zaloPayService.createOrder(paymentGroup.id, calculatedTotal, user?.email || 'unknown@user.com', host);
-        if (res.return_code === 1) {
-          paymentResponse = { payUrl: res.order_url, zpTransToken: res.zp_trans_token, transactionId: res.app_trans_id };
+          const validation = await this.promotionsService.applyPromotion(promotion.code, baseTotal + estimatedSurcharge, firstDto.userId);
+          validatedPromotionId = promotion.id;
+          validatedDiscountAmount = validation.discountAmount;
         }
-      } else if (firstDto.paymentMethod === AppPaymentMethod.VNPAY) {
-        paymentResponse = { payUrl: this.vnpayService.createPaymentUrl(paymentGroup.id, calculatedTotal, '127.0.0.1', host) };
-      } else {
-        paymentResponse = await this.momoService.createPayment(paymentGroup.id, calculatedTotal, 'Thanh toan ve tap the', host);
-      }
 
-      if (paymentResponse?.payUrl) {
-        const updateData: any = { payUrl: paymentResponse.payUrl };
-        if (paymentResponse.transactionId) updateData.transactionId = paymentResponse.transactionId;
-        await manager.getRepository(PaymentHistory).update(paymentGroup.id, updateData);
-      }
+        const schedule = await this.scheduleRepo.getScheduleById(firstDto.scheduleId);
+        if (!schedule) throw new NotFoundException('Lịch trình không tồn tại');
 
-      return {
-        tickets: createdTickets as any[],
-        payment: paymentResponse
-      };
-    });
-    } catch (error) {
+        // Sắp xếp dtos theo seatId để tránh Deadlock khi 2 giao dịch mua trùng 2 ghế nhưng nghịch thứ tự
+        const sortedDtos = [...dtos].sort((a, b) => a.seatId - b.seatId);
+
+
+
+        // Calculate Surcharge based on First Ticket (Unified Dropoff)
+        let surcharge = 0;
+        let finalDropoffPointId: number | undefined = undefined;
+        let finalDropoffAddress: string | undefined = undefined;
+
+        if (firstDto.dropoffPointId != null) {
+          finalDropoffPointId = firstDto.dropoffPointId;
+          surcharge = 0;
+        } else if (firstDto.dropoffAddress && firstDto.dropoffAddress.trim() !== '') {
+          surcharge = 150000;
+          finalDropoffAddress = firstDto.dropoffAddress.trim();
+        }
+
+        // Calculate Base Total and final amount
+        let calculatedTotal = dtos.reduce((sum, d) => sum + d.price, 0) + (surcharge * dtos.length);
+        calculatedTotal = Math.max(0, calculatedTotal - validatedDiscountAmount);
+
+        const paymentGroup = await manager.getRepository(PaymentHistory).save(
+          manager.getRepository(PaymentHistory).create({
+            method: firstDto.paymentMethod || AppPaymentMethod.MOMO,
+            amount: calculatedTotal,
+            status: 'PENDING',
+            promotionId: validatedPromotionId || undefined,
+            discountAmount: validatedDiscountAmount,
+          })
+        ) as PaymentHistory;
+
+        const createdTickets: any[] = [];
+        for (const dto of dtos) {
+          const ticket = await manager.getRepository(Ticket).save(
+            manager.getRepository(Ticket).create({
+              userId: dto.userId,
+              scheduleId: dto.scheduleId,
+              seatId: dto.seatId,
+              price: dto.price,
+              surcharge: surcharge,
+              totalPrice: dto.price + surcharge,
+              status: TicketStatus.BOOKED,
+              paymentMethod: dto.paymentMethod,
+              dropoffPointId: finalDropoffPointId,
+              dropoffAddress: finalDropoffAddress,
+              paymentHistoryId: paymentGroup.id
+            })
+          ) as Ticket;
+          await manager.getRepository(TicketPayment).save(
+            manager.getRepository(TicketPayment).create({ ticketId: ticket.id, paymentId: paymentGroup.id })
+          );
+          createdTickets.push(ticket);
+
+          // Add timeout jobs
+          await this.ticketQueue.add('hold-expire', { ticketId: ticket.id }, { delay: 15 * 60 * 1000 });
+        }
+
+        let paymentResponse: any = null;
+        const user = await this.userRepo.findById(firstDto.userId);
+
+        if (firstDto.paymentMethod === AppPaymentMethod.ZALOPAY) {
+          const res = await this.zaloPayService.createOrder(paymentGroup.id, calculatedTotal, user?.email || 'unknown@user.com', host);
+          if (res.return_code === 1) {
+            paymentResponse = { payUrl: res.order_url, zpTransToken: res.zp_trans_token, transactionId: res.app_trans_id };
+          }
+        } else if (firstDto.paymentMethod === AppPaymentMethod.VNPAY) {
+          paymentResponse = { payUrl: this.vnpayService.createPaymentUrl(paymentGroup.id, calculatedTotal, '127.0.0.1', host) };
+        } else {
+          paymentResponse = await this.momoService.createPayment(paymentGroup.id, calculatedTotal, 'Thanh toan ve tap the', host);
+        }
+
+        if (paymentResponse?.payUrl) {
+          const updateData: any = { payUrl: paymentResponse.payUrl };
+          if (paymentResponse.transactionId) updateData.transactionId = paymentResponse.transactionId;
+          await manager.getRepository(PaymentHistory).update(paymentGroup.id, updateData);
+        }
+
+        return {
+          tickets: createdTickets as any[],
+          payment: paymentResponse
+        };
+      });
+    } catch (error: any) {
       if (error.message && error.message.includes('ORA-20001')) {
         throw new ConflictException('Lỗi mạng: Tranh chấp vé. Một ghế bạn chọn vừa được người khác đặt trước vài giây!');
       }
@@ -501,11 +501,11 @@ export class TicketService {
     try {
       // Query status from ZaloPay Server to be absolutely sure
       const status = await this.zaloPayService.queryStatus(appTransId) as any;
-      
+
       // return_code 1 means SUCCESS
       if (status.return_code === 1) {
         const payment = await this.paymentHistoryRepo.findByTransactionId(appTransId);
-        
+
         if (payment && payment.id) {
           // Update status in DB if not already done by IPN/Callback
           await this.payTicket(payment.id, AppPaymentMethod.ZALOPAY, appTransId);
@@ -515,10 +515,10 @@ export class TicketService {
           return { success: false, message: 'Giao dịch thành công nhưng không tìm thấy thông tin đơn hàng.' };
         }
       }
-      
+
       this.logger.warn(`⚠️ ZaloPay status check failed: ${status.return_message}`);
       return { success: false, message: status.return_message || 'Thanh toán không thành công.' };
-    } catch (e) {
+    } catch (e: any) {
       this.logger.error(`❌ ZaloPay Verification Failed: ${e.message}`);
       return { success: false, message: 'Lỗi xác thực thanh toán.' };
     }
@@ -598,7 +598,7 @@ export class TicketService {
         zp_code: result.return_code,
         is_processing: result.is_processing
       };
-    } catch (e) {
+    } catch (e: any) {
       this.logger.error(`Check ZaloPay Status Failed`, e);
       return { success: false, message: e.message || 'Lỗi kiểm tra trạng thái' };
     }
@@ -606,7 +606,7 @@ export class TicketService {
 
   async getAdminTicketReports(page: number = 1, limit: number = 10, sortBy: string = 'MAVE', sortOrder: 'ASC' | 'DESC' = 'DESC') {
     this.logger.log(`Fetching ticket reports via Oracle View V_TICKET_DETAILS. Page: ${page}, Limit: ${limit}, Sort: ${sortBy} ${sortOrder}`);
-    
+
     // Validate sortBy column name to prevent SQL injection
     const validColumns = ['MAVE', 'TENKH', 'DIENTHOAI', 'DIEMDI', 'DIEMDEN', 'SOGHE', 'THOIGIANKHOIHANH', 'TONGTIEN', 'TRANGTHAI'];
     const safeSortBy = validColumns.includes(sortBy) ? sortBy : 'MAVE';
@@ -637,7 +637,7 @@ export class TicketService {
     const oracledb = require('oracledb');
     this.logger.log(`[ORACLE PROCEDURE INTEGRATION] Searching for: ${date}`);
     const queryRunner = this.dataSource.createQueryRunner();
-    
+
     try {
       await queryRunner.connect();
       const connection = (queryRunner as any).databaseConnection;
@@ -657,10 +657,10 @@ export class TicketService {
         },
         { outFormat: oracledb.OUT_FORMAT_OBJECT }
       );
-      
+
       const resultSet = result.outBinds.ds;
       let procedureRows: any[] = [];
-      
+
       if (resultSet) {
         // Fetch dữ liệu từ cursor
         procedureRows = await resultSet.getRows(1000);
@@ -707,7 +707,7 @@ export class TicketService {
       }));
 
       return enrichedData;
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(`[ORACLE PROCEDURE ERROR] ${error.message}`, error.stack);
       throw error;
     } finally {

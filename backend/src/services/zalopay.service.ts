@@ -84,7 +84,7 @@ export class ZaloPayService {
                 result.data.app_trans_id = order.app_trans_id;
             }
             return result.data;
-        } catch (error) {
+        } catch (error: any) {
             this.logger.error('ZaloPay Create Order Failed', error);
             throw error;
         }
@@ -108,7 +108,7 @@ export class ZaloPayService {
                 } else {
                     this.logger.error(`Payment not found for TransID: ${conversionId}`);
                 }
-            } catch (e) {
+            } catch (e: any) {
                 this.logger.error('Error in TicketService.payTicket', e);
             }
             return { return_code: 1, return_message: 'success' };
@@ -131,7 +131,7 @@ export class ZaloPayService {
             });
             this.logger.log(`ZaloPay Query Result: ${JSON.stringify(result.data)}`);
             return result.data;
-        } catch (error) {
+        } catch (error: any) {
             this.logger.error(`ZaloPay Query Failed: ${error.message}`);
             return { return_code: -1, return_message: 'Query Failed' };
         }

@@ -13,7 +13,7 @@ export class OracleAdvancedService {
     try {
       const result = await this.dataSource.query('SELECT * FROM V_TICKET_DETAILS');
       return result;
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error('Error fetching V_TICKET_DETAILS', error);
       throw error;
     }
@@ -27,7 +27,7 @@ export class OracleAdvancedService {
         [userId]
       );
       return result[0]?.total || 0;
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error('Error fetching F_REVENUE_BY_USER', error);
       throw error;
     }
@@ -67,14 +67,14 @@ export class OracleAdvancedService {
         }
         await resultSet.close();
         return rows;
-      } catch (error) {
+      } catch (error: any) {
          this.logger.error('Error fetching Procedure P_TICKETS_BY_DATE', error);
          throw error;
       } finally {
          if (connection) {
            try {
              await connection.close();
-           } catch (e) {
+           } catch (e: any) {
              this.logger.error(e);
            }
          }
@@ -116,14 +116,14 @@ export class OracleAdvancedService {
         }
         await resultSet.close();
         return rows;
-      } catch (error) {
+      } catch (error: any) {
          this.logger.error('Error fetching PKG_BUSTICKET_UTILS.GET_RECENT_BOOKINGS', error);
          throw error;
       } finally {
          if (connection) {
            try {
              await connection.close();
-           } catch (e) {
+           } catch (e: any) {
              this.logger.error(e);
            }
          }
@@ -135,7 +135,7 @@ export class OracleAdvancedService {
     try {
         const result = await this.dataSource.query('SELECT * FROM "ActionLog" ORDER BY "id" DESC');
         return result;
-    } catch (error) {
+    } catch (error: any) {
         this.logger.error('Error fetching ActionLog', error);
         throw error;
     }

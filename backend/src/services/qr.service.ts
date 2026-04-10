@@ -37,7 +37,7 @@ export class QrService {
 
       this.logger.log(`QR uploaded: ${result.secure_url}`);
       return result.secure_url;
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error('QR generation failed:', error);
       throw error;
     }
@@ -47,7 +47,7 @@ export class QrService {
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
       return { ticketId: decoded.ticketId };
-    } catch (error) {
+    } catch (error: any) {
       this.logger.warn(`Invalid QR token: ${error.message}`);
       return null;
     }
